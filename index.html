@@ -97,27 +97,35 @@
         }
 
         function showEps(data, filter) {
-            grid.innerHTML = '';
-            const filtered = data.filter(r => String(r.fields.shot_name || "").toLowerCase().startsWith(filter));
+    grid.innerHTML = '';
+    // Фильтруем записи по эпизоду
+    const filtered = data.filter(r => {
+        const name = r.fields['shot_name'] || r.fields['Name'] || r.fields['Имя'] || "";
+        return name.toLowerCase().startsWith(filter);
+    });
 
-            filtered.forEach(r => {
-                const f = r.fields;
-                const img = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : 'https://via.placeholder.com/200x112/333/666?text=No+Thumb';
-                
-                grid.innerHTML += `
-                    <div class="card">
-                        <img src="${img}" class="thumb">
-                        <div class="info">
-                            <b>${f.shot_name || 'Shot'}</b><br>
-                            <span style="color:#0a84ff">${f.status || ''}</span>
-                            <a href="${f.preview_url || '#'}" class="btn">PLAY</a>
-                        </div>
-                    </div>
-                `;
-            });
-        }
+    filtered.forEach(r => {
+        const f = r.fields;
+        
+        // Пытаемся найти имя в разных вариантах написания
+        const shotName = f['shot_name'] || f['Name'] || f['Shot Name'] || 'Без имени';
+        
+        // Пытаемся найти картинку (attachment)
+        const attachments = f['thumbnail'] || f['Attachments'] || f['Preview'] || f['Картинка'];
+        const img = (attachments && attachments[0]) ? attachments[0].url : 'https://via.placeholder.com/200x112/333/666?text=No+Image';
+        
+        // Статус
+        const status = f['status'] || f['Status'] || '';
 
-        start();
-    </script>
-</body>
-</html>
+        grid.innerHTML += `
+            <div class="card">
+                <img src="${img}" class="thumb">
+                <div class="info">
+                    <b style="color:white">${shotName}</b><br>
+                    <span style="color:#0a84ff">${status}</span>
+                    <a href="${f['preview_url'] || f['URL'] || '#'}" class="btn">PLAY</a>
+                </div>
+            </div>
+        `;
+    });
+}
