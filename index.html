@@ -3,127 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VFX Pipeline</title>
+    <title>VFX Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: #151515; color: white; margin: 0; padding: 15px; }
-        .tabs { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 20px; }
-        .tab { background: #333; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
-        .tab.active { background: #0088cc; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .card { background: #222; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
-        .thumb { width: 100%; height: 100px; object-fit: cover; background: #000; }
-        .info { padding: 10px; }
-        .btn { display: block; background: #0088cc; color: white; text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; margin-top: 10px; font-size: 12px; }
-        #error-log { color: #ff4444; background: #2b1010; padding: 10px; border-radius: 5px; display: none; margin-bottom: 20px; font-family: monospace; font-size: 12px; }
+        body { font-family: sans-serif; background: #1c1c1c; color: white; padding: 20px; }
+        #debug { color: #ff4444; font-family: monospace; font-size: 12px; border: 1px solid red; padding: 10px; display: none; }
+        .loading { text-align: center; color: #888; margin-top: 50px; }
     </style>
 </head>
 <body>
-
-    <div id="error-log"></div>
-
-    <div id="episode-tabs" class="tabs"></div>
-    <div id="shots-grid" class="grid">
-        <div style="grid-column: 1/3; text-align: center; color: #666;">Загрузка данных...</div>
+    <div id="debug"></div>
+    <div id="app">
+        <div class="loading">Загрузка данных из Airtable...</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // === НАСТРОЙКИ (ПРОВЕРЬ ИХ ЕЩЕ РАЗ) ===
-        const AIRTABLE_API_KEY = 'pat2CKgAkI2qSCJST.7433cdaf2b8905542190c4cf529afbf7fa8fc90753e9186e0de87c20a087e16f'; 
-        const BASE_ID = 'appgiNHAoONgW8Ha6'; 
+        // ПРОВЕРЬ ЭТИ ДАННЫЕ!
+        const API_KEY = 'patBsCg6ofoalEdYD.f2e2d35a2c27f354844e618467ea0f2d0e37700fb0c24783f5b1074ba4fdaa92'; 
+        const BASE_ID = 'appgiNHAoONgW8Ha6';
         const TABLE_NAME = 'Shots'; 
 
-        const log = document.getElementById('error-log');
+        const debugDiv = document.getElementById('debug');
         
-        function showError(msg) {
-            log.style.display = 'block';
-            log.innerHTML += `> ${msg}<br>`;
-            console.error(msg);
+        function logError(err) {
+            debugDiv.style.display = 'block';
+            debugDiv.innerText = "Ошибка: " + err;
         }
 
-        async function loadData() {
+        async function init() {
             try {
-                const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?view=Grid%20view`;
+                const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`;
                 const response = await fetch(url, {
-                    headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
+                    headers: { Authorization: `Bearer ${API_KEY}` }
                 });
 
                 if (!response.ok) {
-                    const txt = await response.text();
-                    showError(`Airtable Error ${response.status}: ${txt}`);
-                    return;
+                    throw new Error(`Airtable вернул ${response.status}. Проверь токен и ID базы.`);
                 }
 
                 const data = await response.json();
-                const records = data.records;
-
-                if (!records || records.length === 0) {
-                    showError("Таблица пуста или n8n еще не создал ни одной записи.");
-                    return;
+                if (data.records.length === 0) {
+                    document.getElementById('app').innerHTML = "База пуста.";
+                } else {
+                    document.getElementById('app').innerHTML = `Найдено записей: ${data.records.length}`;
+                    // Здесь будет логика вкладок и карточек, когда увидим, что связь есть
                 }
 
-                // Проверка названий колонок в первой записи
-                const fields = records[0].fields;
-                if (!fields.shot_name) showError("ОШИБКА: Колонка 'shot_name' не найдена. Проверь регистр!");
-                
-                renderApp(records);
-
-            } catch (err) {
-                showError(`System Error: ${err.message}`);
+            } catch (e) {
+                logError(e.message);
             }
         }
 
-        function renderApp(records) {
-            const tabsContainer = document.getElementById('episode-tabs');
-            const grid = document.getElementById('shots-grid');
-            
-            // 1. Создаем вкладки
-            const episodes = [...new Set(records.map(r => String(r.fields.shot_name || "").substring(0, 4)))].sort();
-            
-            tabsContainer.innerHTML = '';
-            episodes.forEach((ep, index) => {
-                const btn = document.createElement('div');
-                btn.className = `tab ${index === 0 ? 'active' : ''}`;
-                btn.innerText = ep.toUpperCase();
-                btn.onclick = () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    btn.classList.add('active');
-                    displayShots(records, ep);
-                };
-                tabsContainer.appendChild(btn);
-            });
-
-            // 2. Показываем первый эпизод
-            displayShots(records, episodes[0]);
-        }
-
-        function displayShots(records, filter) {
-            const grid = document.getElementById('shots-grid');
-            grid.innerHTML = '';
-
-            const filtered = records.filter(r => String(r.fields.shot_name || "").startsWith(filter));
-
-            filtered.forEach(shot => {
-                const f = shot.fields;
-                const thumb = f.thumbnail && f.thumbnail.length > 0 ? f.thumbnail[0].url : 'https://via.placeholder.com/150x100?text=No+Thumb';
-                
-                grid.innerHTML += `
-                    <div class="card">
-                        <img src="${thumb}" class="thumb">
-                        <div class="info">
-                            <div style="font-weight:bold">${f.shot_name || 'Unnamed'}</div>
-                            <div style="font-size:10px; color:#00ccff">${f.status || 'No Status'}</div>
-                            <a href="${f.preview_url || '#'}" class="btn">VIEW PREVIEW</a>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        loadData();
+        init();
     </script>
 </body>
 </html>
