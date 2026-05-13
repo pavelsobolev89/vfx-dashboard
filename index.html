@@ -3,39 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VFX OS</title>
+    <title>VFX Pipeline OS</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --bg: #1c1c1d; --card: #2c2c2e; --accent: #0a84ff; }
-        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow-x: hidden; }
+        :root { --bg: #1c1c1d; --card: #2c2c2e; --accent: #0a84ff; --text: #ffffff; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding: 0; }
         
-        /* ЭКРАН 1: СПИСОК */
-        #list-view { display: block; padding: 15px; }
-        .tabs { display: flex; gap: 10px; overflow-x: auto; margin-bottom: 15px; padding-bottom: 5px; }
-        .tab { background: var(--card); padding: 8px 16px; border-radius: 15px; font-size: 14px; cursor: pointer; white-space: nowrap; }
-        .tab.active { background: var(--accent); }
+        /* ГЛАВНЫЙ ЭКРАН */
+        #list-view { padding: 15px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; cursor: pointer; }
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #000; }
+        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #000; display: block; }
         .card-info { padding: 10px; font-size: 12px; }
 
-        /* ЭКРАН 2: ДЕТАЛИ ШОТА */
-        #detail-view { display: none; padding: 0; min-height: 100vh; background: var(--bg); }
+        /* ЭКРАН ДЕТАЛЕЙ */
+        #detail-view { display: none; min-height: 100vh; }
         .hero-preview { width: 100%; aspect-ratio: 16/9; background: #000; object-fit: contain; }
         .detail-content { padding: 20px; }
+        .comment-block { background: var(--card); border-radius: 10px; padding: 12px; margin-top: 10px; border-left: 3px solid var(--accent); }
+        .comment-meta { font-size: 11px; color: #8e8e93; margin-bottom: 4px; }
         .version-tag { background: #3a3a3c; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: var(--accent); }
-        .comment-block { background: var(--card); border-radius: 10px; padding: 12px; margin-top: 15px; border-left: 3px solid var(--accent); }
-        .comment-meta { font-size: 11px; color: #8e8e93; margin-bottom: 5px; }
         
-        /* Кнопка действия */
-        .action-btn { background: var(--accent); color: white; text-align: center; padding: 12px; border-radius: 10px; margin-top: 20px; font-weight: 600; cursor: pointer; }
+        .loading { text-align: center; color: #888; padding: 20px; }
     </style>
 </head>
 <body>
 
     <div id="list-view">
-        <div id="tabs-bar" class="tabs"></div>
-        <div id="main-grid" class="grid"></div>
+        <div id="main-grid" class="grid">
+            <div class="loading">Загрузка проектов...</div>
+        </div>
     </div>
 
     <div id="detail-view">
@@ -45,75 +42,98 @@
                 <h2 id="detail-title" style="margin:0;"></h2>
                 <span id="detail-ver" class="version-tag"></span>
             </div>
-            <p id="detail-status" style="color:var(--accent); font-size:14px; margin: 10px 0;"></p>
-            
+            <p id="detail-status" style="color:var(--accent); margin: 10px 0; font-size: 14px;"></p>
             <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
-            
-            <h3>История и комментарии</h3>
-            <div id="comments-list">
-                </div>
-            
-            <div class="action-btn" onclick="alert('Тут будет форма ввода коммента')">ДОБАВИТЬ ПРАВКУ</div>
+            <h3>История правок</h3>
+            <div id="comments-list"></div>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // --- НАСТРОЙКИ (ВСТАВЬ СВОИ ДАННЫЕ) ---
         const TOKEN = 'patBsCg6ofoalEdYD.553cfd245cc80e905db392a808d7b82a52f8cef276a6601493da22552e85867f';
         const BASE = 'appgiNHAoONgW8Ha6';
-        let allShots = [];
 
-        async function loadData() {
-            const resp = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, {
-                headers: { Authorization: `Bearer ${TOKEN}` }
-            });
-            const data = await resp.json();
-            allShots = data.records;
-            renderList();
+        // Загрузка списка шотов
+        async function loadShots() {
+            try {
+                const resp = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, {
+                    headers: { Authorization: `Bearer ${TOKEN}` }
+                });
+                const data = await resp.json();
+                renderGrid(data.records);
+            } catch (e) {
+                console.error("Ошибка сети:", e);
+            }
         }
 
-        function renderList() {
+        function renderGrid(records) {
             const grid = document.getElementById('main-grid');
             grid.innerHTML = '';
-            allShots.forEach(r => {
+            records.forEach(r => {
                 const f = r.fields;
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.onclick = () => openShot(r);
+                card.onclick = () => openShot(r); // Клик открывает детали
                 card.innerHTML = `
                     <img src="${(f.thumbnail && f.thumbnail[0].url) || ''}" class="thumb">
                     <div class="card-info">
                         <b>${f.shot_name || 'Shot'}</b><br>
-                        <span style="color:#8e8e93">${f.status || ''}</span>
+                        <span style="color:#8e8e93">${f.status || 'Draft'}</span>
                     </div>
                 `;
-                grid.innerHTML += card.outerHTML;
+                grid.appendChild(card);
             });
-            // Простая логика вкладок (можешь дописать как в прошлый раз)
         }
 
-        function openShot(record) {
+        // ТА САМАЯ ФУНКЦИЯ ДЛЯ ОТКРЫТИЯ ДЕТАЛЕЙ И КОММЕНТОВ
+        async function openShot(record) {
             const f = record.fields;
-            
-            // 1. Прячем список, показываем детали
+            const shotName = f.shot_name;
+
+            // 1. Переключаем экраны
             document.getElementById('list-view').style.display = 'none';
             document.getElementById('detail-view').style.display = 'block';
 
-            // 2. Заполняем данными
-            document.getElementById('detail-title').innerText = f.shot_name;
-            document.getElementById('detail-status').innerText = f.status;
+            // 2. Заполняем базу
+            document.getElementById('detail-title').innerText = shotName;
+            document.getElementById('detail-status').innerText = f.status || 'Reviewing';
             document.getElementById('detail-ver').innerText = f.version || 'v001';
             document.getElementById('detail-img').src = (f.thumbnail && f.thumbnail[0].url) || '';
 
-            // 3. Подтягиваем комменты (заглушка)
-            document.getElementById('comments-list').innerHTML = `
-                <div class="comment-block">
-                    <div class="comment-meta">Supervisor • 12:40</div>
-                    <div>Нужно поправить трекинг на заднем плане и убрать маску.</div>
-                </div>
-            `;
+            // 3. Грузим комменты
+            const commentsDiv = document.getElementById('comments-list');
+            commentsDiv.innerHTML = '<div class="loading">Ищем правки...</div>';
 
-            // 4. Включаем кнопку НАЗАД в Телеграме
+            try {
+                const filter = encodeURIComponent(`{shot_name}='${shotName}'`);
+                const resp = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}`, {
+                    headers: { Authorization: `Bearer ${TOKEN}` }
+                });
+                const data = await resp.json();
+                
+                commentsDiv.innerHTML = '';
+                if (data.records && data.records.length > 0) {
+                    data.records.forEach(c => {
+                        const cf = c.fields;
+                        commentsDiv.innerHTML += `
+                            <div class="comment-block">
+                                <div class="comment-meta">${cf.author || 'Super'} • ${cf.version || 'v001'}</div>
+                                <div>${cf.text || ''}</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    commentsDiv.innerHTML = '<div style="color:#666">Правок пока нет. Всё чисто!</div>';
+                }
+            } catch (err) {
+                commentsDiv.innerHTML = '<div style="color:red">Ошибка загрузки комментов.</div>';
+            }
+
+            // 4. Показываем кнопку НАЗАД
             tg.BackButton.show();
             tg.BackButton.onClick(() => {
                 document.getElementById('detail-view').style.display = 'none';
@@ -122,8 +142,7 @@
             });
         }
 
-        tg.expand();
-        loadData();
+        loadShots();
     </script>
 </body>
 </html>
