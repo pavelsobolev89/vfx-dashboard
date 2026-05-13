@@ -3,91 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VFX Pipeline Dashboard</title>
+    <title>VFX Pipeline</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: #1c1c1c; color: white; margin: 0; padding: 10px; }
-        /* Стили вкладок */
-        .tabs { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 20px; padding-bottom: 10px; }
-        .tab { background: #333; padding: 8px 20px; border-radius: 20px; cursor: pointer; white-space: nowrap; }
+        body { font-family: sans-serif; background: #151515; color: white; margin: 0; padding: 15px; }
+        .tabs { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 20px; }
+        .tab { background: #333; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
         .tab.active { background: #0088cc; }
-        
-        /* Стили карточек */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .card { background: #2a2a2a; border-radius: 10px; overflow: hidden; border: 1px solid #444; }
+        .card { background: #222; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
         .thumb { width: 100%; height: 100px; object-fit: cover; background: #000; }
-        .info { padding: 10px; font-size: 14px; }
-        .status { font-size: 11px; color: #aaa; text-transform: uppercase; }
-        .btn { display: block; background: #0088cc; color: white; text-align: center; 
-               padding: 8px; margin-top: 10px; text-decoration: none; border-radius: 5px; font-size: 12px; }
+        .info { padding: 10px; }
+        .btn { display: block; background: #0088cc; color: white; text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; margin-top: 10px; font-size: 12px; }
+        #error-log { color: #ff4444; background: #2b1010; padding: 10px; border-radius: 5px; display: none; margin-bottom: 20px; font-family: monospace; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <div id="episode-tabs" class="tabs">
-        </div>
+    <div id="error-log"></div>
 
+    <div id="episode-tabs" class="tabs"></div>
     <div id="shots-grid" class="grid">
-        </div>
+        <div style="grid-column: 1/3; text-align: center; color: #666;">Загрузка данных...</div>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
+        tg.expand();
 
-        const AIRTABLE_API_KEY = 'patBFo3Js2TxYbyxa.a8e57c570761c306adcd18b67649c2c48b2b4017f4ac570d9f9212a16c6ecb28'; // Создай в Airtable (Personal Access Token)
-        const BASE_ID = 'appgiNHAoONgW8Ha6';
-        const TABLE_NAME = 'Table 1';
+        // === НАСТРОЙКИ (ПРОВЕРЬ ИХ ЕЩЕ РАЗ) ===
+        const AIRTABLE_API_KEY = 'pat2CKgAkI2qSCJST.7433cdaf2b8905542190c4cf529afbf7fa8fc90753e9186e0de87c20a087e16f'; 
+        const BASE_ID = 'appgiNHAoONgW8Ha6'; 
+        const TABLE_NAME = 'Table 1'; 
 
-        let allShots = [];
+        const log = document.getElementById('error-log');
+        
+        function showError(msg) {
+            log.style.display = 'block';
+            log.innerHTML += `> ${msg}<br>`;
+            console.error(msg);
+        }
 
         async function loadData() {
-            const url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_NAME}`;
-            const response = await fetch(url, {
-                headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
-            });
-            const data = await response.json();
-            allShots = data.records;
-            
-            createTabs();
-            renderShots('ep01'); // По умолчанию показываем первый эпизод
+            try {
+                const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?view=Grid%20view`;
+                const response = await fetch(url, {
+                    headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
+                });
+
+                if (!response.ok) {
+                    const txt = await response.text();
+                    showError(`Airtable Error ${response.status}: ${txt}`);
+                    return;
+                }
+
+                const data = await response.json();
+                const records = data.records;
+
+                if (!records || records.length === 0) {
+                    showError("Таблица пуста или n8n еще не создал ни одной записи.");
+                    return;
+                }
+
+                // Проверка названий колонок в первой записи
+                const fields = records[0].fields;
+                if (!fields.shot_name) showError("ОШИБКА: Колонка 'shot_name' не найдена. Проверь регистр!");
+                
+                renderApp(records);
+
+            } catch (err) {
+                showError(`System Error: ${err.message}`);
+            }
         }
 
-        function createTabs() {
-            // Вытаскиваем уникальные эпизоды из имен шотов (первые 4 символа: ep01)
-            const episodes = [...new Set(allShots.map(s => s.fields.shot_name.substring(0, 4)))];
-            const container = document.getElementById('episode-tabs');
+        function renderApp(records) {
+            const tabsContainer = document.getElementById('episode-tabs');
+            const grid = document.getElementById('shots-grid');
             
-            episodes.forEach(ep => {
-                const div = document.createElement('div');
-                div.className = 'tab';
-                div.innerText = ep.toUpperCase();
-                div.onclick = () => {
+            // 1. Создаем вкладки
+            const episodes = [...new Set(records.map(r => String(r.fields.shot_name || "").substring(0, 4)))].sort();
+            
+            tabsContainer.innerHTML = '';
+            episodes.forEach((ep, index) => {
+                const btn = document.createElement('div');
+                btn.className = `tab ${index === 0 ? 'active' : ''}`;
+                btn.innerText = ep.toUpperCase();
+                btn.onclick = () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    div.classList.add('active');
-                    renderShots(ep);
+                    btn.classList.add('active');
+                    displayShots(records, ep);
                 };
-                container.appendChild(div);
+                tabsContainer.appendChild(btn);
             });
+
+            // 2. Показываем первый эпизод
+            displayShots(records, episodes[0]);
         }
 
-        function renderShots(filter) {
+        function displayShots(records, filter) {
             const grid = document.getElementById('shots-grid');
             grid.innerHTML = '';
-            
-            const filtered = allShots.filter(s => s.fields.shot_name.startsWith(filter));
-            
+
+            const filtered = records.filter(r => String(r.fields.shot_name || "").startsWith(filter));
+
             filtered.forEach(shot => {
                 const f = shot.fields;
-                // Предполагаем, что тамбнейл — это вложение в Airtable (первое фото)
-                const thumbUrl = f.thumbnail ? f.thumbnail[0].url : '';
+                const thumb = f.thumbnail && f.thumbnail.length > 0 ? f.thumbnail[0].url : 'https://via.placeholder.com/150x100?text=No+Thumb';
                 
                 grid.innerHTML += `
                     <div class="card">
-                        <img src="${thumbUrl}" class="thumb">
+                        <img src="${thumb}" class="thumb">
                         <div class="info">
-                            <div>${f.shot_name}</div>
-                            <div class="status">${f.status}</div>
-                            <a href="${f.preview_url}" class="btn">WATCH PREVIEW</a>
+                            <div style="font-weight:bold">${f.shot_name || 'Unnamed'}</div>
+                            <div style="font-size:10px; color:#00ccff">${f.status || 'No Status'}</div>
+                            <a href="${f.preview_url || '#'}" class="btn">VIEW PREVIEW</a>
                         </div>
                     </div>
                 `;
