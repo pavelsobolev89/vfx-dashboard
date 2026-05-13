@@ -3,52 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VFX Pipeline Dashboard</title>
+    <title>VFX Pipeline OS</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg: #1c1c1d; --card: #2c2c2e; --accent: #0a84ff; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; padding: 0; }
         
-        /* Navigation Tabs */
+        /* Navigation */
         .tabs-container { position: sticky; top: 0; background: var(--bg); padding: 15px; z-index: 10; border-bottom: 1px solid #333; }
         .tabs { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
-        .tab { background: var(--card); padding: 8px 16px; border-radius: 15px; font-size: 13px; white-space: nowrap; cursor: pointer; transition: 0.2s; }
+        .tab { background: var(--card); padding: 8px 16px; border-radius: 15px; font-size: 13px; white-space: nowrap; cursor: pointer; }
         .tab.active { background: var(--accent); font-weight: bold; }
 
-        /* Main Grid Layout */
+        /* Grid */
         #list-view { padding: 15px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .card { background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid #333; cursor: pointer; }
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #000; }
+        .thumb-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #000; }
         .info { padding: 8px; font-size: 12px; }
 
-        /* Detailed Shot View */
-        #detail-view { display: none; padding: 0; min-height: 100vh; }
-        .hero { width: 100%; aspect-ratio: 16/9; background: #000; object-fit: contain; }
+        /* Detail View Components */
+        #detail-view { display: none; min-height: 100vh; }
+        .hero-media { width: 100%; aspect-ratio: 16/9; background: #000; object-fit: contain; display: none; }
         .content { padding: 20px; }
         .comment { background: var(--card); border-radius: 8px; padding: 12px; margin-top: 10px; border-left: 3px solid var(--accent); font-size: 14px; }
         .comment-meta { font-size: 11px; color: #8e8e93; margin-bottom: 4px; }
-        
-        /* Interface Helpers */
         .back-btn-pc { display: none; background: #333; color: white; padding: 12px; text-align: center; cursor: pointer; margin: 10px; border-radius: 8px; }
-        .status-tag { color: var(--accent); margin-bottom: 15px; font-size: 14px; font-weight: 500; }
     </style>
 </head>
 <body>
 
     <div id="list-view">
-        <div class="tabs-container">
-            <div id="tabs-bar" class="tabs"></div>
-        </div>
-        <div id="main-grid" class="grid">Syncing with Airtable...</div>
+        <div class="tabs-container"><div id="tabs-bar" class="tabs"></div></div>
+        <div id="main-grid" class="grid">Syncing Data...</div>
     </div>
 
     <div id="detail-view">
-        <div id="pc-back" class="back-btn-pc" onclick="closeShot()">← BACK TO DASHBOARD</div>
-        <img id="detail-img" src="" class="hero">
+        <div id="pc-back" class="back-btn-pc" onclick="closeShot()">← BACK TO LIST</div>
+        
+        <video id="detail-video" class="hero-media" muted loop playsinline autoplay onclick="openFullscreen(this)"></video>
+        <img id="detail-img" class="hero-media">
+
         <div class="content">
-            <h2 id="detail-title" style="margin:0 0 5px 0;"></h2>
-            <div id="detail-status" class="status-tag"></div>
+            <h2 id="detail-title" style="margin:0;"></h2>
+            <div id="detail-status" style="color:var(--accent); font-size:14px; margin-top:5px;"></div>
             <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
             <h3>Review History</h3>
             <div id="comments-list"></div>
@@ -59,33 +57,30 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Credentials Management
-        const TOKEN = 'patBsCg6ofoalEdYD.553cfd245cc80e905db392a808d7b82a52f8cef276a6601493da22552e85867f';
+        // --- INSERT YOUR CREDENTIALS HERE ---
+        const TOKEN = 'patBsCg6ofoalEdYD.553cfd245cc80e905db392a808d7b82a52f8cef276a6601493da22552e85867f''; 
         const BASE = 'appgiNHAoONgW8Ha6';
+        const TABLE_SHOTS = 'Shots';
+        const TABLE_COMMS = 'Comments';
 
         let allRecords = [];
 
-        // Main data entry point
+        // Initial sync with Airtable
         async function init() {
             try {
-                const resp = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, {
+                const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_SHOTS}`, {
                     headers: { Authorization: `Bearer ${TOKEN}` }
                 });
                 const data = await resp.json();
                 allRecords = data.records;
                 renderTabs();
-            } catch (e) { 
-                document.getElementById('main-grid').innerText = "API Error: " + e; 
-            }
+            } catch (e) { console.error("Airtable sync error:", e); }
         }
 
-        // Logic for episode-based tabs (e.g., ep01, ep02)
+        // Generate episode tabs
         function renderTabs() {
             const bar = document.getElementById('tabs-bar');
-            const eps = [...new Set(allRecords.map(r => String(r.fields.shot_name || "").substring(0, 4).toLowerCase()))]
-                        .filter(e => e.startsWith('ep'))
-                        .sort();
-            
+            const eps = [...new Set(allRecords.map(r => String(r.fields.shot_name || "").substring(0, 4).toLowerCase()))].filter(e => e.startsWith('ep')).sort();
             bar.innerHTML = '';
             eps.forEach((ep, i) => {
                 const t = document.createElement('div');
@@ -101,7 +96,7 @@
             if(eps.length > 0) renderGrid(eps[0]);
         }
 
-        // Populating the main grid based on active tab
+        // Render main grid with static thumbs
         function renderGrid(filter) {
             const grid = document.getElementById('main-grid');
             grid.innerHTML = '';
@@ -109,22 +104,22 @@
             
             filtered.forEach(r => {
                 const f = r.fields;
-                const img = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
+                const imgUrl = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.onclick = () => openShot(r.id);
                 card.innerHTML = `
-                    <img src="${img}" class="thumb">
+                    <img src="${imgUrl}" class="thumb-img">
                     <div class="info">
                         <b>${f.shot_name || 'Shot'}</b><br>
-                        <span style="color: #8e8e93">${f.status || ''}</span>
+                        <span style="color:#8e8e93">${f.status || ''}</span>
                     </div>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        // Displaying detailed shot information and comments
+        // Handle shot detail logic and media switching
         async function openShot(id) {
             const record = allRecords.find(r => r.id === id);
             const f = record.fields;
@@ -134,52 +129,65 @@
             
             document.getElementById('detail-title').innerText = f.shot_name;
             document.getElementById('detail-status').innerText = f.status || 'In Review';
-            document.getElementById('detail-img').src = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
 
-            // Logic for non-Telegram environments (Desktop Browser)
-            if (!tg.initDataUnsafe.user) { 
-                document.getElementById('pc-back').style.display = 'block'; 
+            const videoFile = (f.preview_file && f.preview_file[0]) ? f.preview_file[0].url : null;
+            const staticThumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
+            const videoElem = document.getElementById('detail-video');
+            const imgElem = document.getElementById('detail-img');
+
+            if (videoFile) {
+                // Show video if n8n has uploaded the attachment
+                videoElem.src = videoFile;
+                videoElem.style.display = 'block';
+                imgElem.style.display = 'none';
+                videoElem.play();
+            } else {
+                // Fallback to image while video is missing/processing
+                imgElem.src = staticThumb;
+                imgElem.style.display = 'block';
+                videoElem.style.display = 'none';
             }
 
+            if (!tg.initDataUnsafe.user) document.getElementById('pc-back').style.display = 'block';
+
+            // Sync comments history
             const cList = document.getElementById('comments-list');
-            cList.innerHTML = '<div style="color:#666">Fetching history...</div>';
-            
+            cList.innerHTML = 'Loading comments...';
             try {
-                // Filtering comments by shot_name via Airtable API
                 const filter = encodeURIComponent(`{shot_name}='${f.shot_name}'`);
-                const cResp = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}`, {
+                const cResp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_COMMS}?filterByFormula=${filter}`, {
                     headers: { Authorization: `Bearer ${TOKEN}` }
                 });
                 const cData = await cResp.json();
-                
                 cList.innerHTML = '';
-                if(cData.records && cData.records.length > 0) {
-                    cData.records.forEach(c => {
-                        const cf = c.fields;
-                        cList.innerHTML += `
-                            <div class="comment">
-                                <div class="comment-meta">${cf.author || 'Supervisor'} • ${cf.version || 'v001'}</div>
-                                <div>${cf.text || ''}</div>
-                            </div>`;
-                    });
-                } else { 
-                    cList.innerHTML = '<div style="color:#666">No feedback entries found.</div>'; 
-                }
-            } catch (err) {
-                cList.innerHTML = '<div style="color:red">Failed to sync comments.</div>';
-            }
+                cData.records.forEach(c => {
+                    const cf = c.fields;
+                    cList.innerHTML += `<div class="comment"><div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}</div>`;
+                });
+            } catch (e) { console.error("Comments error", e); }
 
-            // Telegram UI BackButton handler
             tg.BackButton.show();
             tg.BackButton.onClick(closeShot);
         }
 
-            // Return to main screen
         function closeShot() {
+            const videoElem = document.getElementById('detail-video');
+            videoElem.pause();
+            videoElem.src = ""; // Stop network activity
             document.getElementById('detail-view').style.display = 'none';
             document.getElementById('list-view').style.display = 'block';
             tg.BackButton.hide();
         }
+
+        function openFullscreen(elem) {
+            if (elem.requestFullscreen) elem.requestFullscreen();
+            else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+            elem.controls = true;
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) document.getElementById('detail-video').controls = false;
+        });
 
         init();
     </script>
