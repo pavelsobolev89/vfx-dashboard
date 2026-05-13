@@ -1,137 +1,123 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VFX Pipeline Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VFX Panel</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Основной стиль в темных тонах под Telegram */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-               background: #1c1c1d; color: white; margin: 0; padding: 0; }
-        
-        /* Шапка со вкладками */
-        .tabs-container { position: sticky; top: 0; background: #1c1c1d; padding: 15px; z-index: 10; border-bottom: 1px solid #333; }
-        .tabs { display: flex; overflow-x: auto; gap: 10px; scrollbar-width: none; }
-        .tabs::-webkit-scrollbar { display: none; }
-        .tab { background: #2c2c2e; padding: 8px 20px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 14px; transition: 0.2s; }
-        .tab.active { background: #007aff; color: white; font-weight: bold; }
-
-        /* Сетка карточек */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
-        .card { background: #2c2c2e; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
-        
-        /* Картинка (тамбнейл) */
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #000; }
-        
-        /* Инфо внутри карточки */
-        .card-info { padding: 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .shot-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; }
-        .status-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #3a3a3c; align-self: flex-start; color: #0a84ff; text-transform: uppercase; margin-bottom: 10px; }
-        
-        /* Кнопка */
-        .btn { background: #007aff; color: white; text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 500; }
-        
-        .empty-state { text-align: center; color: #8e8e93; margin-top: 40px; font-size: 14px; }
+        body { background: #1c1c1d; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
+        .tabs { display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 5px; }
+        .tab { background: #2c2c2e; padding: 10px 15px; border-radius: 15px; font-size: 14px; white-space: nowrap; cursor: pointer; }
+        .tab.active { background: #007aff; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: #2c2c2e; border-radius: 10px; overflow: hidden; font-size: 12px; border: 1px solid #333; }
+        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #000; display: block; }
+        .info { padding: 8px; }
+        .btn { display: block; background: #007aff; color: white; text-align: center; padding: 6px; border-radius: 5px; text-decoration: none; margin-top: 8px; }
+        #error-display { color: #ff3b30; font-family: monospace; font-size: 11px; margin-bottom: 20px; background: #2b0c0c; padding: 10px; border-radius: 5px; display: none; }
     </style>
 </head>
 <body>
 
-    <div class="tabs-container">
-        <div id="episode-tabs" class="tabs">
-            </div>
-    </div>
-
-    <div id="shots-grid" class="grid">
-        </div>
+    <div id="error-display"></div>
+    <div id="tabs-bar" class="tabs"></div>
+    <div id="main-grid" class="grid">Загрузка...</div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        // 1. НАСТРОЙКИ (ВСТАВЬ СВОИ ДАННЫЕ В КАВЫЧКИ)
+        const TOKEN = 'patBsCg6ofoalEdYD.553cfd245cc80e905db392a808d7b82a52f8cef276a6601493da22552e85867f';
+        const BASE = 'appgiNHAoONgW8Ha6';
+        const TABLE = 'Shots';
 
-        // ТВОИ ДАННЫЕ (УЖЕ ПРОВЕРЕННЫЕ)
-        const API_KEY = 'patBsCg6ofoalEdYD.f2e2d35a2c27f354844e618467ea0f2d0e37700fb0c24783f5b1074ba4fdaa92'; 
-        const BASE_ID = 'appgiNHAoONgW8Ha6';
-        const TABLE_NAME = 'Shots'; 
+        const errDiv = document.getElementById('error-display');
+        const grid = document.getElementById('main-grid');
 
-        let allRecords = [];
+        // Функция вывода ошибок
+        function fail(msg) {
+            errDiv.style.display = 'block';
+            errDiv.innerHTML += '<div>> ' + msg + '</div>';
+            grid.innerHTML = 'Ошибка загрузки';
+        }
 
-        async function loadDashboard() {
+        // Проверка связи
+        window.onerror = function(m, u, l) { fail('JS Error: ' + m + ' at line ' + l); };
+
+        async function start() {
             try {
-                const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?view=Grid%20view`;
-                const response = await fetch(url, {
-                    headers: { Authorization: `Bearer ${API_KEY}` }
-                });
-                const data = await response.json();
-                allRecords = data.records;
-
-                if (allRecords.length > 0) {
-                    renderTabs();
-                } else {
-                    document.getElementById('shots-grid').innerHTML = '<div class="empty-state">В этой базе пока нет шотов</div>';
+                if (!window.Telegram || !window.Telegram.WebApp) {
+                    fail('Telegram WebApp SDK не найден');
                 }
+                window.Telegram.WebApp.expand();
+
+                const response = await fetch(`https://api.airtable.com/v0/${BASE}/${encodeURIComponent(TABLE)}`, {
+                    headers: { 'Authorization': `Bearer ${TOKEN}` }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    fail('Airtable Error ' + response.status + ': ' + errorText);
+                    return;
+                }
+
+                const data = await response.json();
+                const records = data.records;
+
+                if (!records || records.length === 0) {
+                    grid.innerHTML = 'В таблице нет данных';
+                    return;
+                }
+
+                buildApp(records);
             } catch (e) {
-                console.error("Ошибка загрузки:", e);
+                fail('Критический сбой: ' + e.message);
             }
         }
 
-        function renderTabs() {
-            const tabsContainer = document.getElementById('episode-tabs');
+        function buildApp(data) {
+            const tabsBar = document.getElementById('tabs-bar');
             
-            // Вытаскиваем уникальные эпизоды (первые 4 буквы имени шота, например "ep01")
-            const episodes = [...new Set(allRecords.map(r => {
-                const name = r.fields.shot_name || "";
-                return name.substring(0, 4).toLowerCase();
-            }))].filter(ep => ep.startsWith('ep')).sort();
+            // Получаем эпизоды (первые 4 буквы, например ep01)
+            const eps = [...new Set(data.map(r => String(r.fields.shot_name || "").substring(0, 4).toLowerCase()))].sort();
 
-            tabsContainer.innerHTML = '';
-            episodes.forEach((ep, index) => {
-                const tab = document.createElement('div');
-                tab.className = `tab ${index === 0 ? 'active' : ''}`;
-                tab.innerText = ep.toUpperCase();
-                tab.onclick = () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    renderGrid(ep);
+            tabsBar.innerHTML = '';
+            eps.forEach((name, i) => {
+                const t = document.createElement('div');
+                t.className = 'tab' + (i === 0 ? ' active' : '');
+                t.innerText = name.toUpperCase();
+                t.onclick = () => {
+                    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+                    t.classList.add('active');
+                    showEps(data, name);
                 };
-                tabsContainer.appendChild(tab);
+                tabsBar.appendChild(t);
             });
 
-            // Показываем по умолчанию первый эпизод
-            if (episodes.length > 0) renderGrid(episodes[0]);
+            showEps(data, eps[0]);
         }
 
-        function renderGrid(episodeFilter) {
-            const grid = document.getElementById('shots-grid');
+        function showEps(data, filter) {
             grid.innerHTML = '';
+            const filtered = data.filter(r => String(r.fields.shot_name || "").toLowerCase().startsWith(filter));
 
-            const filtered = allRecords.filter(r => {
-                const name = r.fields.shot_name || "";
-                return name.toLowerCase().startsWith(episodeFilter);
-            });
-
-            filtered.forEach(record => {
-                const f = record.fields;
-                // Проверяем наличие тамбнейла (поле должно называться thumbnail)
-                const thumbUrl = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : 'https://via.placeholder.com/300x169/2c2c2e/8e8e93?text=No+Preview';
+            filtered.forEach(r => {
+                const f = r.fields;
+                const img = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : 'https://via.placeholder.com/200x112/333/666?text=No+Thumb';
                 
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <img src="${thumbUrl}" class="thumb">
-                    <div class="card-info">
-                        <div>
-                            <div class="shot-name">${f.shot_name || 'Unnamed'}</div>
-                            <div class="status-badge">${f.status || 'Draft'}</div>
+                grid.innerHTML += `
+                    <div class="card">
+                        <img src="${img}" class="thumb">
+                        <div class="info">
+                            <b>${f.shot_name || 'Shot'}</b><br>
+                            <span style="color:#0a84ff">${f.status || ''}</span>
+                            <a href="${f.preview_url || '#'}" class="btn">PLAY</a>
                         </div>
-                        <a href="${f.preview_url || '#'}" class="btn">WATCH</a>
                     </div>
                 `;
-                grid.innerHTML += card.outerHTML;
             });
         }
 
-        loadDashboard();
+        start();
     </script>
 </body>
 </html>
