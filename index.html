@@ -1,50 +1,56 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VFX Pipeline OS</title>
+    <title>VFX Pipeline Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --bg: #1c1c1d; --card: #2c2c2e; --accent: #0a84ff; --text: #ffffff; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding: 0; }
+        :root { --bg: #1c1c1d; --card: #2c2c2e; --accent: #0a84ff; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; padding: 0; }
         
-        /* ГЛАВНЫЙ ЭКРАН */
-        #list-view { padding: 15px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; cursor: pointer; }
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #000; display: block; }
-        .card-info { padding: 10px; font-size: 12px; }
+        /* Navigation Tabs */
+        .tabs-container { position: sticky; top: 0; background: var(--bg); padding: 15px; z-index: 10; border-bottom: 1px solid #333; }
+        .tabs { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+        .tab { background: var(--card); padding: 8px 16px; border-radius: 15px; font-size: 13px; white-space: nowrap; cursor: pointer; transition: 0.2s; }
+        .tab.active { background: var(--accent); font-weight: bold; }
 
-        /* ЭКРАН ДЕТАЛЕЙ */
-        #detail-view { display: none; min-height: 100vh; }
-        .hero-preview { width: 100%; aspect-ratio: 16/9; background: #000; object-fit: contain; }
-        .detail-content { padding: 20px; }
-        .comment-block { background: var(--card); border-radius: 10px; padding: 12px; margin-top: 10px; border-left: 3px solid var(--accent); }
+        /* Main Grid Layout */
+        #list-view { padding: 15px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid #333; cursor: pointer; }
+        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #000; }
+        .info { padding: 8px; font-size: 12px; }
+
+        /* Detailed Shot View */
+        #detail-view { display: none; padding: 0; min-height: 100vh; }
+        .hero { width: 100%; aspect-ratio: 16/9; background: #000; object-fit: contain; }
+        .content { padding: 20px; }
+        .comment { background: var(--card); border-radius: 8px; padding: 12px; margin-top: 10px; border-left: 3px solid var(--accent); font-size: 14px; }
         .comment-meta { font-size: 11px; color: #8e8e93; margin-bottom: 4px; }
-        .version-tag { background: #3a3a3c; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: var(--accent); }
         
-        .loading { text-align: center; color: #888; padding: 20px; }
+        /* Interface Helpers */
+        .back-btn-pc { display: none; background: #333; color: white; padding: 12px; text-align: center; cursor: pointer; margin: 10px; border-radius: 8px; }
+        .status-tag { color: var(--accent); margin-bottom: 15px; font-size: 14px; font-weight: 500; }
     </style>
 </head>
 <body>
 
     <div id="list-view">
-        <div id="main-grid" class="grid">
-            <div class="loading">Загрузка проектов...</div>
+        <div class="tabs-container">
+            <div id="tabs-bar" class="tabs"></div>
         </div>
+        <div id="main-grid" class="grid">Syncing with Airtable...</div>
     </div>
 
     <div id="detail-view">
-        <img id="detail-img" src="" class="hero-preview">
-        <div class="detail-content">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2 id="detail-title" style="margin:0;"></h2>
-                <span id="detail-ver" class="version-tag"></span>
-            </div>
-            <p id="detail-status" style="color:var(--accent); margin: 10px 0; font-size: 14px;"></p>
+        <div id="pc-back" class="back-btn-pc" onclick="closeShot()">← BACK TO DASHBOARD</div>
+        <img id="detail-img" src="" class="hero">
+        <div class="content">
+            <h2 id="detail-title" style="margin:0 0 5px 0;"></h2>
+            <div id="detail-status" class="status-tag"></div>
             <hr style="border:0; border-top:1px solid #333; margin: 20px 0;">
-            <h3>История правок</h3>
+            <h3>Review History</h3>
             <div id="comments-list"></div>
         </div>
     </div>
@@ -53,96 +59,129 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- НАСТРОЙКИ (ВСТАВЬ СВОИ ДАННЫЕ) ---
+        // Credentials Management
         const TOKEN = 'patBsCg6ofoalEdYD.553cfd245cc80e905db392a808d7b82a52f8cef276a6601493da22552e85867f';
         const BASE = 'appgiNHAoONgW8Ha6';
 
-        // Загрузка списка шотов
-        async function loadShots() {
+        let allRecords = [];
+
+        // Main data entry point
+        async function init() {
             try {
                 const resp = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, {
                     headers: { Authorization: `Bearer ${TOKEN}` }
                 });
                 const data = await resp.json();
-                renderGrid(data.records);
-            } catch (e) {
-                console.error("Ошибка сети:", e);
+                allRecords = data.records;
+                renderTabs();
+            } catch (e) { 
+                document.getElementById('main-grid').innerText = "API Error: " + e; 
             }
         }
 
-        function renderGrid(records) {
+        // Logic for episode-based tabs (e.g., ep01, ep02)
+        function renderTabs() {
+            const bar = document.getElementById('tabs-bar');
+            const eps = [...new Set(allRecords.map(r => String(r.fields.shot_name || "").substring(0, 4).toLowerCase()))]
+                        .filter(e => e.startsWith('ep'))
+                        .sort();
+            
+            bar.innerHTML = '';
+            eps.forEach((ep, i) => {
+                const t = document.createElement('div');
+                t.className = 'tab' + (i === 0 ? ' active' : '');
+                t.innerText = ep.toUpperCase();
+                t.onclick = () => {
+                    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+                    t.classList.add('active');
+                    renderGrid(ep);
+                };
+                bar.appendChild(t);
+            });
+            if(eps.length > 0) renderGrid(eps[0]);
+        }
+
+        // Populating the main grid based on active tab
+        function renderGrid(filter) {
             const grid = document.getElementById('main-grid');
             grid.innerHTML = '';
-            records.forEach(r => {
+            const filtered = allRecords.filter(r => String(r.fields.shot_name || "").toLowerCase().startsWith(filter));
+            
+            filtered.forEach(r => {
                 const f = r.fields;
+                const img = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.onclick = () => openShot(r); // Клик открывает детали
+                card.onclick = () => openShot(r.id);
                 card.innerHTML = `
-                    <img src="${(f.thumbnail && f.thumbnail[0].url) || ''}" class="thumb">
-                    <div class="card-info">
+                    <img src="${img}" class="thumb">
+                    <div class="info">
                         <b>${f.shot_name || 'Shot'}</b><br>
-                        <span style="color:#8e8e93">${f.status || 'Draft'}</span>
+                        <span style="color: #8e8e93">${f.status || ''}</span>
                     </div>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        // ТА САМАЯ ФУНКЦИЯ ДЛЯ ОТКРЫТИЯ ДЕТАЛЕЙ И КОММЕНТОВ
-        async function openShot(record) {
+        // Displaying detailed shot information and comments
+        async function openShot(id) {
+            const record = allRecords.find(r => r.id === id);
             const f = record.fields;
-            const shotName = f.shot_name;
 
-            // 1. Переключаем экраны
             document.getElementById('list-view').style.display = 'none';
             document.getElementById('detail-view').style.display = 'block';
+            
+            document.getElementById('detail-title').innerText = f.shot_name;
+            document.getElementById('detail-status').innerText = f.status || 'In Review';
+            document.getElementById('detail-img').src = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
 
-            // 2. Заполняем базу
-            document.getElementById('detail-title').innerText = shotName;
-            document.getElementById('detail-status').innerText = f.status || 'Reviewing';
-            document.getElementById('detail-ver').innerText = f.version || 'v001';
-            document.getElementById('detail-img').src = (f.thumbnail && f.thumbnail[0].url) || '';
-
-            // 3. Грузим комменты
-            const commentsDiv = document.getElementById('comments-list');
-            commentsDiv.innerHTML = '<div class="loading">Ищем правки...</div>';
-
-            try {
-                const filter = encodeURIComponent(`{shot_name}='${shotName}'`);
-                const resp = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}`, {
-                    headers: { Authorization: `Bearer ${TOKEN}` }
-                });
-                const data = await resp.json();
-                
-                commentsDiv.innerHTML = '';
-                if (data.records && data.records.length > 0) {
-                    data.records.forEach(c => {
-                        const cf = c.fields;
-                        commentsDiv.innerHTML += `
-                            <div class="comment-block">
-                                <div class="comment-meta">${cf.author || 'Super'} • ${cf.version || 'v001'}</div>
-                                <div>${cf.text || ''}</div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    commentsDiv.innerHTML = '<div style="color:#666">Правок пока нет. Всё чисто!</div>';
-                }
-            } catch (err) {
-                commentsDiv.innerHTML = '<div style="color:red">Ошибка загрузки комментов.</div>';
+            // Logic for non-Telegram environments (Desktop Browser)
+            if (!tg.initDataUnsafe.user) { 
+                document.getElementById('pc-back').style.display = 'block'; 
             }
 
-            // 4. Показываем кнопку НАЗАД
+            const cList = document.getElementById('comments-list');
+            cList.innerHTML = '<div style="color:#666">Fetching history...</div>';
+            
+            try {
+                // Filtering comments by shot_name via Airtable API
+                const filter = encodeURIComponent(`{shot_name}='${f.shot_name}'`);
+                const cResp = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}`, {
+                    headers: { Authorization: `Bearer ${TOKEN}` }
+                });
+                const cData = await cResp.json();
+                
+                cList.innerHTML = '';
+                if(cData.records && cData.records.length > 0) {
+                    cData.records.forEach(c => {
+                        const cf = c.fields;
+                        cList.innerHTML += `
+                            <div class="comment">
+                                <div class="comment-meta">${cf.author || 'Supervisor'} • ${cf.version || 'v001'}</div>
+                                <div>${cf.text || ''}</div>
+                            </div>`;
+                    });
+                } else { 
+                    cList.innerHTML = '<div style="color:#666">No feedback entries found.</div>'; 
+                }
+            } catch (err) {
+                cList.innerHTML = '<div style="color:red">Failed to sync comments.</div>';
+            }
+
+            // Telegram UI BackButton handler
             tg.BackButton.show();
-            tg.BackButton.onClick(() => {
-                document.getElementById('detail-view').style.display = 'none';
-                document.getElementById('list-view').style.display = 'block';
-                tg.BackButton.hide();
-            });
+            tg.BackButton.onClick(closeShot);
         }
 
-        loadShots();
+            // Return to main screen
+        function closeShot() {
+            document.getElementById('detail-view').style.display = 'none';
+            document.getElementById('list-view').style.display = 'block';
+            tg.BackButton.hide();
+        }
+
+        init();
     </script>
 </body>
 </html>
