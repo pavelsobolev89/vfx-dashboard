@@ -1,74 +1,178 @@
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
 
-    const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
-    const BASE = 'appgiNHAoONgW8Ha6';
-    const TABLE = 'Shots';
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VFX Dashboard</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #000; color: #fff; margin: 0; padding: 0; }
+        #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 10px; border-bottom: 1px solid #333; sticky; top: 0; background: #000; z-index: 10; }
+        .tab { padding: 8px 16px; background: #1c1c1e; border-radius: 15px; font-size: 14px; white-space: nowrap; cursor: pointer; }
+        .tab.active { background: #007aff; color: #fff; }
+        #main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; cursor: pointer; }
+        .thumb-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #2c2c2e; }
+        .info { padding: 8px; font-size: 13px; }
+        #detail-view { display: none; padding: 15px; }
+        video, img#detail-img { width: 100%; border-radius: 12px; background: #000; margin-bottom: 15px; }
+        .comment { background: #1c1c1e; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+        .comment-meta { font-size: 11px; color: #8e8e93; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
 
-    async function loadData() {
-        const grid = document.getElementById('main-grid');
-        grid.innerText = "Connecting to Airtable...";
-        try {
-            const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLE;
-            const response = await fetch(url, {
-                headers: { "Authorization": "Bearer " + TOKEN }
-            });
-            const data = await response.json();
-            if (!data.records) {
-                grid.innerText = "Airtable Error: " + (data.error ? data.error.message : "Unknown");
-                return;
+    <div id="list-view">
+        <div id="tabs-bar"></div>
+        <div id="main-grid">Syncing Data...</div>
+    </div>
+
+    <div id="detail-view">
+        <video id="detail-video" controls playsinline></video>
+        <img id="detail-img" style="display:none;">
+        <h2 id="detail-title" style="margin: 10px 0 5px 0;"></h2>
+        <div id="detail-status" style="color:#8e8e93; margin-bottom: 20px;"></div>
+        <div id="comments-list"></div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
+        const BASE = 'appgiNHAoONgW8Ha6';
+        const TABLE_SHOTS = 'Shots';
+        const TABLE_COMMS = 'Comments';
+
+        let allRecords = [];
+
+        async function init() {
+            const grid = document.getElementById('main-grid');
+            try {
+                const resp = await fetch("https://api.airtable.com/v0/" + BASE + "/" + TABLE_SHOTS, {
+                    headers: { Authorization: "Bearer " + TOKEN }
+                });
+                const data = await resp.json();
+                
+                if (!data.records) {
+                    grid.innerText = "Check Airtable Access";
+                    return;
+                }
+
+                allRecords = data.records;
+                renderTabs();
+            } catch (e) {
+                grid.innerText = "Connection Error: " + e.message;
             }
-            grid.innerHTML = "";
-            data.records.forEach(function(r) {
+        }
+
+        function renderTabs() {
+            const bar = document.getElementById('tabs-bar');
+            const eps = [...new Set(allRecords.map(r => {
+                const name = r.fields.shot_name || "";
+                return name.toString().substring(0, 4).toLowerCase();
+            }))].filter(e => e.startsWith('ep')).sort();
+            
+            bar.innerHTML = '';
+            eps.forEach((ep, i) => {
+                const t = document.createElement('div');
+                t.className = 'tab' + (i === 0 ? ' active' : '');
+                t.innerText = ep.toUpperCase();
+                t.onclick = () => {
+                    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+                    t.classList.add('active');
+                    renderGrid(ep);
+                };
+                bar.appendChild(t);
+            });
+            if(eps.length > 0) renderGrid(eps[0]);
+        }
+
+        function renderGrid(filter) {
+            const grid = document.getElementById('main-grid');
+            grid.innerHTML = '';
+            const filtered = allRecords.filter(r => {
+                const name = r.fields.shot_name || "";
+                return name.toString().toLowerCase().startsWith(filter);
+            });
+
+            filtered.forEach(r => {
                 const f = r.fields;
+                const thumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.onclick = function() { openShot(r); };
-                const thumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : "";
-                card.innerHTML = '<img src="' + thumb + '" style="width:100%; border-radius:8px;">' +
-                                 '<div style="padding:10px;"><b>' + (f.shot_name || "Unnamed") + '</b><br>' +
-                                 '<span style="font-size:12px; color:#888;">' + (f.status || "") + '</span></div>';
+                card.onclick = () => openShot(r.id);
+                card.innerHTML = '<img src="' + thumb + '" class="thumb-img">' +
+                                '<div class="info"><b>' + (f.shot_name || 'Unnamed') + '</b><br>' +
+                                '<span style="color:#8e8e93">' + (f.status || '') + '</span></div>';
                 grid.appendChild(card);
             });
-        } catch (e) {
-            grid.innerText = "JS Error: " + e.message;
-        }
-    }
-
-    function openShot(record) {
-        const f = record.fields;
-        document.getElementById('list-view').style.display = 'none';
-        const detail = document.getElementById('detail-view');
-        detail.style.display = 'block';
-        document.getElementById('detail-title').innerText = f.shot_name || "Shot";
-        const v = document.getElementById('detail-video');
-        const img = document.getElementById('detail-img');
-        
-        let videoUrl = "";
-        if (f.preview_file2) {
-            videoUrl = Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2;
         }
 
-        if (videoUrl) {
-            v.src = videoUrl;
-            v.style.display = 'block';
-            img.style.display = 'none';
-            v.play().catch(function(){});
-        } else {
-            v.style.display = 'none';
-            img.style.display = 'block';
-            img.src = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : "";
+        async function openShot(id) {
+            const record = allRecords.find(r => r.id === id);
+            const f = record.fields;
+
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('detail-view').style.display = 'block';
+            document.getElementById('detail-title').innerText = f.shot_name || '';
+            document.getElementById('detail-status').innerText = f.status || '';
+
+            let vid = "";
+            if (f.preview_file2) {
+                vid = Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2;
+            }
+
+            const vElem = document.getElementById('detail-video');
+            const iElem = document.getElementById('detail-img');
+
+            if (vid) {
+                vElem.src = vid;
+                vElem.style.display = 'block';
+                iElem.style.display = 'none';
+                vElem.play().catch(() => {});
+            } else {
+                iElem.src = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
+                iElem.style.display = 'block';
+                vElem.style.display = 'none';
+            }
+
+            // Загрузка комментов
+            const cList = document.getElementById('comments-list');
+            cList.innerHTML = 'Loading history...';
+            try {
+                const formula = encodeURIComponent("{shot_name}='" + f.shot_name + "'");
+                const cResp = await fetch("https://api.airtable.com/v0/" + BASE + "/" + TABLE_COMMS + "?filterByFormula=" + formula, {
+                    headers: { Authorization: "Bearer " + TOKEN }
+                });
+                const cData = await cResp.json();
+                cList.innerHTML = '';
+                if (cData.records) {
+                    cData.records.forEach(c => {
+                        const cf = c.fields;
+                        const d = document.createElement('div');
+                        d.className = 'comment';
+                        d.innerHTML = '<div class="comment-meta">' + (cf.author || 'Super') + '</div>' + (cf.text || '');
+                        cList.appendChild(d);
+                    });
+                }
+            } catch (e) { cList.innerText = 'No history'; }
+
+            tg.BackButton.show();
+            tg.BackButton.onClick(closeShot);
         }
 
-        tg.BackButton.show();
-        tg.BackButton.onClick(function() {
-            v.pause();
-            detail.style.display = 'none';
+        function closeShot() {
+            const v = document.getElementById('detail-video');
+            v.pause(); v.src = "";
+            document.getElementById('detail-view').style.display = 'none';
             document.getElementById('list-view').style.display = 'block';
             tg.BackButton.hide();
-        });
-    }
+        }
 
-    loadData();
-</script>
+        init();
+    </script>
+</body>
+</html>
+
