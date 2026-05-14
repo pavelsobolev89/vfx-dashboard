@@ -1,139 +1,74 @@
-const tg = window.Telegram.WebApp;
-tg.expand();
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
-const BASE = 'appgiNHAoONgW8Ha6';
-const TABLE_SHOTS = 'Shots';
-const TABLE_COMMS = 'Comments';
+    const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
+    const BASE = 'appgiNHAoONgW8Ha6';
+    const TABLE = 'Shots';
 
-let allRecords = [];
-
-async function init() {
-    const grid = document.getElementById('main-grid');
-    try {
-        const resp = await fetch("https://api.airtable.com/v0/" + BASE + "/" + TABLE_SHOTS, {
-            headers: { Authorization: "Bearer " + TOKEN }
-        });
-        const data = await resp.json();
-        if (!data.records) {
-            grid.innerText = "Error: Check Airtable Token/Base ID";
-            return;
-        }
-        allRecords = data.records;
-        renderTabs();
-    } catch (e) {
-        grid.innerText = "Connection Error";
-        console.error(e);
-    }
-}
-
-function renderTabs() {
-    const bar = document.getElementById('tabs-bar');
-    const eps = [...new Set(allRecords.map(r => {
-        const name = r.fields.shot_name || "";
-        return name.toString().substring(0, 4).toLowerCase();
-    }))].filter(e => e.startsWith('ep')).sort();
-    
-    bar.innerHTML = '';
-    eps.forEach((ep, i) => {
-        const t = document.createElement('div');
-        t.className = 'tab' + (i === 0 ? ' active' : '');
-        t.innerText = ep.toUpperCase();
-        t.onclick = () => {
-            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-            t.classList.add('active');
-            renderGrid(ep);
-        };
-        bar.appendChild(t);
-    });
-    if(eps.length > 0) renderGrid(eps[0]);
-}
-
-function renderGrid(filter) {
-    const grid = document.getElementById('main-grid');
-    grid.innerHTML = '';
-    const filtered = allRecords.filter(r => {
-        const name = r.fields.shot_name || "";
-        return name.toString().toLowerCase().startsWith(filter);
-    });
-
-    filtered.forEach(r => {
-        const f = r.fields;
-        const imgUrl = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.onclick = () => openShot(r.id);
-        // Безопасная сборка карточки
-        card.innerHTML = '<img src="' + imgUrl + '" class="thumb-img">' +
-                        '<div class="info"><b>' + (f.shot_name || 'Unnamed') + '</b><br>' +
-                        '<span style="color:#8e8e93">' + (f.status || '') + '</span></div>';
-        grid.appendChild(card);
-    });
-}
-
-async function openShot(id) {
-    const record = allRecords.find(r => r.id === id);
-    if (!record) return;
-    const f = record.fields;
-
-    document.getElementById('list-view').style.display = 'none';
-    document.getElementById('detail-view').style.display = 'block';
-    document.getElementById('detail-title').innerText = f.shot_name || 'Shot';
-    document.getElementById('detail-status').innerText = f.status || '';
-
-    let videoFile = null;
-    if (f.preview_file2) {
-        videoFile = Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2;
-    }
-
-    const videoElem = document.getElementById('detail-video');
-    const imgElem = document.getElementById('detail-img');
-    const thumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
-
-    if (videoFile && typeof videoFile === 'string' && videoFile.length > 5) {
-        videoElem.src = videoFile;
-        videoElem.style.display = 'block';
-        imgElem.style.display = 'none';
-        videoElem.play().catch(() => {});
-    } else {
-        imgElem.src = thumb;
-        imgElem.style.display = 'block';
-        videoElem.style.display = 'none';
-    }
-
-    const cList = document.getElementById('comments-list');
-    cList.innerHTML = 'Loading comments...';
-    
-    try {
-        const filter = encodeURIComponent("{shot_name}='" + f.shot_name + "'");
-        const cResp = await fetch("https://api.airtable.com/v0/" + BASE + "/" + TABLE_COMMS + "?filterByFormula=" + filter, {
-            headers: { Authorization: "Bearer " + TOKEN }
-        });
-        const cData = await cResp.json();
-        cList.innerHTML = '';
-        if (cData.records) {
-            cData.records.forEach(c => {
-                const cf = c.fields;
-                const div = document.createElement('div');
-                div.className = 'comment';
-                div.innerHTML = '<div class="comment-meta">' + (cf.author || 'Super') + '</div>' + (cf.text || '');
-                cList.appendChild(div);
+    async function loadData() {
+        const grid = document.getElementById('main-grid');
+        grid.innerText = "Connecting to Airtable...";
+        try {
+            const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLE;
+            const response = await fetch(url, {
+                headers: { "Authorization": "Bearer " + TOKEN }
             });
+            const data = await response.json();
+            if (!data.records) {
+                grid.innerText = "Airtable Error: " + (data.error ? data.error.message : "Unknown");
+                return;
+            }
+            grid.innerHTML = "";
+            data.records.forEach(function(r) {
+                const f = r.fields;
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = function() { openShot(r); };
+                const thumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : "";
+                card.innerHTML = '<img src="' + thumb + '" style="width:100%; border-radius:8px;">' +
+                                 '<div style="padding:10px;"><b>' + (f.shot_name || "Unnamed") + '</b><br>' +
+                                 '<span style="font-size:12px; color:#888;">' + (f.status || "") + '</span></div>';
+                grid.appendChild(card);
+            });
+        } catch (e) {
+            grid.innerText = "JS Error: " + e.message;
         }
-    } catch (e) {
-        cList.innerText = 'Error loading history';
     }
 
-    tg.BackButton.show();
-    tg.BackButton.onClick(closeShot);
-}
+    function openShot(record) {
+        const f = record.fields;
+        document.getElementById('list-view').style.display = 'none';
+        const detail = document.getElementById('detail-view');
+        detail.style.display = 'block';
+        document.getElementById('detail-title').innerText = f.shot_name || "Shot";
+        const v = document.getElementById('detail-video');
+        const img = document.getElementById('detail-img');
+        
+        let videoUrl = "";
+        if (f.preview_file2) {
+            videoUrl = Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2;
+        }
 
-function closeShot() {
-    const v = document.getElementById('detail-video');
-    if (v) { v.pause(); v.src = ""; }
-    document.getElementById('detail-view').style.display = 'none';
-    document.getElementById('list-view').style.display = 'block';
-    tg.BackButton.hide();
-}
+        if (videoUrl) {
+            v.src = videoUrl;
+            v.style.display = 'block';
+            img.style.display = 'none';
+            v.play().catch(function(){});
+        } else {
+            v.style.display = 'none';
+            img.style.display = 'block';
+            img.src = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : "";
+        }
 
-init();
+        tg.BackButton.show();
+        tg.BackButton.onClick(function() {
+            v.pause();
+            detail.style.display = 'none';
+            document.getElementById('list-view').style.display = 'block';
+            tg.BackButton.hide();
+        });
+    }
+
+    loadData();
+</script>
