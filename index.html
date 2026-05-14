@@ -1,149 +1,145 @@
 const tg = window.Telegram.WebApp;
-    tg.expand();
+tg.expand();
 
-    const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143'; 
-    const BASE = 'appgiNHAoONgW8Ha6';
-    const TABLE_SHOTS = 'Shots';
-    const TABLE_COMMS = 'Comments';
+const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
+const BASE = 'appgiNHAoONgW8Ha6';
+const TABLE_SHOTS = 'Shots';
+const TABLE_COMMS = 'Comments';
 
-    let allRecords = [];
+let allRecords = [];
 
-    async function init() {
-        const grid = document.getElementById('main-grid');
-        try {
-            const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_SHOTS}`, {
-                headers: { Authorization: `Bearer ${TOKEN}` }
+async function init() {
+    const grid = document.getElementById('main-grid');
+    try {
+        const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_SHOTS}`, {
+            headers: { Authorization: `Bearer ${TOKEN}` }
+        });
+        const data = await resp.json();
+        if (!data.records) {
+            grid.innerText = "Error: Check Airtable Token/Base ID";
+            return;
+        }
+        allRecords = data.records;
+        renderTabs();
+    } catch (e) {
+        grid.innerText = "Connection Error";
+        console.error(e);
+    }
+}
+
+function renderTabs() {
+    const bar = document.getElementById('tabs-bar');
+    const eps = [...new Set(allRecords.map(r => {
+        const name = r.fields.shot_name || "";
+        return name.toString().substring(0, 4).toLowerCase();
+    }))].filter(e => e.startsWith('ep')).sort();
+    
+    bar.innerHTML = '';
+    eps.forEach((ep, i) => {
+        const t = document.createElement('div');
+        t.className = 'tab' + (i === 0 ? ' active' : '');
+        t.innerText = ep.toUpperCase();
+        t.onclick = () => {
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            t.classList.add('active');
+            renderGrid(ep);
+        };
+        bar.appendChild(t);
+    });
+    if(eps.length > 0) renderGrid(eps[0]);
+    else document.getElementById('main-grid').innerText = "No shots found";
+}
+
+function renderGrid(filter) {
+    const grid = document.getElementById('main-grid');
+    grid.innerHTML = '';
+    const filtered = allRecords.filter(r => {
+        const name = r.fields.shot_name || "";
+        return name.toString().toLowerCase().startsWith(filter);
+    });
+
+    filtered.forEach(r => {
+        const f = r.fields;
+        const imgUrl = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.onclick = () => openShot(r.id);
+        // Исправил верстку карточки, чтобы она не терялась
+        card.innerHTML = `
+            <img src="${imgUrl}" class="thumb-img">
+            <div class="info">
+                <b>${f.shot_name || 'Unnamed'}</b><br>
+                <span style="color:#8e8e93">${f.status || ''}</span>
+            </div>`;
+        grid.appendChild(card);
+    });
+}
+
+async function openShot(id) {
+    const record = allRecords.find(r => r.id === id);
+    if (!record) return;
+    const f = record.fields;
+
+    document.getElementById('list-view').style.display = 'none';
+    document.getElementById('detail-view').style.display = 'block';
+    document.getElementById('detail-title').innerText = f.shot_name || 'Shot';
+    document.getElementById('detail-status').innerText = f.status || '';
+
+    let videoFile = null;
+    if (f.preview_file2) {
+        videoFile = Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2;
+    }
+
+    const staticThumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
+    const videoElem = document.getElementById('detail-video');
+    const imgElem = document.getElementById('detail-img');
+
+    if (videoFile && typeof videoFile === 'string' && videoFile.length > 5) {
+        videoElem.src = videoFile;
+        videoElem.style.display = 'block';
+        imgElem.style.display = 'none';
+        videoElem.play().catch(() => {});
+    } else {
+        imgElem.src = staticThumb;
+        imgElem.style.display = 'block';
+        videoElem.style.display = 'none';
+    }
+
+    const cList = document.getElementById('comments-list');
+    cList.innerHTML = 'Loading history...';
+    
+    try {
+        const filter = encodeURIComponent(`{shot_name}='${f.shot_name}'`);
+        const cResp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_COMMS}?filterByFormula=${filter}`, {
+            headers: { Authorization: `Bearer ${TOKEN}` }
+        });
+        const cData = await cResp.json();
+        cList.innerHTML = '';
+        if (cData.records && cData.records.length > 0) {
+            cData.records.forEach(c => {
+                const cf = c.fields;
+                const div = document.createElement('div');
+                div.className = 'comment';
+                div.innerHTML = `<div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}`;
+                cList.appendChild(div);
             });
-            const data = await resp.json();
-            
-            if (!data.records) {
-                grid.innerText = "Error: Check Airtable Token/Base ID";
-                return;
-            }
-
-            allRecords = data.records;
-            renderTabs();
-        } catch (e) { 
-            grid.innerText = "Connection Error";
-            console.error(e);
-        }
-    }
-
-    function renderTabs() {
-        const bar = document.getElementById('tabs-bar');
-        const eps = [...new Set(allRecords.map(r => {
-            const name = r.fields.shot_name || "";
-            return name.toString().substring(0, 4).toLowerCase();
-        }))].filter(e => e.startsWith('ep')).sort();
-        
-        bar.innerHTML = '';
-        eps.forEach((ep, i) => {
-            const t = document.createElement('div');
-            t.className = 'tab' + (i === 0 ? ' active' : '');
-            t.innerText = ep.toUpperCase();
-            t.onclick = () => {
-                document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-                t.classList.add('active');
-                renderGrid(ep);
-            };
-            bar.appendChild(t);
-        });
-        if(eps.length > 0) renderGrid(eps[0]);
-        else document.getElementById('main-grid').innerText = "No shots found";
-    }
-
-    function renderGrid(filter) {
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = '';
-        const filtered = allRecords.filter(r => {
-            const name = r.fields.shot_name || "";
-            return name.toString().toLowerCase().startsWith(filter);
-        });
-        
-        filtered.forEach(r => {
-            const f = r.fields;
-            const imgUrl = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.onclick = () => openShot(r.id);
-            card.innerHTML = `
-                <img src="${imgUrl}" class="thumb-img">
-                <div class="info">
-                    <b>${f.shot_name || 'Unnamed'}</b><br>
-                    <span style="color:#8e8e93">${f.status || ''}</span>
-                </div>
-            `;
-            grid.appendChild(card);
-        });
-    }
-
-    async function openShot(id) {
-        const record = allRecords.find(r => r.id === id);
-        const f = record.fields;
-
-        document.getElementById('list-view').style.display = 'none';
-        document.getElementById('detail-view').style.display = 'block';
-        
-        document.getElementById('detail-title').innerText = f.shot_name || 'Shot';
-        document.getElementById('detail-status').innerText = f.status || '';
-
-        // Работаем с твоим полем preview_file2
-        let videoFile = null;
-        if (f.preview_file2) {
-            videoFile = Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2;
-        }
-
-        const staticThumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
-        const videoElem = document.getElementById('detail-video');
-        const imgElem = document.getElementById('detail-img');
-
-        if (videoFile && typeof videoFile === 'string' && videoFile.length > 5) {
-            videoElem.src = videoFile;
-            videoElem.style.display = 'block';
-            imgElem.style.display = 'none';
-            videoElem.play().catch(() => {});
         } else {
-            imgElem.src = staticThumb;
-            imgElem.style.display = 'block';
-            videoElem.style.display = 'none';
+            cList.innerText = 'No history yet';
         }
-
-        const cList = document.getElementById('comments-list');
-        cList.innerHTML = 'Loading comments...';
-        
-        try {
-            const filter = encodeURIComponent(`{shot_name}='${f.shot_name}'`);
-            const cResp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_COMMS}?filterByFormula=${filter}`, {
-                headers: { Authorization: `Bearer ${TOKEN}` }
-            });
-            const cData = await cResp.json();
-            cList.innerHTML = '';
-            if (cData.records && cData.records.length > 0) {
-                cData.records.forEach(c => {
-                    const cf = c.fields;
-                    const div = document.createElement('div');
-                    div.className = 'comment';
-                    div.innerHTML = `<div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}`;
-                    cList.appendChild(div);
-                });
-            } else {
-                cList.innerText = 'No history yet';
-            }
-        } catch (e) { 
-            cList.innerText = 'Error loading history';
-        }
-
-        tg.BackButton.show();
-        tg.BackButton.onClick(closeShot);
+    } catch (e) {
+        cList.innerText = 'Error loading history';
     }
 
-    function closeShot() {
-        const v = document.getElementById('detail-video');
-        v.pause();
-        v.src = "";
-        document.getElementById('detail-view').style.display = 'none';
-        document.getElementById('list-view').style.display = 'block';
-        tg.BackButton.hide();
-    }
+    tg.BackButton.show();
+    tg.BackButton.onClick(closeShot);
+}
 
-    init();
+function closeShot() {
+    const v = document.getElementById('detail-video');
+    if (v) { v.pause(); v.src = ""; }
+    document.getElementById('detail-view').style.display = 'none';
+    document.getElementById('list-view').style.display = 'block';
+    tg.BackButton.hide();
+}
+
+init();
