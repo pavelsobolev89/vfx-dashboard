@@ -1,7 +1,6 @@
 const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // Вставляй аккуратно, без лишних пробелов в конце
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143'; 
     const BASE = 'appgiNHAoONgW8Ha6';
     const TABLE_SHOTS = 'Shots';
@@ -15,30 +14,18 @@ const tg = window.Telegram.WebApp;
             const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_SHOTS}`, {
                 headers: { Authorization: `Bearer ${TOKEN}` }
             });
-            
-            if (!resp.ok) {
-                const errData = await resp.json();
-                grid.innerHTML = `<div style="color:#ff3b30; padding:20px;">
-                    <b>AIRTABLE ERROR:</b><br>
-                    Status: ${resp.status}<br>
-                    Message: ${errData.error.message}
-                </div>`;
-                return;
-            }
-
             const data = await resp.json();
-            allRecords = data.records || [];
             
-            if (allRecords.length === 0) {
-                grid.innerText = "No records found in Airtable.";
+            if (!data.records) {
+                grid.innerText = "Error: Check Airtable Token/Base ID";
                 return;
             }
 
+            allRecords = data.records;
             renderTabs();
         } catch (e) { 
-            grid.innerHTML = `<div style="color:#ff3b30; padding:20px;">
-                <b>JS CRASH:</b><br>${e.message}
-            </div>`;
+            grid.innerText = "Connection Error";
+            console.error(e);
         }
     }
 
@@ -61,8 +48,8 @@ const tg = window.Telegram.WebApp;
             };
             bar.appendChild(t);
         });
-
         if(eps.length > 0) renderGrid(eps[0]);
+        else document.getElementById('main-grid').innerText = "No shots found";
     }
 
     function renderGrid(filter) {
@@ -96,12 +83,14 @@ const tg = window.Telegram.WebApp;
 
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
+        
         document.getElementById('detail-title').innerText = f.shot_name || 'Shot';
         document.getElementById('detail-status').innerText = f.status || '';
 
+        // Работаем с твоим полем preview_file2
         let videoFile = null;
-        if (f.preview_file) {
-            videoFile = Array.isArray(f.preview_file) ? f.preview_file[0].url : f.preview_file;
+        if (f.preview_file2) {
+            videoFile = Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2;
         }
 
         const staticThumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
@@ -129,7 +118,7 @@ const tg = window.Telegram.WebApp;
             });
             const cData = await cResp.json();
             cList.innerHTML = '';
-            if (cData.records) {
+            if (cData.records && cData.records.length > 0) {
                 cData.records.forEach(c => {
                     const cf = c.fields;
                     const div = document.createElement('div');
@@ -137,8 +126,12 @@ const tg = window.Telegram.WebApp;
                     div.innerHTML = `<div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}`;
                     cList.appendChild(div);
                 });
+            } else {
+                cList.innerText = 'No history yet';
             }
-        } catch (e) { cList.innerText = 'History error'; }
+        } catch (e) { 
+            cList.innerText = 'Error loading history';
+        }
 
         tg.BackButton.show();
         tg.BackButton.onClick(closeShot);
