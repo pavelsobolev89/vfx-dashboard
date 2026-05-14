@@ -1,12 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VFX Dashboard</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: red; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        body { font-family: -apple-system, system-ui; background: #000; color: #fff; margin: 0; padding: 0; }
+        #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 8px; background: #000; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #222; }
+        .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 12px; font-size: 13px; white-space: nowrap; }
+        .tab.active { background: #007aff; }
+        #main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; }
+        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #222; display: block; }
+        .info { padding: 8px; font-size: 12px; }
+        #detail-view { display: none; padding: 10px; }
+        video, #detail-img { width: 100%; border-radius: 10px; background: #000; }
+        .comment { background: #1c1c1e; padding: 8px; border-radius: 8px; margin-top: 8px; font-size: 13px; }
+        .author { font-size: 10px; color: #8e8e93; }
     </style>
 </head>
 <body>
-    <h1>ЕСЛИ ТЫ ЭТО ВИДИШЬ - КОД ОБНОВИЛСЯ</h1>
+
+<div id="list-view">
+    <div id="tabs-bar"></div>
+    <div id="main-grid">Загрузка данных...</div>
+</div>
+
+<div id="detail-view">
+    <video id="detail-video" controls playsinline></video>
+    <img id="detail-img" style="display:none;">
+    <h3 id="detail-title"></h3>
+    <div id="detail-status" style="color:#8e8e93; margin-bottom:15px;"></div>
+    <div id="comments-list"></div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
+    const BASE = 'appgiNHAoONgW8Ha6';
+    const TABLE_SHOTS = 'Shots';
+    const TABLE_COMMS = 'Comments';
+
+    let allRecords = [];
+
+    async function init() {
+        try {
+            const r = await fetch("https://api.airtable.com/v0/"+BASE+"/"+TABLE_SHOTS, {
+                headers: { Authorization: "Bearer " + TOKEN }
+            });
+            const data = await r.json();
+            allRecords = data.records || [];
+            renderTabs();
+        } catch (e) {
+            document.getElementById('main-grid').innerText = "Ошибка сети";
+        }
+    }
+
+    function renderTabs() {
+        const bar = document.getElementById('tabs-bar');
+        const eps = [...new Set(allRecords.map(r => {
+            const n = r.fields.shot_name || "";
+            return n.toString().substring(0, 4).toLowerCase();
+        }))].filter(e => e.startsWith('ep')).sort();
+        
+        bar.innerHTML = '';
+        eps.forEach((ep, i) => {
+            const t = document.createElement('div');
+            t.className = 'tab' + (i === 0 ? ' active' : '');
+            t.innerText = ep.toUpperCase();
+            t.onclick = () => {
+                document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+                t.classList.add('active');
+                renderGrid(ep);
+            };
+            bar.appendChild(t);
+        });
+        if(eps.length > 0) renderGrid(eps[0]);
+    }
+
+    function renderGrid(filter) {
+        const grid = document.getElementById('main-grid');
+        grid.innerHTML = '';
+        allRecords.filter(r => (r.fields.shot_name || "").toLowerCase().startsWith(filter)).forEach(r => {
+            const f = r.fields;
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.onclick = () => openShot(r);
+            const imgUrl = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : "";
+            card.innerHTML = '<img src="'+imgUrl+'" class="thumb">' +
+                             '<div class="info"><b>'+(f.shot_name || "Unnamed")+'</b><br>'+(f.status || "")+'</div>';
+            grid.appendChild(card);
+        });
+    }
+
+    async function openShot(record) {
+        const f = record.fields;
+        document.getElementById('list-view').style.display = 'none';
+        document.getElementById('detail-view').style.display = 'block';
+        document.getElementById('detail-title').innerText = f.shot_name || "";
+        document.getElementById('detail-status').innerText = f.status || "";
+
+        const v = document.getElementById('detail-video');
+        const img = document.getElementById('detail-img');
+        
+        // Твое поле preview_file2
+        let videoUrl = f.preview_file2 ? (Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2) : "";
+
+        if (videoUrl) {
+            v.src = videoUrl; v.style.display = 'block'; img.style.display = 'none';
+            v.play().catch(() => {});
+        } else {
+            v.style.display = 'none'; img.style.display = 'block';
+            img.src = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : "";
+        }
+
+        // Комменты
+        const cList = document.getElementById('comments-list');
+        cList.innerHTML = 'Загрузка истории...';
+        try {
+            const filter = encodeURIComponent("{shot_name}='" + f.shot_name + "'");
+            const res = await fetch("https://api.airtable.com/v0/"+BASE+"/"+TABLE_COMMS+"?filterByFormula="+filter, {
+                headers: { Authorization: "Bearer " + TOKEN }
+            });
+            const cData = await res.json();
+            cList.innerHTML = '';
+            (cData.records || []).forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'comment';
+                div.innerHTML = '<div class="author">'+(c.fields.author || "Super")+'</div>' + (c.fields.text || "");
+                cList.appendChild(div);
+            });
+        } catch (e) { cList.innerText = ""; }
+
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+            v.pause(); v.src = "";
+            document.getElementById('detail-view').style.display = 'none';
+            document.getElementById('list-view').style.display = 'block';
+            tg.BackButton.hide();
+        });
+    }
+
+    init();
+</script>
 </body>
 </html>
