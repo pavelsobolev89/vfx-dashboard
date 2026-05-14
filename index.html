@@ -119,19 +119,16 @@
             });
         }
 
-// Handle shot detail logic and media switching
-        async function openShot(id) {
+async function openShot(id) {
             const record = allRecords.find(r => r.id === id);
             const f = record.fields;
 
             document.getElementById('list-view').style.display = 'none';
             document.getElementById('detail-view').style.display = 'block';
             
-            document.getElementById('detail-title').innerText = f.shot_name;
+            document.getElementById('detail-title').innerText = f.shot_name || 'Unknown Shot';
             document.getElementById('detail-status').innerText = f.status || 'In Review';
 
-            // ИСПРАВЛЕННАЯ ЛОГИКА ТУТ:
-            // Проверяем, является ли поле массивом (Attachment) или строкой (URL)
             let videoFile = null;
             if (f.preview_file) {
                 videoFile = Array.isArray(f.preview_file) ? f.preview_file[0].url : f.preview_file;
@@ -145,8 +142,7 @@
                 videoElem.src = videoFile;
                 videoElem.style.display = 'block';
                 imgElem.style.display = 'none';
-                // Пробуем запустить, но не падаем, если браузер блокирует автоплей
-                videoElem.play().catch(e => console.log("Autoplay blocked"));
+                videoElem.play().catch(e => console.log("Playback error"));
             } else {
                 imgElem.src = staticThumb;
                 imgElem.style.display = 'block';
@@ -155,9 +151,8 @@
 
             if (!tg.initDataUnsafe.user) document.getElementById('pc-back').style.display = 'block';
 
-            // Sync comments history
             const cList = document.getElementById('comments-list');
-            cList.innerHTML = 'Loading comments...';
+            cList.innerHTML = 'Loading...';
             try {
                 const filter = encodeURIComponent(`{shot_name}='${f.shot_name}'`);
                 const cResp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_COMMS}?filterByFormula=${filter}`, {
@@ -165,18 +160,25 @@
                 });
                 const cData = await cResp.json();
                 cList.innerHTML = '';
-                if (cData.records) {
+                if (cData && cData.records) {
                     cData.records.forEach(c => {
                         const cf = c.fields;
-                        cList.innerHTML += `<div class="comment"><div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}</div>`;
+                        const author = cf.author || 'User';
+                        const text = cf.text || '';
+                        const item = document.createElement('div');
+                        item.className = 'comment';
+                        item.innerHTML = `<div class="comment-meta">${author}</div>${text}`;
+                        cList.appendChild(item);
                     });
                 }
-            } catch (e) { console.error("Comments error", e); }
+            } catch (e) { 
+                console.error("Comments error", e);
+                cList.innerHTML = 'No comments yet.';
+            }
 
             tg.BackButton.show();
             tg.BackButton.onClick(closeShot);
         }
-
         function closeShot() {
             const videoElem = document.getElementById('detail-video');
             videoElem.pause();
