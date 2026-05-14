@@ -1,7 +1,8 @@
 const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
+    // Вставляй аккуратно, без лишних пробелов в конце
+    const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143'; 
     const BASE = 'appgiNHAoONgW8Ha6';
     const TABLE_SHOTS = 'Shots';
     const TABLE_COMMS = 'Comments';
@@ -14,18 +15,30 @@ const tg = window.Telegram.WebApp;
             const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_SHOTS}`, {
                 headers: { Authorization: `Bearer ${TOKEN}` }
             });
-            const data = await resp.json();
             
-            if (!data.records) {
-                grid.innerText = "Error: No records found";
+            if (!resp.ok) {
+                const errData = await resp.json();
+                grid.innerHTML = `<div style="color:#ff3b30; padding:20px;">
+                    <b>AIRTABLE ERROR:</b><br>
+                    Status: ${resp.status}<br>
+                    Message: ${errData.error.message}
+                </div>`;
                 return;
             }
 
-            allRecords = data.records;
+            const data = await resp.json();
+            allRecords = data.records || [];
+            
+            if (allRecords.length === 0) {
+                grid.innerText = "No records found in Airtable.";
+                return;
+            }
+
             renderTabs();
         } catch (e) { 
-            console.error(e);
-            grid.innerText = "Connection Error";
+            grid.innerHTML = `<div style="color:#ff3b30; padding:20px;">
+                <b>JS CRASH:</b><br>${e.message}
+            </div>`;
         }
     }
 
@@ -33,7 +46,7 @@ const tg = window.Telegram.WebApp;
         const bar = document.getElementById('tabs-bar');
         const eps = [...new Set(allRecords.map(r => {
             const name = r.fields.shot_name || "";
-            return name.substring(0, 4).toLowerCase();
+            return name.toString().substring(0, 4).toLowerCase();
         }))].filter(e => e.startsWith('ep')).sort();
         
         bar.innerHTML = '';
@@ -48,8 +61,8 @@ const tg = window.Telegram.WebApp;
             };
             bar.appendChild(t);
         });
+
         if(eps.length > 0) renderGrid(eps[0]);
-        else document.getElementById('main-grid').innerText = "No episodes found";
     }
 
     function renderGrid(filter) {
@@ -57,7 +70,7 @@ const tg = window.Telegram.WebApp;
         grid.innerHTML = '';
         const filtered = allRecords.filter(r => {
             const name = r.fields.shot_name || "";
-            return name.toLowerCase().startsWith(filter);
+            return name.toString().toLowerCase().startsWith(filter);
         });
         
         filtered.forEach(r => {
@@ -82,9 +95,7 @@ const tg = window.Telegram.WebApp;
         const f = record.fields;
 
         document.getElementById('list-view').style.display = 'none';
-        const detail = document.getElementById('detail-view');
-        detail.style.display = 'block';
-        
+        document.getElementById('detail-view').style.display = 'block';
         document.getElementById('detail-title').innerText = f.shot_name || 'Shot';
         document.getElementById('detail-status').innerText = f.status || '';
 
@@ -118,7 +129,7 @@ const tg = window.Telegram.WebApp;
             });
             const cData = await cResp.json();
             cList.innerHTML = '';
-            if (cData.records && cData.records.length > 0) {
+            if (cData.records) {
                 cData.records.forEach(c => {
                     const cf = c.fields;
                     const div = document.createElement('div');
@@ -126,12 +137,8 @@ const tg = window.Telegram.WebApp;
                     div.innerHTML = `<div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}`;
                     cList.appendChild(div);
                 });
-            } else {
-                cList.innerText = 'No history yet';
             }
-        } catch (e) { 
-            cList.innerText = 'Error loading history';
-        }
+        } catch (e) { cList.innerText = 'History error'; }
 
         tg.BackButton.show();
         tg.BackButton.onClick(closeShot);
