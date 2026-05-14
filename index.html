@@ -11,12 +11,12 @@ let allRecords = [];
 async function init() {
     const grid = document.getElementById('main-grid');
     try {
-        const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_SHOTS}`, {
-            headers: { Authorization: `Bearer ${TOKEN}` }
+        const resp = await fetch("https://api.airtable.com/v0/" + BASE + "/" + TABLE_SHOTS, {
+            headers: { Authorization: "Bearer " + TOKEN }
         });
         const data = await resp.json();
         if (!data.records) {
-            grid.innerText = "Error: Check Airtable Token/Base ID";
+            grid.innerText = "Error: Check Airtable Settings";
             return;
         }
         allRecords = data.records;
@@ -39,7 +39,7 @@ function renderTabs() {
         const t = document.createElement('div');
         t.className = 'tab' + (i === 0 ? ' active' : '');
         t.innerText = ep.toUpperCase();
-        t.onclick = () => {
+        t.onclick = function() {
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
             t.classList.add('active');
             renderGrid(ep);
@@ -47,7 +47,6 @@ function renderTabs() {
         bar.appendChild(t);
     });
     if(eps.length > 0) renderGrid(eps[0]);
-    else document.getElementById('main-grid').innerText = "No shots found";
 }
 
 function renderGrid(filter) {
@@ -63,14 +62,11 @@ function renderGrid(filter) {
         const imgUrl = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
         const card = document.createElement('div');
         card.className = 'card';
-        card.onclick = () => openShot(r.id);
-        // Исправил верстку карточки, чтобы она не терялась
-        card.innerHTML = `
-            <img src="${imgUrl}" class="thumb-img">
-            <div class="info">
-                <b>${f.shot_name || 'Unnamed'}</b><br>
-                <span style="color:#8e8e93">${f.status || ''}</span>
-            </div>`;
+        card.onclick = function() { openShot(r.id); };
+        // Переписал через конкатенацию, чтобы не ломалось при копировании
+        card.innerHTML = '<img src="' + imgUrl + '" class="thumb-img">' +
+                        '<div class="info"><b>' + (f.shot_name || 'Unnamed') + '</b><br>' +
+                        '<span style="color:#8e8e93">' + (f.status || '') + '</span></div>';
         grid.appendChild(card);
     });
 }
@@ -90,45 +86,40 @@ async function openShot(id) {
         videoFile = Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2;
     }
 
-    const staticThumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
     const videoElem = document.getElementById('detail-video');
     const imgElem = document.getElementById('detail-img');
+    const thumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
 
     if (videoFile && typeof videoFile === 'string' && videoFile.length > 5) {
         videoElem.src = videoFile;
         videoElem.style.display = 'block';
         imgElem.style.display = 'none';
-        videoElem.play().catch(() => {});
+        videoElem.play().catch(function(){});
     } else {
-        imgElem.src = staticThumb;
+        imgElem.src = thumb;
         imgElem.style.display = 'block';
         videoElem.style.display = 'none';
     }
 
     const cList = document.getElementById('comments-list');
-    cList.innerHTML = 'Loading history...';
+    cList.innerHTML = 'Loading...';
     
     try {
-        const filter = encodeURIComponent(`{shot_name}='${f.shot_name}'`);
-        const cResp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_COMMS}?filterByFormula=${filter}`, {
-            headers: { Authorization: `Bearer ${TOKEN}` }
+        const fml = encodeURIComponent("{shot_name}='" + f.shot_name + "'");
+        const cResp = await fetch("https://api.airtable.com/v0/" + BASE + "/" + TABLE_COMMS + "?filterByFormula=" + fml, {
+            headers: { Authorization: "Bearer " + TOKEN }
         });
         const cData = await cResp.json();
         cList.innerHTML = '';
-        if (cData.records && cData.records.length > 0) {
+        if (cData.records) {
             cData.records.forEach(c => {
-                const cf = c.fields;
                 const div = document.createElement('div');
                 div.className = 'comment';
-                div.innerHTML = `<div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}`;
+                div.innerHTML = '<div class="comment-meta">' + (c.fields.author || 'Super') + '</div>' + (c.fields.text || '');
                 cList.appendChild(div);
             });
-        } else {
-            cList.innerText = 'No history yet';
         }
-    } catch (e) {
-        cList.innerText = 'Error loading history';
-    }
+    } catch (e) { cList.innerText = 'History error'; }
 
     tg.BackButton.show();
     tg.BackButton.onClick(closeShot);
@@ -136,7 +127,7 @@ async function openShot(id) {
 
 function closeShot() {
     const v = document.getElementById('detail-video');
-    if (v) { v.pause(); v.src = ""; }
+    v.pause(); v.src = "";
     document.getElementById('detail-view').style.display = 'none';
     document.getElementById('list-view').style.display = 'block';
     tg.BackButton.hide();
