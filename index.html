@@ -119,7 +119,7 @@
             });
         }
 
-        // Handle shot detail logic and media switching
+// Handle shot detail logic and media switching
         async function openShot(id) {
             const record = allRecords.find(r => r.id === id);
             const f = record.fields;
@@ -130,19 +130,24 @@
             document.getElementById('detail-title').innerText = f.shot_name;
             document.getElementById('detail-status').innerText = f.status || 'In Review';
 
-            const videoFile = (f.preview_file && f.preview_file[0]) ? f.preview_file[0].url : null;
+            // ИСПРАВЛЕННАЯ ЛОГИКА ТУТ:
+            // Проверяем, является ли поле массивом (Attachment) или строкой (URL)
+            let videoFile = null;
+            if (f.preview_file) {
+                videoFile = Array.isArray(f.preview_file) ? f.preview_file[0].url : f.preview_file;
+            }
+
             const staticThumb = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : '';
             const videoElem = document.getElementById('detail-video');
             const imgElem = document.getElementById('detail-img');
 
             if (videoFile) {
-                // Show video if n8n has uploaded the attachment
                 videoElem.src = videoFile;
                 videoElem.style.display = 'block';
                 imgElem.style.display = 'none';
-                videoElem.play();
+                // Пробуем запустить, но не падаем, если браузер блокирует автоплей
+                videoElem.play().catch(e => console.log("Autoplay blocked"));
             } else {
-                // Fallback to image while video is missing/processing
                 imgElem.src = staticThumb;
                 imgElem.style.display = 'block';
                 videoElem.style.display = 'none';
@@ -160,10 +165,12 @@
                 });
                 const cData = await cResp.json();
                 cList.innerHTML = '';
-                cData.records.forEach(c => {
-                    const cf = c.fields;
-                    cList.innerHTML += `<div class="comment"><div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}</div>`;
-                });
+                if (cData.records) {
+                    cData.records.forEach(c => {
+                        const cf = c.fields;
+                        cList.innerHTML += `<div class="comment"><div class="comment-meta">${cf.author || 'Super'}</div>${cf.text || ''}</div>`;
+                    });
+                }
             } catch (e) { console.error("Comments error", e); }
 
             tg.BackButton.show();
