@@ -6,34 +6,37 @@
     <title>VFX Review</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
         
+        /* Header */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
         .view-toggle { display: flex; gap: 5px; background: #1c1c1e; padding: 4px; border-radius: 10px; }
         .v-btn { border: none; background: none; color: #555; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 18px; }
         .v-btn.active { background: #3a3a3c; color: #fff; }
 
+        /* Tabs */
         #tabs { display: flex; gap: 10px; padding: 0 15px 15px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #222; }
         #tabs::-webkit-scrollbar { display: none; }
         .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
 
-        /* GRID / LIST */
+        /* Grid/List */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #151515; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .info { padding: 10px; }
         
-        .list-mode { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+        .list-mode { display: flex !important; flex-direction: column !important; }
         .list-mode .card { display: flex; align-items: center; padding: 8px 15px; height: 55px; }
         .list-mode .thumb { width: 80px; height: 45px; margin-right: 15px; border-radius: 6px; }
         .list-mode .info { display: flex; flex: 1; justify-content: space-between; align-items: center; padding: 0; }
 
-        /* PLAYER PAGE */
+        /* Player */
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
-        video { width: 100%; aspect-ratio: 16/9; background: #000; display: block; }
+        .video-box { width: 100%; aspect-ratio: 16/9; background: #000; }
+        video { width: 100%; height: 100%; display: block; }
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 15px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #222; border: none; color: #fff; width: 55px; height: 55px; border-radius: 14px; font-size: 22px; cursor: pointer; }
+        .p-btn { background: #222; border: none; color: #fff; width: 55px; height: 55px; border-radius: 14px; font-size: 22px; }
         .p-body { padding: 20px; }
     </style>
 </head>
@@ -48,22 +51,23 @@
         </div>
     </div>
     <div id="tabs"></div>
-    <div id="main-grid">Загрузка...</div>
+    <div id="main-grid"></div>
 </div>
 
 <div id="player-view">
-    <video id="v-player" loop playsinline autoplay muted></video>
+    <div class="video-box" id="v-container">
+        </div>
     <div class="p-nav">
         <button class="p-btn" onclick="vStep(-1)">⏮</button>
-        <button class="p-btn" onclick="vPlay()">⏯</button>
+        <button class="p-btn" onclick="vToggle()">⏯</button>
         <button class="p-btn" onclick="vStep(1)">⏭</button>
     </div>
     <div class="p-body">
         <h2 id="p-title" style="margin:0"></h2>
-        <div id="p-meta" style="margin: 10px 0 20px 0; color: #007aff; font-weight: bold; font-size: 16px;"></div>
+        <div id="p-meta" style="margin: 10px 0 20px 0; color: #007aff; font-weight: bold;"></div>
         <textarea id="p-comm" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; height:100px; box-sizing:border-box; font-family:inherit; font-size:16px;" placeholder="Ваш комментарий..."></textarea>
-        <button style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">ОТПРАВИТЬ</button>
-        <div id="p-history" style="margin-top:30px;"></div>
+        <button style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px;">ОТПРАВИТЬ</button>
+        <div id="p-history" style="margin-top:20px;"></div>
     </div>
 </div>
 
@@ -84,17 +88,13 @@
         records = json.records || [];
         
         const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
-        document.getElementById('tabs').innerHTML = eps.map((ep, i) => `
-            <div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
+        document.getElementById('tabs').innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
         if(eps.length > 0) setFilter(eps[0]);
     }
 
     function setFilter(f, el) {
         curFilter = f;
-        if(el) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-        }
+        if(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
         render();
     }
 
@@ -112,47 +112,37 @@
                 <div class="info">
                     <div style="font-weight:700; font-size:14px;">${r.fields.shot_name}</div>
                     <div style="color:#007aff; font-size:12px; font-weight:700;">v${String(r.fields.version || 0).padStart(3, '0')}</div>
-                    <div style="font-size:10px; font-weight:900; text-transform:uppercase; color:#888;">${r.fields.status || ''}</div>
                 </div>
             </div>`).join('');
     }
 
-    async function openPlayer(r) {
+    function openPlayer(r) {
         document.getElementById('grid-view').style.display = 'none';
         document.getElementById('player-view').style.display = 'block';
         
-        const v = document.getElementById('v-player');
-        
-        // ВОТ ТУТ ЛОГИКА ДЛЯ ATTACHMENT (preview_file2)
-        if(r.fields.preview_file2 && r.fields.preview_file2.length > 0) {
-            v.src = r.fields.preview_file2[0].url;
-        } else {
-            v.src = ""; // Если пусто
-        }
+        const container = document.getElementById('v-container');
+        const videoUrl = (r.fields.preview_file2 && r.fields.preview_file2[0]) ? r.fields.preview_file2[0].url : "";
+
+        // Принудительная пересборка тега видео для обхода проблем с кешем и аттачментами
+        container.innerHTML = `
+            <video id="main-v" loop playsinline autoplay muted>
+                <source src="${videoUrl}" type="video/mp4">
+            </video>`;
 
         document.getElementById('p-title').innerText = r.fields.shot_name;
         document.getElementById('p-meta').innerText = `v${String(r.fields.version || 0).padStart(3, '0')} | ${r.fields.status || ''}`;
 
-        // Комменты
-        const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
-        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, {
-            headers: { Authorization: `Bearer ${KEY}` }
-        });
-        const cData = await res.json();
-        document.getElementById('p-history').innerHTML = (cData.records || []).map(c => `
-            <div style="background:#161618; padding:12px; border-radius:10px; margin-bottom:10px; border:1px solid #222; font-size:14px;">${c.fields.text || ''}</div>`).join('');
-
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            v.pause(); v.src = "";
+            container.innerHTML = "";
             document.getElementById('player-view').style.display = 'none';
             document.getElementById('grid-view').style.display = 'block';
             tg.BackButton.hide();
         });
     }
 
-    function vPlay() { const v = document.getElementById('v-player'); v.paused ? v.play() : v.pause(); }
-    function vStep(d) { const v = document.getElementById('v-player'); v.pause(); v.currentTime += d * (1/24); }
+    function vToggle() { const v = document.getElementById('main-v'); if(v) v.paused ? v.play() : v.pause(); }
+    function vStep(d) { const v = document.getElementById('main-v'); if(v) { v.pause(); v.currentTime += d * (1/24); } }
 
     init();
 </script>
