@@ -22,20 +22,20 @@
         .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; cursor: pointer; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #111; }
         
-        /* LIST MODE - Исправленное выравнивание */
+        /* LIST MODE */
         #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
         .list-mode .card { display: flex; align-items: center; padding: 8px 12px; flex-direction: row; }
         .list-mode .thumb { width: 60px; height: 35px; border-radius: 4px; margin-right: 12px; aspect-ratio: auto; }
-        .list-mode .card-info { display: flex; align-items: center; width: 100%; gap: 10px; overflow: hidden; }
+        .list-mode .card-info { display: flex; align-items: center; width: 100%; gap: 5px; overflow: hidden; }
         
         .info-name { flex: 1; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-        .info-ver { color: #007aff; font-weight: bold; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
-        .info-status { width: 90px; text-align: right; font-weight: 800; font-size: 10px; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+        .info-ver { color: #007aff; font-weight: bold; font-size: 13px; width: 45px; flex-shrink: 0; }
+        .info-status { width: 85px; text-align: right; font-weight: 800; font-size: 10px; text-transform: uppercase; flex-shrink: 0; }
 
         /* Player */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
         .player-container { width: 100%; background: #000; display: flex; align-items: center; justify-content: center; padding-top: 10px; }
-        video { width: 100%; max-height: calc(100vh - 160px); object-fit: contain; background: #000; }
+        video { width: 100%; max-height: calc(100vh - 180px); object-fit: contain; background: #000; }
         
         .custom-controls { display: flex; justify-content: center; align-items: center; gap: 15px; padding: 15px; background: #111; }
         .p-btn { background: #2c2c2e; border: none; color: #fff; width: 44px; height: 44px; border-radius: 8px; font-size: 20px; cursor: pointer; }
@@ -45,7 +45,7 @@
         .st-badge { padding: 4px 12px; border-radius: 6px; text-transform: uppercase; font-size: 18px; font-weight: 800; }
         
         .comment-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
-        .comment-input { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; min-height: 100px; font-size: 16px; outline: none; font-family: inherit; resize: vertical; }
+        .comment-input { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; min-height: 100px; font-size: 16px; outline: none; font-family: inherit; }
         .send-btn { background: #007aff; border: none; color: #fff; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 16px; }
         .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #222; font-size: 14px; color: #ccc; }
     </style>
@@ -92,7 +92,7 @@
     const tg = window.Telegram.WebApp;
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
     const BASE = 'appgiNHAoONgW8Ha6';
-    const N8N_WEBHOOK = 'https://n8n.cg-vfx.ru/webhook/6226068d-be62-466d-883a-446ec2726589'; // Твой вэбхук
+    const N8N_WEBHOOK = 'https://n8n.cg-vfx.ru/webhook/6226068d-be62-466d-883a-446ec2726589';
 
     const statusConfig = { 
         'ready to start': '#808080', 'in progress': '#3498db', 'pause': '#9b59b6', 
@@ -106,97 +106,12 @@
     const vid = document.getElementById('main-v');
 
     async function init() {
-        tg.expand();
-        const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, { headers: { Authorization: "Bearer " + TOKEN } });
-        const data = await r.json();
-        allRecords = data.records || [];
-        renderTabs();
-    }
-
-    function setView(mode) {
-        currentMode = mode;
-        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-        const grid = document.getElementById('main-grid');
-        if (mode === 'list') {
-            grid.classList.add('list-mode');
-            document.getElementById('btn-list').classList.add('active');
-        } else {
-            grid.classList.remove('list-mode');
-            document.getElementById('btn-tiles').classList.add('active');
+        try {
+            tg.expand();
+            const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, { headers: { Authorization: "Bearer " + TOKEN } });
+            const data = await r.json();
+            allRecords = data.records || [];
+            renderTabs();
+        } catch(e) {
+            document.getElementById('main-grid').innerText = "Ошибка загрузки данных.";
         }
-        renderGrid(currentFilter);
-    }
-
-    function renderTabs() {
-        const eps = [...new Set(allRecords.map(r => (r.fields.shot_name || "").substring(0, 4).toLowerCase()))].filter(e => e.startsWith('ep')).sort();
-        document.getElementById('tabs-bar').innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="currentFilter='${ep}'; renderGrid('${ep}'); selectTab(this)">${ep.toUpperCase()}</div>`).join('');
-        if(eps.length > 0) { currentFilter = eps[0]; renderGrid(eps[0]); }
-    }
-
-    function selectTab(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
-
-    function renderGrid(filter) {
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = allRecords.filter(r => (r.fields.shot_name || "").toLowerCase().startsWith(filter)).map(r => {
-            const st = r.fields.status || '';
-            const color = statusConfig[st.toLowerCase()] || '#8e8e93';
-            const ver = 'v' + String(r.fields.version || 0).padStart(3, '0');
-            
-            return `
-            <div class="card" onclick='openShot(${JSON.stringify(r)})'>
-                <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
-                <div class="card-info">
-                    <div class="info-name">${r.fields.shot_name}</div>
-                    <div class="info-ver">${ver}</div>
-                    <div class="info-status" style="color:${color}">${st}</div>
-                </div>
-            </div>`;
-        }).join('');
-    }
-
-    async function openShot(r) {
-        currentShot = r;
-        document.getElementById('list-view').style.display = 'none';
-        document.getElementById('detail-view').style.display = 'block';
-        
-        // ЗАПРОС ТОЛЬКО В ТАБЛИЦУ COMMENTS
-        const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
-        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, {
-            headers: { Authorization: "Bearer " + TOKEN }
-        });
-        const cData = await res.json();
-        
-        // Берем прямую ссылку из ТЕКСТОВОГО поля preview
-        const lastWithVid = (cData.records || []).find(c => c.fields.preview && c.fields.preview.trim() !== "");
-        const videoUrl = lastWithVid ? lastWithVid.fields.preview : "";
-
-        vid.src = videoUrl;
-        if(videoUrl) vid.play().catch(e => console.error("Play fail:", e));
-
-        document.getElementById('det-title').innerText = r.fields.shot_name;
-        document.getElementById('det-ver').innerText = 'v' + String(r.fields.version || 0).padStart(3, '0');
-        
-        const st = r.fields.status || 'No Status';
-        const stEl = document.getElementById('det-status');
-        stEl.innerText = st;
-        stEl.style.background = statusConfig[st.toLowerCase()] || '#444';
-        
-        document.getElementById('history').innerHTML = (cData.records || []).map(c => `<div class="history-item">${c.fields.text || ''}</div>`).join('');
-
-        tg.BackButton.show();
-        tg.BackButton.onClick(() => {
-            if(document.body.classList.contains('fullscreen-active')) goFS();
-            vid.pause(); vid.src = "";
-            document.getElementById('detail-view').style.display = 'none';
-            document.getElementById('list-view').style.display = 'block';
-            tg.BackButton.hide();
-        });
-    }
-
-    async function sendComment() {
-        const txt = document.getElementById('comm-text').value;
-        if(!txt) return;
-        fetch(N8N_WEBHOOK, { method: 'POST', body: JSON.stringify({
-            shot_id: currentShot.id, text: txt, author: tg.initDataUnsafe?.user?.username || "User"
-        })});
-        document.getElementById('comm-text').value = '';
