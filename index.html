@@ -8,49 +8,61 @@
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
         
-        /* Шапка и Переключатель */
+        /* Header */
         .header-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 15px 5px 15px; }
         .project-header { font-size: 20px; font-weight: 900; text-transform: uppercase; }
-        .view-toggle { display: flex; gap: 10px; background: #1c1c1e; padding: 4px; border-radius: 8px; }
-        .view-btn { border: none; background: none; color: #666; cursor: pointer; padding: 4px 8px; font-size: 14px; border-radius: 6px; }
+        .view-toggle { display: flex; gap: 8px; background: #1c1c1e; padding: 4px; border-radius: 8px; }
+        .view-btn { border: none; background: none; color: #666; cursor: pointer; padding: 6px 10px; font-size: 16px; border-radius: 6px; line-height: 1; }
         .view-btn.active { background: #3a3a3c; color: #fff; }
 
+        /* Tabs */
         #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; background: #000; border-bottom: 1px solid #222; }
         .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; cursor: pointer; color: #8e8e93; }
         .tab.active { background: #007aff; color: #fff; }
 
-        /* СЕТКА (Tiles) */
+        /* Grid & Cards */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 15px; }
-        
-        /* РЕЖИМ СПИСКА (List View Override) */
-        #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
-        
         .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; cursor: pointer; display: flex; flex-direction: column; }
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; flex-shrink: 0; }
+        
+        /* Tiles Mode Info */
         .card-info { padding: 10px; font-size: 12px; line-height: 1.4; }
+        .card-info b { display: block; margin-bottom: 2px; }
 
-        /* Стили конкретно для списка */
-        .list-mode .card { flex-direction: row; align-items: center; padding: 8px; }
-        .list-mode .thumb { width: 60px; height: 40px; aspect-ratio: auto; border-radius: 4px; margin-right: 12px; }
-        .list-mode .card-info { padding: 0; display: flex; flex-grow: 1; justify-content: space-between; align-items: center; padding-right: 10px; }
-        .list-mode .card-info b { font-size: 14px; min-width: 80px; }
-        .list-mode .card-info .ver { color: #007aff; margin: 0 10px; }
+        /* LIST MODE STYLES */
+        #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
+        .list-mode .card { flex-direction: row; align-items: center; padding: 8px 12px; }
+        .list-mode .thumb { width: 70px; height: 40px; border-radius: 4px; margin-right: 15px; }
+        .list-mode .card-info { display: flex; flex-direction: row; align-items: center; width: 100%; padding: 0; }
+        
+        .list-mode .info-name { flex: 1; font-size: 15px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .list-mode .info-ver { width: 70px; text-align: center; color: #007aff; font-weight: bold; font-size: 14px; }
+        .list-mode .info-status { width: 120px; text-align: right; font-weight: 800; font-size: 13px; text-transform: uppercase; }
 
-        /* Плеер и остальное */
+        /* Player View */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
+        .player-wrapper { display: flex; flex-direction: column; background: #000; }
         .player-container { padding-top: 20px; }
         video { width: 100%; max-width: 1000px; display: block; margin: 0 auto; background: #000; }
+        
         .custom-controls { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .p-btn:active { background: #007aff; }
+        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; outline: none; -webkit-tap-highlight-color: transparent; }
+        .p-btn:active { background: #007aff !important; }
 
+        /* Info Panel */
         .info-panel { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
-        .shot-head { font-size: 18px; font-weight: bold; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        .st-badge { padding: 2px 10px; border-radius: 6px; text-transform: uppercase; font-size: 18px; font-weight: 800; }
+        .shot-head { font-size: 18px; font-weight: bold; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .st-badge { padding: 4px 12px; border-radius: 6px; text-transform: uppercase; font-size: 18px; font-weight: 800; }
+        
+        /* Comment Section */
         .comment-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
-        .comment-input { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; min-height: 80px; outline: none; }
-        .send-btn { background: #007aff; border: none; color: #fff; padding: 12px; border-radius: 10px; font-weight: bold; }
-        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #222; font-size: 14px; }
+        .comment-input { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; min-height: 100px; outline: none; font-size: 16px; resize: vertical; font-family: inherit; }
+        .send-btn { background: #007aff; border: none; color: #fff; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #222; font-size: 14px; color: #ccc; line-height: 1.4; }
+
+        /* Fullscreen Force */
+        .fullscreen-active .player-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; justify-content: center; background: #000; display: flex; flex-direction: column; }
+        .fullscreen-active .info-panel { display: none; }
     </style>
 </head>
 <body>
@@ -78,9 +90,13 @@
         </div>
     </div>
     <div class="info-panel">
-        <div class="shot-head"><span id="det-title"></span><span id="det-ver" style="color:#007aff;"></span><span id="det-status" class="st-badge"></span></div>
+        <div class="shot-head">
+            <span id="det-title"></span>
+            <span id="det-ver" style="color:#007aff;"></span>
+            <span id="det-status" class="st-badge"></span>
+        </div>
         <div class="comment-box">
-            <textarea id="comm-text" class="comment-input" placeholder="Comment..."></textarea>
+            <textarea id="comm-text" class="comment-input" placeholder="Enter your comment..."></textarea>
             <button class="send-btn" onclick="sendComment()">Send</button>
         </div>
         <div id="history"></div>
@@ -91,12 +107,16 @@
     const tg = window.Telegram.WebApp;
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
     const BASE = 'appgiNHAoONgW8Ha6';
-    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL';
+    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL'; // ЗАМЕНИ НА СВОЙ
 
-    const statusConfig = { 'ready to start': '#808080', 'in progress': '#3498db', 'pause': '#9b59b6', 'to fix': '#e67e22', 'review': '#f1c40f', 'approved': '#2ecc71' };
+    const statusConfig = { 
+        'ready to start': '#808080', 'in progress': '#3498db', 'pause': '#9b59b6', 
+        'to fix': '#e67e22', 'review': '#f1c40f', 'approved': '#2ecc71' 
+    };
 
     let allRecords = [];
     let currentFilter = '';
+    let currentMode = 'tiles';
     const vid = document.getElementById('main-v');
 
     async function init() {
@@ -107,6 +127,7 @@
     }
 
     function setView(mode) {
+        currentMode = mode;
         const grid = document.getElementById('main-grid');
         document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
         if (mode === 'list') {
@@ -133,22 +154,37 @@
             const st = r.fields.status || '';
             const color = statusConfig[st.toLowerCase()] || '#8e8e93';
             const ver = 'v' + String(r.fields.version || 0).padStart(3, '0');
-            return `
+            
+            if (currentMode === 'list') {
+                return `
+                <div class="card" onclick='openShot(${JSON.stringify(r)})'>
+                    <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
+                    <div class="card-info">
+                        <div class="info-name">${r.fields.shot_name}</div>
+                        <div class="info-ver">${ver}</div>
+                        <div class="info-status" style="color:${color}">${st}</div>
+                    </div>
+                </div>`;
+            } else {
+                return `
                 <div class="card" onclick='openShot(${JSON.stringify(r)})'>
                     <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
                     <div class="card-info">
                         <b>${r.fields.shot_name}</b>
-                        <span class="ver">${ver}</span>
+                        ${ver}<br>
                         <span style="color:${color}">${st}</span>
                     </div>
                 </div>`;
+            }
         }).join('');
     }
 
     async function openShot(r) {
+        currentShot = r;
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
         
+        // Видео из таблицы Comments
         const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
         const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, {
             headers: { Authorization: "Bearer " + TOKEN }
@@ -168,19 +204,39 @@
         const stEl = document.getElementById('det-status');
         stEl.innerText = st;
         stEl.style.background = statusConfig[st.toLowerCase()] || '#444';
+        
         document.getElementById('history').innerHTML = (cData.records || []).map(c => `<div class="history-item">${c.fields.text || ''}</div>`).join('');
 
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            vid.pause(); document.getElementById('detail-view').style.display = 'none';
+            if(document.body.classList.contains('fullscreen-active')) goFS();
+            vid.pause(); vid.src = "";
+            document.getElementById('detail-view').style.display = 'none';
             document.getElementById('list-view').style.display = 'block';
             tg.BackButton.hide();
         });
     }
 
+    async function sendComment() {
+        const txt = document.getElementById('comm-text').value;
+        if(!txt) return;
+        fetch(N8N_WEBHOOK, { method: 'POST', body: JSON.stringify({
+            shot_id: currentShot.id, text: txt, author: tg.initDataUnsafe?.user?.username || "User", new_status: "to fix"
+        })});
+        document.getElementById('comm-text').value = '';
+        tg.showAlert("Sent!");
+    }
+
     function toggleP() { vid.paused ? vid.play() : vid.pause(); }
     function step(d) { vid.pause(); vid.currentTime += (1/24) * d; }
     function goFS() { document.body.classList.toggle('fullscreen-active'); }
+
+    window.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'TEXTAREA') return;
+        if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+        if (e.key === ' ') { e.preventDefault(); toggleP(); }
+    });
 
     init();
 </script>
