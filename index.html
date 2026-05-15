@@ -8,8 +8,9 @@
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
         
+        /* Список */
         .project-header { padding: 15px 15px 5px 15px; font-size: 20px; font-weight: 900; color: #fff; text-transform: uppercase; }
-        #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; background: #000; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #222; }
+        #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; background: #000; border-bottom: 1px solid #222; }
         .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; cursor: pointer; color: #8e8e93; }
         .tab.active { background: #007aff; color: #fff; }
 
@@ -18,31 +19,42 @@
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
         .v-tag { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.8); padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: bold; }
         
+        /* Плеер */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
-        .player-container { padding-top: 20px; background: #000; } 
-        .player-block { position: sticky; top: 0; z-index: 110; background: #000; }
+        
+        /* Контейнер плеера для Fullscreen */
+        .player-wrapper { display: flex; flex-direction: column; background: #000; }
+        .player-container { padding-top: 20px; background: #000; flex-grow: 1; display: flex; align-items: center; }
         video { width: 100%; max-width: 1000px; display: block; margin: 0 auto; background: #000; }
         
-        /* Кнопки управления без постоянной подсветки */
+        /* Кнопки */
         .custom-controls { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px; background: #111; border-bottom: 1px solid #222; }
         .p-btn { 
             background: #2c2c2e; border: none; color: #fff; 
-            width: 36px; height: 36px; border-radius: 8px; 
+            width: 38px; height: 38px; border-radius: 8px; 
             cursor: pointer; display: flex; align-items: center; justify-content: center; 
-            font-size: 14px; outline: none; -webkit-tap-highlight-color: transparent;
+            font-size: 16px; outline: none; -webkit-tap-highlight-color: transparent;
         }
-        /* Цвет только при нажатии */
-        .p-btn:active { background: #007aff !important; transform: scale(0.9); }
-        .fs-btn { background: none; color: #666; font-size: 18px; margin-left: 10px; }
+        .p-btn:active { background: #007aff !important; }
+        .fs-btn { background: none; color: #666; margin-left: 10px; }
 
+        /* История и Инфо */
         .info-panel { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
         .status-badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 10px; text-transform: uppercase; font-weight: 800; margin-bottom: 12px; }
-        
         .comment-box { display: flex; gap: 10px; margin-bottom: 25px; }
         .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px 15px; border-radius: 10px; outline: none; }
         .send-btn { background: #007aff; border: none; color: #fff; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; color: #ccc; }
 
-        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; }
+        /* Режим Фуллскрин (CSS Force) */
+        .fullscreen-active #detail-view { overflow: hidden; }
+        .fullscreen-active .player-wrapper { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            z-index: 9999; justify-content: center; background: #000;
+        }
+        .fullscreen-active .player-container { padding: 0; }
+        .fullscreen-active video { max-width: none; height: auto; max-height: 100vh; }
+        .fullscreen-active .info-panel { display: none; }
     </style>
 </head>
 <body>
@@ -54,15 +66,17 @@
 </div>
 
 <div id="detail-view">
-    <div class="player-block">
-        <div class="player-container">
-            <video id="main-v" loop playsinline></video>
-        </div>
-        <div class="custom-controls">
-            <button class="p-btn" onclick="step(-1)">⏮</button>
-            <button class="p-btn" onclick="toggleP()">⏯</button>
-            <button class="p-btn" onclick="step(1)">⏭</button>
-            <button class="p-btn fs-btn" onclick="goFS()">⛶</button>
+    <div class="player-wrapper" id="p-wrap">
+        <div class="player-block">
+            <div class="player-container">
+                <video id="main-v" loop playsinline></video>
+            </div>
+            <div class="custom-controls">
+                <button class="p-btn" onclick="step(-1)">⏮</button>
+                <button class="p-btn" onclick="toggleP()">⏯</button>
+                <button class="p-btn" onclick="step(1)">⏭</button>
+                <button class="p-btn fs-btn" onclick="goFS()">⛶</button>
+            </div>
         </div>
     </div>
 
@@ -82,7 +96,7 @@
     const tg = window.Telegram.WebApp;
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
     const BASE = 'appgiNHAoONgW8Ha6';
-    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL';
+    const N8N_WEBHOOK = 'ТВОЙ_URL_N8N';
 
     const statusConfig = {
         'ready to start': '#808080', 'in progress': '#3498db',
@@ -101,14 +115,13 @@
         renderTabs();
     }
 
-    // Управление клавиатурой (ПК)
+    // Клавиатура
     window.addEventListener('keydown', (e) => {
         if (document.activeElement.tagName === 'INPUT') return;
-        if (document.getElementById('detail-view').style.display === 'block') {
-            if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
-            if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
-            if (e.key === ' ') { e.preventDefault(); toggleP(); }
-        }
+        if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+        if (e.key === ' ') { e.preventDefault(); toggleP(); }
+        if (e.key === 'Escape' && document.body.classList.contains('fullscreen-active')) goFS();
     });
 
     function renderTabs() {
@@ -150,6 +163,7 @@
         loadHistory(r.fields.shot_name);
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
+            if(document.body.classList.contains('fullscreen-active')) goFS();
             vid.pause(); document.getElementById('detail-view').style.display = 'none';
             document.getElementById('list-view').style.display = 'block';
             tg.BackButton.hide();
@@ -165,7 +179,7 @@
         const input = document.getElementById('comm-text');
         if(!input.value) return;
         fetch(N8N_WEBHOOK, { method: 'POST', body: JSON.stringify({
-            shot_id: currentShot.id, text: input.value, author: tg.initDataUnsafe?.user?.first_name || "User", new_status: "to fix"
+            shot_id: currentShot.id, text: input.value, author: tg.initDataUnsafe?.user?.username || "User", new_status: "to fix"
         })});
         input.value = '';
         updateStatusBadge('to fix');
@@ -185,16 +199,20 @@
     function toggleP() { vid.paused ? vid.play() : vid.pause(); }
     function step(d) { vid.pause(); vid.currentTime += (1/24) * d; }
 
+    // НОВЫЙ ФУЛЛСКРИН
     function goFS() {
-        // Универсальный способ для Android
-        if (vid.webkitEnterFullscreen) {
-            vid.webkitEnterFullscreen();
-        } else if (vid.requestFullscreen) {
-            vid.requestFullscreen();
+        const body = document.body;
+        if (!body.classList.contains('fullscreen-active')) {
+            body.classList.add('fullscreen-active');
+            // Попытка программно повернуть экран для Android
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {});
+            }
         } else {
-            // Если совсем не работает, просто ставим ширину 100% (fallback)
-            vid.style.width = '100vw';
-            vid.style.height = '100vh';
+            body.classList.remove('fullscreen-active');
+            if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
         }
     }
 
