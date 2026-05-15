@@ -8,6 +8,7 @@
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
         
+        /* Статусы */
         .st-review { color: #f1c40f; }
         .st-ready { color: #8e8e93; }
         .st-approved { color: #2ecc71; }
@@ -19,13 +20,13 @@
         .v-btn { border: none; background: none; color: #555; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 18px; }
         .v-btn.active { background: #3a3a3c; color: #fff; }
 
-        #tabs { display: flex; gap: 10px; padding: 0 15px 15px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #222; min-height: 40px; }
+        #tabs { display: flex; gap: 10px; padding: 0 15px 15px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #222; }
         .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
 
         /* GRID */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
-        .card-grid { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; display: flex; flex-direction: column; }
+        .card-grid { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
         .card-grid img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .card-grid .info { padding: 10px; }
 
@@ -34,15 +35,13 @@
         .card-list { 
             display: grid !important; 
             grid-template-columns: 80px 1fr 65px 105px; 
-            border: 1px solid #333; 
-            border-bottom: none; 
-            background: transparent;
-            align-items: stretch;
-            min-height: 50px;
+            border: 1px solid #333; border-bottom: none; 
+            background: transparent; align-items: stretch; min-height: 55px;
         }
         .card-list:first-child { border-radius: 8px 8px 0 0; }
         .card-list:last-child { border-bottom: 1px solid #333; border-radius: 0 0 8px 8px; }
         .card-list img { width: 100%; height: 100%; border-right: 1px solid #333; object-fit: cover; background: #111; }
+        
         .list-name { padding: 8px 12px; border-right: 1px solid #333; font-size: 13px; font-weight: 700; display: flex; align-items: center; line-height: 1.2; word-break: break-all; }
         .list-ver { border-right: 1px solid #333; text-align: center; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #007aff; font-weight: 700; }
         .list-status { text-align: center; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 5px; text-transform: uppercase; }
@@ -52,9 +51,8 @@
         .video-box { width: 100%; aspect-ratio: 16/9; background: #000; }
         video { width: 100%; height: 100%; display: block; }
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; transition: 0.1s; outline: none; -webkit-tap-highlight-color: transparent; }
+        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; outline: none; -webkit-tap-highlight-color: transparent; }
         .p-btn:active { background: #fff !important; color: #000 !important; }
-        .p-body { padding: 20px; }
     </style>
 </head>
 <body>
@@ -68,7 +66,7 @@
         </div>
     </div>
     <div id="tabs"></div>
-    <div id="main-grid">Загрузка данных...</div>
+    <div id="main-grid" style="padding: 20px; text-align: center; color: #555;">Загрузка...</div>
 </div>
 
 <div id="player-view">
@@ -78,23 +76,7 @@
         <button class="p-btn" onclick="vToggle()">⏯</button>
         <button class="p-btn" onclick="vStep(1)">⏭</button>
     </div>
-    <div class="p-body">
+    <div style="padding: 20px;">
         <h2 id="p-title" style="margin:0 0 5px 0;"></h2>
         <div id="p-meta" style="margin-bottom: 20px; font-size: 16px; font-weight: bold;"></div>
-        <textarea id="p-comm" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; height:100px; box-sizing:border-box; font-family:inherit; font-size:16px;" placeholder="Ваш комментарий..."></textarea>
-        <button style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">ОТПРАВИТЬ</button>
-    </div>
-</div>
-
-<script>
-    const tg = window.Telegram.WebApp;
-    const KEY = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
-    const BASE = 'appgiNHAoONgW8Ha6';
-    
-    let records = [];
-    let curFilter = '';
-    let curView = 'grid';
-
-    const statusMap = { 'review': 'st-review', 'ready to start': 'st-ready', 'approved': 'st-approved', 'in progress': 'st-progress', 'to fix': 'st-fix' };
-
-    async function init
+        <textarea style
