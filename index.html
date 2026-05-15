@@ -7,25 +7,21 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
-        
         .header-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
         .project-header { font-size: 20px; font-weight: 900; }
         .view-toggle { display: flex; gap: 8px; background: #1c1c1e; padding: 4px; border-radius: 8px; }
         .view-btn { border: none; background: none; color: #666; padding: 6px 12px; font-size: 16px; border-radius: 6px; cursor: pointer; }
         .view-btn.active { background: #3a3a3c; color: #fff; }
-
         #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; border-bottom: 1px solid #222; scrollbar-width: none; }
         #tabs-bar::-webkit-scrollbar { display: none; }
         .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; color: #8e8e93; }
         .tab.active { background: #007aff; color: #fff; }
 
-        /* GRID */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; display: flex; flex-direction: column; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .card-info { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
         
-        /* LIST FIX */
         #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
         .list-mode .card { flex-direction: row; align-items: center; padding: 8px 15px; height: 60px; }
         .list-mode .thumb { width: 80px; height: 45px; margin-right: 15px; border-radius: 4px; }
@@ -38,10 +34,10 @@
         .info-ver { color: #007aff; font-weight: bold; font-size: 13px; }
         .info-status { font-weight: 800; font-size: 11px; text-transform: uppercase; }
 
-        /* Detail View */
         #detail-view { display: none; position: fixed; inset: 0; background: #000; z-index: 100; overflow-y: auto; }
-        video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
-        .controls { display: flex; justify-content: center; gap: 30px; padding: 15px; background: #111; border-bottom: 1px solid #222; }
+        .v-wrap { width: 100%; aspect-ratio: 16/9; background: #000; }
+        video { width: 100%; height: 100%; display: block; object-fit: contain; }
+        .controls { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
         .p-btn { background: #2c2c2e; border: none; color: #fff; width: 50px; height: 50px; border-radius: 12px; font-size: 22px; cursor: pointer; }
         .p-panel { padding: 20px; }
         .history-item { background: #161618; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; }
@@ -62,17 +58,18 @@
 </div>
 
 <div id="detail-view">
-    <video id="main-v" loop playsinline autoplay muted></video>
+    <div id="video-container" class="v-wrap">
+        </div>
     <div class="controls">
         <button class="p-btn" onclick="step(-1)">⏮</button>
         <button class="p-btn" onclick="toggleP()">⏯</button>
         <button class="p-btn" onclick="step(1)">⏭</button>
     </div>
     <div class="p-panel">
-        <h2 id="det-title" style="margin:0 0 10px 0; font-size: 22px;"></h2>
+        <h2 id="det-title" style="margin:0 0 10px 0;"></h2>
         <div id="det-meta" style="margin-bottom: 20px;"></div>
         <textarea id="comm-text" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; min-height:100px; box-sizing:border-box; font-size:16px; font-family:inherit;" placeholder="Ваш комментарий..."></textarea>
-        <button onclick="sendComment()" style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">ОТПРАВИТЬ</button>
+        <button onclick="sendComment()" style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px;">ОТПРАВИТЬ</button>
         <div id="history" style="margin-top:30px;"></div>
     </div>
 </div>
@@ -85,22 +82,18 @@
 
     let allRecords = [];
     let currentFilter = '';
-    const vid = document.getElementById('main-v');
 
     async function init() {
         tg.expand();
-        const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
-            headers: { Authorization: "Bearer " + TOKEN } 
-        });
+        const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { headers: { Authorization: "Bearer " + TOKEN } });
         const data = await r.json();
         allRecords = data.records || [];
         renderTabs();
     }
 
     function setView(mode) {
-        const grid = document.getElementById('main-grid');
-        document.querySelectorAll('.view-toggle button').forEach((b, i) => b.classList.toggle('active', (i===0 && mode==='tiles') || (i===1 && mode==='list')));
-        grid.className = mode === 'list' ? 'list-mode' : '';
+        document.getElementById('main-grid').className = mode === 'list' ? 'list-mode' : '';
+        document.querySelectorAll('.view-btn').forEach((b, i) => b.classList.toggle('active', (i===0 && mode==='tiles') || (i===1 && mode==='list')));
         renderGrid(currentFilter);
     }
 
@@ -110,61 +103,47 @@
         if(eps.length > 0) { currentFilter = eps[0]; renderGrid(eps[0]); }
     }
 
-    function selectTab(el) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-    }
+    function selectTab(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
 
     function renderGrid(f) {
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = allRecords.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(f)).map(r => {
-            const st = r.fields.status || '';
-            const color = statusConfig[st.toLowerCase()] || '#8e8e93';
-            return `
+        document.getElementById('main-grid').innerHTML = allRecords.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(f)).map(r => `
             <div class="card" onclick='openShot(${JSON.stringify(r)})'>
                 <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
                 <div class="card-info">
                     <div class="info-name">${r.fields.shot_name}</div>
                     <div class="info-ver">v${String(r.fields.version || 0).padStart(3, '0')}</div>
-                    <div class="info-status" style="color:${color}">${st}</div>
+                    <div class="info-status" style="color:${statusConfig[(r.fields.status||'').toLowerCase()] || '#8e8e93'}">${r.fields.status || ''}</div>
                 </div>
-            </div>`;
-        }).join('');
+            </div>`).join('');
     }
 
     async function openShot(r) {
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
         
-        // ВОЗВРАТ РАБОЧЕЙ ЛОГИКИ
+        // ВСТАВКА ВИДЕО
         const videoUrl = r.fields.preview_file || "";
-        vid.src = videoUrl;
-        if(videoUrl) {
-            vid.load();
-            vid.play().catch(() => {});
-        }
+        document.getElementById('video-container').innerHTML = `<video id="main-v" src="${videoUrl}" loop playsinline autoplay muted></video>`;
 
         const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
-        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, {
-            headers: { Authorization: "Bearer " + TOKEN }
-        });
+        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, { headers: { Authorization: "Bearer " + TOKEN } });
         const cData = await res.json();
 
         document.getElementById('det-title').innerText = r.fields.shot_name;
-        document.getElementById('det-meta').innerHTML = `<span style="color:#007aff; font-weight:bold; font-size:16px;">v${String(r.fields.version || 0).padStart(3, '0')}</span> <span style="margin:0 10px; color:#444;">|</span> <span style="color:${statusConfig[(r.fields.status||'').toLowerCase()] || '#fff'}; font-weight:800;">${r.fields.status || ''}</span>`;
-        document.getElementById('history').innerHTML = (cData.records || []).map(c => `<div class="history-item"><div style="color:#666; font-size:10px; margin-bottom:5px;">${new Date(c.createdTime).toLocaleString()}</div>${c.fields.text || ''}</div>`).join('');
+        document.getElementById('det-meta').innerHTML = `<span style="color:#007aff; font-weight:bold;">v${String(r.fields.version || 0).padStart(3, '0')}</span> | <span>${r.fields.status || ''}</span>`;
+        document.getElementById('history').innerHTML = (cData.records || []).map(c => `<div class="history-item">${c.fields.text || ''}</div>`).join('');
 
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            vid.pause(); vid.src = "";
+            document.getElementById('video-container').innerHTML = ''; // Убиваем видео при выходе
             document.getElementById('detail-view').style.display = 'none';
             document.getElementById('list-view').style.display = 'block';
             tg.BackButton.hide();
         });
     }
 
-    function toggleP() { vid.paused ? vid.play() : vid.pause(); }
-    function step(d) { vid.pause(); vid.currentTime += (1/24) * d; }
+    function toggleP() { const v = document.getElementById('main-v'); if(v) v.paused ? v.play() : v.pause(); }
+    function step(d) { const v = document.getElementById('main-v'); if(v) { v.pause(); v.currentTime += (1/24) * d; } }
 
     init();
 </script>
