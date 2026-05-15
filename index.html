@@ -8,38 +8,61 @@
     <style>
         body { font-family: -apple-system, system-ui; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
         
-        /* Шапка проекта */
-        .project-header { padding: 15px 15px 5px 15px; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #fff; }
-        
+        /* Шапка */
+        .project-header { padding: 15px 15px 5px 15px; font-size: 22px; font-weight: 900; color: #fff; }
         #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 8px; background: #000; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #222; }
         .tab { padding: 8px 16px; background: #1c1c1e; border-radius: 12px; font-size: 13px; white-space: nowrap; color: #8e8e93; }
         .tab.active { background: #007aff; color: #fff; }
 
+        /* Сетка */
         #main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
         .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; position: relative; border: 1px solid #222; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
         .v-tag { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
         
-        /* Плеер */
-        .detail-container { background: #000; min-height: 100vh; }
+        /* Детальный вид и Плеер */
+        #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
+        
+        /* Фиксированная верхняя часть в плеере */
+        .sticky-player { position: sticky; top: 0; z-index: 110; background: #000; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .video-wrapper { width: 100%; background: #000; line-height: 0; }
         video { width: 100%; display: block; }
         
-        /* Кнопки управления ПОД видео */
-        .player-controls { display: flex; align-items: center; justify-content: center; gap: 30px; padding: 15px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 10px; transition: opacity 0.2s; }
-        .p-btn:active { opacity: 0.5; }
-        .fs-btn { font-size: 18px; color: #8e8e93; }
+        /* Пульт управления (всегда виден) */
+        .player-controls { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 20px; 
+            padding: 15px 0; 
+            background: #111; 
+            border-bottom: 1px solid #222;
+        }
+        .p-btn { 
+            background: #2c2c2e; 
+            border: none; 
+            color: #fff; 
+            width: 54px; 
+            height: 54px; 
+            border-radius: 50%; 
+            font-size: 24px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            cursor: pointer;
+        }
+        .p-btn:active { background: #3a3a3c; transform: scale(0.95); }
+        .fs-btn { background: none; color: #8e8e93; font-size: 20px; width: auto; height: auto; }
 
-        .info-panel { padding: 15px; }
-        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px; text-transform: uppercase; font-weight: 800; margin: 5px 0; }
+        /* Контент под плеером */
+        .info-panel { padding: 20px 15px; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 11px; text-transform: uppercase; font-weight: 800; margin-bottom: 10px; }
 
-        /* Комменты */
+        /* Комментарии */
         .comment-area { display: flex; gap: 8px; margin-top: 15px; }
-        .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; outline: none; }
+        .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; outline: none; font-size: 15px; }
         .send-btn { background: #007aff; border: none; color: #fff; border-radius: 10px; padding: 0 20px; font-weight: bold; }
         
-        #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
         .history-card { background: #1c1c1e; padding: 12px; border-radius: 10px; margin-top: 10px; border-left: 3px solid #333; font-size: 14px; }
         .history-meta { font-size: 10px; color: #8e8e93; margin-bottom: 5px; }
     </style>
@@ -53,30 +76,29 @@
 </div>
 
 <div id="detail-view">
-    <div class="detail-container">
+    <div class="sticky-player">
         <div class="video-wrapper">
             <video id="main-v" loop playsinline></video>
         </div>
-        
         <div class="player-controls">
             <button class="p-btn" onclick="step(-1)">⏮</button>
-            <button class="p-btn" style="font-size: 32px;" onclick="toggleP()">⏯</button>
+            <button class="p-btn" style="background:#fff; color:#000;" onclick="toggleP()">⏯</button>
             <button class="p-btn" onclick="step(1)">⏭</button>
             <button class="p-btn fs-btn" onclick="goFS()">⛶</button>
         </div>
+    </div>
 
-        <div class="info-panel">
-            <h2 id="det-title" style="margin:0;"></h2>
-            <div id="det-ver" style="color:#007aff; font-weight:bold; margin-top:5px;"></div>
-            <div id="det-status"></div>
-            
-            <div class="comment-area">
-                <input type="text" id="comm-text" class="comment-input" placeholder="Leave your comment">
-                <button class="send-btn" onclick="sendComment()">Send</button>
-            </div>
-            
-            <div id="history-list" style="margin-top:25px; padding-bottom: 80px;"></div>
+    <div class="info-panel">
+        <h2 id="det-title" style="margin:0; font-size: 24px;"></h2>
+        <div id="det-ver" style="color:#007aff; font-weight:bold; margin: 5px 0 10px 0;"></div>
+        <div id="det-status"></div>
+        
+        <div class="comment-area">
+            <input type="text" id="comm-text" class="comment-input" placeholder="Leave your comment">
+            <button class="send-btn" onclick="sendComment()">Send</button>
         </div>
+        
+        <div id="history-list" style="margin-top:30px; padding-bottom: 100px;"></div>
     </div>
 </div>
 
@@ -84,11 +106,10 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // НАСТРОЙКИ ПРОЕКТА
     const PROJECT_NAME = "Богатыри"; 
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
     const BASE = 'appgiNHAoONgW8Ha6';
-    const N8N_WEBHOOK = 'ТВОЙ_URL_N8N'; 
+    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL'; 
 
     document.getElementById('proj-title').innerText = PROJECT_NAME;
 
@@ -198,8 +219,9 @@
                 input.value = '';
                 tg.showAlert("Sent! Status: To Fix");
                 document.getElementById('det-status').innerHTML = `<div class="status-badge" style="background:${statusColors['to fix']}">to fix</div>`;
+                loadHistory(currentShot.fields.shot_name);
             }
-        } catch (e) { alert("Error sending comment"); }
+        } catch (e) { alert("Error"); }
     }
 
     async function loadHistory(shotName) {
@@ -210,7 +232,7 @@
             headers: { Authorization: `Bearer ${TOKEN}` }
         });
         const data = await res.json();
-        hList.innerHTML = '<h4>History</h4>';
+        hList.innerHTML = '<h4 style="margin-bottom:10px;">History</h4>';
         data.records.forEach(c => {
             const div = document.createElement('div');
             div.className = 'history-card';
@@ -219,15 +241,13 @@
         });
     }
 
+    // Плеер (24 fps)
     const vid = document.getElementById('main-v');
     function toggleP() { vid.paused ? vid.play() : vid.pause(); }
     function step(d) { vid.pause(); vid.currentTime += (1/24) * d; }
     function goFS() {
-        if (vid.requestFullscreen) {
-            vid.requestFullscreen();
-        } else if (vid.webkitEnterFullscreen) {
-            vid.webkitEnterFullscreen(); // Для iOS
-        }
+        if (vid.requestFullscreen) vid.requestFullscreen();
+        else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen();
     }
 
     init();
