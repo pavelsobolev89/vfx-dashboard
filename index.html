@@ -8,44 +8,41 @@
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
         
-        /* Шапка */
         .project-header { padding: 15px 15px 5px 15px; font-size: 20px; font-weight: 900; color: #fff; text-transform: uppercase; }
         #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; background: #000; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #222; }
         .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; cursor: pointer; color: #8e8e93; }
         .tab.active { background: #007aff; color: #fff; }
 
-        /* Сетка карточек */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; cursor: pointer; position: relative; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
         .v-tag { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.8); padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: bold; }
         
-        /* ПЛЕЕР И ДЕТАЛЬНЫЙ ВИД */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
-        
-        /* Тот самый отступ сверху внутри карточки плеера */
         .player-container { padding-top: 20px; background: #000; } 
-        
         .player-block { position: sticky; top: 0; z-index: 110; background: #000; }
-        video { width: 100%; max-width: 1000px; display: block; margin: 0 auto; background: #000; border-radius: 4px; }
+        video { width: 100%; max-width: 1000px; display: block; margin: 0 auto; background: #000; }
         
-        /* Кнопки управления */
+        /* Кнопки управления без постоянной подсветки */
         .custom-controls { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: 0.2s; }
-        .p-btn:hover { background: #3a3a3c; }
-        .play-btn { background: #007aff; width: 46px; }
+        .p-btn { 
+            background: #2c2c2e; border: none; color: #fff; 
+            width: 36px; height: 36px; border-radius: 8px; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            font-size: 14px; outline: none; -webkit-tap-highlight-color: transparent;
+        }
+        /* Цвет только при нажатии */
+        .p-btn:active { background: #007aff !important; transform: scale(0.9); }
         .fs-btn { background: none; color: #666; font-size: 18px; margin-left: 10px; }
 
-        /* Инфо панель */
         .info-panel { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
         .status-badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 10px; text-transform: uppercase; font-weight: 800; margin-bottom: 12px; }
         
         .comment-box { display: flex; gap: 10px; margin-bottom: 25px; }
-        .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px 15px; border-radius: 10px; outline: none; font-size: 14px; }
+        .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px 15px; border-radius: 10px; outline: none; }
         .send-btn { background: #007aff; border: none; color: #fff; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-        .history-item { background: #161618; padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #222; font-size: 14px; line-height: 1.4; }
-        .h-author { font-size: 11px; color: #007aff; font-weight: bold; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -63,22 +60,20 @@
         </div>
         <div class="custom-controls">
             <button class="p-btn" onclick="step(-1)">⏮</button>
-            <button class="p-btn play-btn" onclick="toggleP()">⏯</button>
+            <button class="p-btn" onclick="toggleP()">⏯</button>
             <button class="p-btn" onclick="step(1)">⏭</button>
             <button class="p-btn fs-btn" onclick="goFS()">⛶</button>
         </div>
     </div>
 
     <div class="info-panel">
-        <h2 id="det-title" style="margin:0; font-size: 22px;"></h2>
+        <h2 id="det-title" style="margin:0;"></h2>
         <div id="det-ver" style="color:#007aff; font-weight:bold; margin: 5px 0 12px 0;"></div>
         <div id="det-status"></div>
-        
         <div class="comment-box">
             <input type="text" id="comm-text" class="comment-input" placeholder="Leave your comment">
             <button class="send-btn" onclick="sendComment()">Send</button>
         </div>
-        
         <div id="history"></div>
     </div>
 </div>
@@ -87,7 +82,7 @@
     const tg = window.Telegram.WebApp;
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
     const BASE = 'appgiNHAoONgW8Ha6';
-    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL'; // Вставь ссылку n8n
+    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL';
 
     const statusConfig = {
         'ready to start': '#808080', 'in progress': '#3498db',
@@ -106,7 +101,7 @@
         renderTabs();
     }
 
-    // Клавиатура (Стрелки и Пробел)
+    // Управление клавиатурой (ПК)
     window.addEventListener('keydown', (e) => {
         if (document.activeElement.tagName === 'INPUT') return;
         if (document.getElementById('detail-view').style.display === 'block') {
@@ -131,17 +126,15 @@
     function renderGrid(filter) {
         const grid = document.getElementById('main-grid');
         grid.innerHTML = allRecords.filter(r => (r.fields.shot_name || "").toLowerCase().startsWith(filter)).map(r => {
-            const st = r.fields.status?.toLowerCase() || '';
-            const color = statusConfig[st] || '#333';
-            return `
-                <div class="card" onclick='openShot(${JSON.stringify(r)})'>
-                    <div class="v-tag">v${String(r.fields.version || 0).padStart(3, '0')}</div>
-                    <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
-                    <div style="padding:10px; font-size:11px;">
-                        <b style="display:block; margin-bottom:4px;">${r.fields.shot_name}</b>
-                        <span style="color:${color}">${r.fields.status || ''}</span>
-                    </div>
-                </div>`;
+            const color = statusConfig[r.fields.status?.toLowerCase()] || '#333';
+            return `<div class="card" onclick='openShot(${JSON.stringify(r)})'>
+                <div class="v-tag">v${String(r.fields.version || 0).padStart(3, '0')}</div>
+                <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
+                <div style="padding:10px; font-size:11px;">
+                    <b>${r.fields.shot_name}</b><br>
+                    <span style="color:${color}">${r.fields.status || ''}</span>
+                </div>
+            </div>`;
         }).join('');
     }
 
@@ -151,16 +144,13 @@
         document.getElementById('detail-view').style.display = 'block';
         vid.src = r.fields.preview_file2?.[0]?.url || "";
         vid.play().catch(() => {});
-
         document.getElementById('det-title').innerText = r.fields.shot_name;
         document.getElementById('det-ver').innerText = 'v' + String(r.fields.version || 0).padStart(3, '0');
         updateStatusBadge(r.fields.status);
         loadHistory(r.fields.shot_name);
-
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            vid.pause(); 
-            document.getElementById('detail-view').style.display = 'none';
+            vid.pause(); document.getElementById('detail-view').style.display = 'none';
             document.getElementById('list-view').style.display = 'block';
             tg.BackButton.hide();
         });
@@ -173,19 +163,13 @@
 
     async function sendComment() {
         const input = document.getElementById('comm-text');
-        const txt = input.value;
-        if(!txt) return;
-        
+        if(!input.value) return;
         fetch(N8N_WEBHOOK, { method: 'POST', body: JSON.stringify({
-            shot_id: currentShot.id,
-            text: txt,
-            author: tg.initDataUnsafe?.user?.first_name || "User",
-            new_status: "to fix"
+            shot_id: currentShot.id, text: input.value, author: tg.initDataUnsafe?.user?.first_name || "User", new_status: "to fix"
         })});
-
         input.value = '';
         updateStatusBadge('to fix');
-        tg.showAlert("Sent! Status updated to 'To Fix'");
+        tg.showAlert("Sent!");
     }
 
     async function loadHistory(name) {
@@ -194,10 +178,7 @@
         });
         const data = await res.json();
         document.getElementById('history').innerHTML = (data.records || []).map(c => `
-            <div class="history-item">
-                <div class="h-author">${c.fields.author || 'User'}</div>
-                ${c.fields.text || ''}
-            </div>
+            <div class="history-item">${c.fields.text || ''}</div>
         `).join('');
     }
 
@@ -205,20 +186,15 @@
     function step(d) { vid.pause(); vid.currentTime += (1/24) * d; }
 
     function goFS() {
-        // Попытка войти в полноэкранный режим
-        if (vid.requestFullscreen) {
-            vid.requestFullscreen();
-        } else if (vid.webkitEnterFullscreen) {
+        // Универсальный способ для Android
+        if (vid.webkitEnterFullscreen) {
             vid.webkitEnterFullscreen();
-        } else if (vid.webkitRequestFullscreen) {
-            vid.webkitRequestFullscreen();
-        }
-
-        // Пытаемся повернуть экран в горизонталь (Landscape)
-        if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(() => {
-                console.log("Ориентация не заблокирована: нужно повернуть телефон вручную");
-            });
+        } else if (vid.requestFullscreen) {
+            vid.requestFullscreen();
+        } else {
+            // Если совсем не работает, просто ставим ширину 100% (fallback)
+            vid.style.width = '100vw';
+            vid.style.height = '100vh';
         }
     }
 
