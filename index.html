@@ -3,149 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VFX Dashboard</title>
+    <title>VFX Storage</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
-        .project-header { font-size: 20px; font-weight: 900; }
-        .view-toggle { display: flex; gap: 8px; background: #1c1c1e; padding: 4px; border-radius: 8px; }
-        .view-btn { border: none; background: none; color: #666; padding: 6px 12px; font-size: 16px; border-radius: 6px; cursor: pointer; }
-        .view-btn.active { background: #3a3a3c; color: #fff; }
-        #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; border-bottom: 1px solid #222; scrollbar-width: none; }
-        #tabs-bar::-webkit-scrollbar { display: none; }
-        .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; color: #8e8e93; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
+        .v-controls { display: flex; gap: 5px; background: #1c1c1e; padding: 4px; border-radius: 10px; }
+        .v-btn { border: none; background: none; color: #555; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 18px; }
+        .v-btn.active { background: #3a3a3c; color: #fff; }
+        #tabs { display: flex; gap: 10px; padding: 0 15px 15px; overflow-x: auto; scrollbar-width: none; }
+        .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
 
-        #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; padding: 15px; }
-        .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; display: flex; flex-direction: column; }
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
-        .card-info { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+        /* GRID / LIST */
+        #main-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 15px; }
+        .item-card { background: #151515; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
+        .item-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+        .item-info { padding: 10px; }
         
-        #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
-        .list-mode .card { flex-direction: row; align-items: center; padding: 8px 15px; height: 60px; }
-        .list-mode .thumb { width: 80px; height: 45px; margin-right: 15px; border-radius: 4px; }
-        .list-mode .card-info { flex-direction: row; flex: 1; justify-content: space-between; align-items: center; padding: 0; }
-        .list-mode .info-name { flex: 2; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .list-mode .info-ver { flex: 0.5; text-align: center; margin: 0; }
-        .list-mode .info-status { flex: 1; text-align: right; margin: 0; }
+        .list-view { display: flex !important; flex-direction: column !important; }
+        .list-view .item-card { display: flex; align-items: center; padding: 8px 15px; height: 50px; }
+        .list-view .item-thumb { width: 70px; height: 40px; margin-right: 15px; border-radius: 4px; }
+        .list-view .item-info { display: flex; flex: 1; justify-content: space-between; align-items: center; padding: 0; }
 
-        .info-name { font-weight: bold; }
-        .info-ver { color: #007aff; font-weight: bold; font-size: 13px; }
-        .info-status { font-weight: 800; font-size: 11px; text-transform: uppercase; }
-
-        #detail-view { display: none; position: fixed; inset: 0; background: #000; z-index: 100; overflow-y: auto; }
-        .v-wrap { width: 100%; aspect-ratio: 16/9; background: #000; }
-        video { width: 100%; height: 100%; display: block; object-fit: contain; }
-        .controls { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 50px; height: 50px; border-radius: 12px; font-size: 22px; cursor: pointer; }
-        .p-panel { padding: 20px; }
-        .history-item { background: #161618; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; }
+        /* PLAYER */
+        #player-page { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; }
+        video { width: 100%; aspect-ratio: 16/9; background: #000; display: block; }
+        .p-nav { display: flex; justify-content: center; gap: 20px; padding: 15px; background: #111; }
+        .p-btn { background: #222; border: none; color: #fff; width: 50px; height: 50px; border-radius: 12px; font-size: 20px; }
+        .p-content { padding: 20px; }
     </style>
 </head>
 <body>
 
-<div id="list-view">
-    <div class="header-row">
-        <div class="project-header">БОГАТЫРИ</div>
-        <div class="view-toggle">
-            <button class="view-btn active" onclick="setView('tiles')">田</button>
-            <button class="view-btn" onclick="setView('list')">≡</button>
+<div id="home">
+    <div class="header">
+        <div style="font-weight:900; font-size:20px;">БОГАТЫРИ</div>
+        <div class="v-controls">
+            <button class="v-btn active" onclick="setView('grid', this)">田</button>
+            <button class="v-btn" onclick="setView('list', this)">≡</button>
         </div>
     </div>
-    <div id="tabs-bar"></div>
-    <div id="main-grid"></div>
+    <div id="tabs"></div>
+    <div id="main-container"></div>
 </div>
 
-<div id="detail-view">
-    <div id="video-container" class="v-wrap">
-        </div>
-    <div class="controls">
-        <button class="p-btn" onclick="step(-1)">⏮</button>
-        <button class="p-btn" onclick="toggleP()">⏯</button>
-        <button class="p-btn" onclick="step(1)">⏭</button>
+<div id="player-page">
+    <video id="v-player" loop playsinline autoplay muted></video>
+    <div class="p-nav">
+        <button class="p-btn" onclick="vStep(-1)">⏮</button>
+        <button class="p-btn" onclick="vPlay()">⏯</button>
+        <button class="p-btn" onclick="vStep(1)">⏭</button>
     </div>
-    <div class="p-panel">
-        <h2 id="det-title" style="margin:0 0 10px 0;"></h2>
-        <div id="det-meta" style="margin-bottom: 20px;"></div>
-        <textarea id="comm-text" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; min-height:100px; box-sizing:border-box; font-size:16px; font-family:inherit;" placeholder="Ваш комментарий..."></textarea>
-        <button onclick="sendComment()" style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px;">ОТПРАВИТЬ</button>
-        <div id="history" style="margin-top:30px;"></div>
+    <div class="p-content">
+        <h2 id="p-name" style="margin:0"></h2>
+        <div id="p-meta" style="margin: 10px 0 20px 0; color: #007aff; font-weight: bold;"></div>
+        <textarea id="p-comm" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; height:100px; font-family:inherit;" placeholder="Комментарий..."></textarea>
+        <button style="width:100%; background:#007aff; color:#fff; border:none; padding:15px; border-radius:12px; font-weight:700; margin-top:10px;">ОТПРАВИТЬ</button>
+        <div id="p-history" style="margin-top:20px"></div>
     </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
-    const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
-    const BASE = 'appgiNHAoONgW8Ha6';
-    const statusConfig = { 'ready to start': '#808080', 'in progress': '#3498db', 'review': '#f1c40f', 'approved': '#2ecc71', 'to fix': '#e67e22' };
-
-    let allRecords = [];
+    const AIR_KEY = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
+    const BASE_ID = 'appgiNHAoONgW8Ha6';
+    
+    let data = [];
     let currentFilter = '';
 
-    async function init() {
-        tg.expand();
-        const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { headers: { Authorization: "Bearer " + TOKEN } });
-        const data = await r.json();
-        allRecords = data.records || [];
-        renderTabs();
+    async function load() {
+        const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, {
+            headers: { Authorization: `Bearer ${AIR_KEY}` }
+        });
+        const json = await res.json();
+        data = json.records || [];
+        
+        const eps = [...new Set(data.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
+        document.getElementById('tabs').innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="setEp('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
+        if(eps.length > 0) setEp(eps[0]);
     }
 
-    function setView(mode) {
-        document.getElementById('main-grid').className = mode === 'list' ? 'list-mode' : '';
-        document.querySelectorAll('.view-btn').forEach((b, i) => b.classList.toggle('active', (i===0 && mode==='tiles') || (i===1 && mode==='list')));
-        renderGrid(currentFilter);
+    function setEp(ep, el) {
+        currentFilter = ep;
+        if(el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+        render();
     }
 
-    function renderTabs() {
-        const eps = [...new Set(allRecords.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
-        document.getElementById('tabs-bar').innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="currentFilter='${ep}'; renderGrid('${ep}'); selectTab(this)">${ep.toUpperCase()}</div>`).join('');
-        if(eps.length > 0) { currentFilter = eps[0]; renderGrid(eps[0]); }
+    function setView(mode, el) {
+        document.getElementById('main-container').className = mode === 'list' ? 'list-view' : '';
+        document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
     }
 
-    function selectTab(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
-
-    function renderGrid(f) {
-        document.getElementById('main-grid').innerHTML = allRecords.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(f)).map(r => `
-            <div class="card" onclick='openShot(${JSON.stringify(r)})'>
-                <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
-                <div class="card-info">
-                    <div class="info-name">${r.fields.shot_name}</div>
-                    <div class="info-ver">v${String(r.fields.version || 0).padStart(3, '0')}</div>
-                    <div class="info-status" style="color:${statusConfig[(r.fields.status||'').toLowerCase()] || '#8e8e93'}">${r.fields.status || ''}</div>
+    function render() {
+        const cont = document.getElementById('main-container');
+        cont.innerHTML = data.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(currentFilter)).map(r => `
+            <div class="item-card" onclick='openPlayer(${JSON.stringify(r)})'>
+                <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="item-thumb">
+                <div class="item-info">
+                    <div style="font-weight:700; font-size:14px;">${r.fields.shot_name}</div>
+                    <div style="color:#007aff; font-size:12px;">v${String(r.fields.version || 0).padStart(3, '0')}</div>
+                    <div style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status || ''}</div>
                 </div>
             </div>`).join('');
     }
 
-    async function openShot(r) {
-        document.getElementById('list-view').style.display = 'none';
-        document.getElementById('detail-view').style.display = 'block';
+    async function openPlayer(r) {
+        document.getElementById('home').style.display = 'none';
+        document.getElementById('player-page').style.display = 'block';
         
-        // ВСТАВКА ВИДЕО
-        const videoUrl = r.fields.preview_file || "";
-        document.getElementById('video-container').innerHTML = `<video id="main-v" src="${videoUrl}" loop playsinline autoplay muted></video>`;
-
-        const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
-        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, { headers: { Authorization: "Bearer " + TOKEN } });
-        const cData = await res.json();
-
-        document.getElementById('det-title').innerText = r.fields.shot_name;
-        document.getElementById('det-meta').innerHTML = `<span style="color:#007aff; font-weight:bold;">v${String(r.fields.version || 0).padStart(3, '0')}</span> | <span>${r.fields.status || ''}</span>`;
-        document.getElementById('history').innerHTML = (cData.records || []).map(c => `<div class="history-item">${c.fields.text || ''}</div>`).join('');
+        const v = document.getElementById('v-player');
+        v.src = r.fields.preview_file || ""; // Прямая ссылка из Shots
+        
+        document.getElementById('p-name').innerText = r.fields.shot_name;
+        document.getElementById('p-meta').innerText = `v${String(r.fields.version || 0).padStart(3, '0')} | ${r.fields.status || ''}`;
 
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            document.getElementById('video-container').innerHTML = ''; // Убиваем видео при выходе
-            document.getElementById('detail-view').style.display = 'none';
-            document.getElementById('list-view').style.display = 'block';
+            v.pause(); v.src = "";
+            document.getElementById('player-page').style.display = 'none';
+            document.getElementById('home').style.display = 'block';
             tg.BackButton.hide();
         });
     }
 
-    function toggleP() { const v = document.getElementById('main-v'); if(v) v.paused ? v.play() : v.pause(); }
-    function step(d) { const v = document.getElementById('main-v'); if(v) { v.pause(); v.currentTime += (1/24) * d; } }
+    function vPlay() { const v = document.getElementById('v-player'); v.paused ? v.play() : v.pause(); }
+    function vStep(d) { const v = document.getElementById('v-player'); v.pause(); v.currentTime += d * (1/24); }
 
-    init();
+    load();
 </script>
 </body>
 </html>
