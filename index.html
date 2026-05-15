@@ -11,13 +11,31 @@
         .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 12px; font-size: 13px; white-space: nowrap; }
         .tab.active { background: #007aff; }
         #main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; }
+        
+        /* Стили карточек */
+        .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; position: relative; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #222; display: block; }
-        .info { padding: 8px; font-size: 12px; }
-        #detail-view { display: none; padding: 10px; }
-        video, #detail-img { width: 100%; border-radius: 10px; background: #000; }
-        .comment { background: #1c1c1e; padding: 8px; border-radius: 8px; margin-top: 8px; font-size: 13px; }
-        .author { font-size: 10px; color: #8e8e93; }
+        .info { padding: 8px; font-size: 11px; }
+        .v-tag { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+        
+        /* Детальный вид */
+        #detail-view { display: none; padding: 10px; padding-bottom: 100px; }
+        .video-container { position: relative; width: 100%; }
+        video, #detail-img { width: 100%; border-radius: 10px; background: #000; display: block; }
+        
+        /* Плеер */
+        .player-controls { display: flex; justify-content: center; gap: 15px; margin: 10px 0; }
+        .p-btn { background: #2c2c2e; border: none; color: #fff; padding: 10px 15px; border-radius: 8px; font-size: 12px; }
+        
+        /* Статусы */
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; font-weight: bold; margin-top: 5px; }
+        
+        /* Комментарии */
+        .comment-input-area { margin-top: 20px; display: flex; gap: 8px; }
+        .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; }
+        .send-btn { background: #007aff; border: none; color: #fff; padding: 0 15px; border-radius: 8px; }
+        .comment { background: #1c1c1e; padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 13px; border-left: 3px solid #333; }
+        .author { font-size: 10px; color: #8e8e93; margin-bottom: 3px; }
     </style>
 </head>
 <body>
@@ -28,11 +46,27 @@
 </div>
 
 <div id="detail-view">
-    <video id="detail-video" controls playsinline></video>
-    <img id="detail-img" style="display:none;">
-    <h3 id="detail-title"></h3>
-    <div id="detail-status" style="color:#8e8e93; margin-bottom:15px;"></div>
-    <div id="comments-list"></div>
+    <div class="video-container">
+        <video id="detail-video" loop playsinline></video>
+        <img id="detail-img" style="display:none;">
+    </div>
+    
+    <div class="player-controls">
+        <button class="p-btn" onclick="stepFrame(-1)">-1 F</button>
+        <button class="p-btn" onclick="togglePlay()">Play/Pause</button>
+        <button class="p-btn" onclick="stepFrame(1)">+1 F</button>
+    </div>
+
+    <h3 id="detail-title" style="margin-bottom: 5px;"></h3>
+    <div id="detail-ver" style="font-size: 14px; color: #007aff; font-weight: bold;"></div>
+    <div id="detail-status"></div>
+
+    <div class="comment-input-area">
+        <input type="text" id="new-comment" class="comment-input" placeholder="Ваш комментарий...">
+        <button class="send-btn" onclick="sendComment()">Отправить</button>
+    </div>
+    
+    <div id="comments-list" style="margin-top: 20px;"></div>
 </div>
 
 <script>
@@ -43,12 +77,27 @@
     const BASE = 'appgiNHAoONgW8Ha6';
     const TABLE_SHOTS = 'Shots';
     const TABLE_COMMS = 'Comments';
+    
+    // Сюда вставь URL вебхука из n8n для приема комментариев
+    const N8N_COMMENT_WEBHOOK = 'https://n8n.your-domain.com/webhook/comments'; 
+
+    const statusColors = {
+        'ready to start': '#808080',
+        'in progress': '#3498db',
+        'pause': '#9b59b6',
+        'to fix': '#e67e22',
+        'review': '#f1c40f',
+        'send to client': '#1abc9c',
+        'approved': '#2ecc71'
+    };
 
     let allRecords = [];
+    let currentShotId = null;
+    let currentShotName = null;
 
     async function init() {
         try {
-            const r = await fetch("https://api.airtable.com/v0/"+BASE+"/"+TABLE_SHOTS, {
+            const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_SHOTS}`, {
                 headers: { Authorization: "Bearer " + TOKEN }
             });
             const data = await r.json();
@@ -57,6 +106,10 @@
         } catch (e) {
             document.getElementById('main-grid').innerText = "Ошибка сети";
         }
+    }
+
+    function formatVer(v) {
+        return 'v' + String(v || 0).padStart(3, '0');
     }
 
     function renderTabs() {
@@ -89,24 +142,38 @@
             const card = document.createElement('div');
             card.className = 'card';
             card.onclick = () => openShot(r);
+            
             const imgUrl = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : "";
-            card.innerHTML = '<img src="'+imgUrl+'" class="thumb">' +
-                             '<div class="info"><b>'+(f.shot_name || "Unnamed")+'</b><br>'+(f.status || "")+'</div>';
+            const statusColor = statusColors[f.status?.toLowerCase()] || '#333';
+            
+            card.innerHTML = `
+                <div class="v-tag">${formatVer(f.version)}</div>
+                <img src="${imgUrl}" class="thumb">
+                <div class="info">
+                    <b>${f.shot_name || "Unnamed"}</b><br>
+                    <div class="status-badge" style="background:${statusColor}">${f.status || ""}</div>
+                </div>`;
             grid.appendChild(card);
         });
     }
 
     async function openShot(record) {
         const f = record.fields;
+        currentShotId = record.id;
+        currentShotName = f.shot_name;
+
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
         document.getElementById('detail-title').innerText = f.shot_name || "";
-        document.getElementById('detail-status').innerText = f.status || "";
+        document.getElementById('detail-ver').innerText = formatVer(f.version);
+        
+        const stBadge = document.getElementById('detail-status');
+        const sCol = statusColors[f.status?.toLowerCase()] || '#333';
+        stBadge.innerHTML = `<div class="status-badge" style="background:${sCol}">${f.status || ""}</div>`;
 
         const v = document.getElementById('detail-video');
         const img = document.getElementById('detail-img');
         
-        // Твое поле preview_file2
         let videoUrl = f.preview_file2 ? (Array.isArray(f.preview_file2) ? f.preview_file2[0].url : f.preview_file2) : "";
 
         if (videoUrl) {
@@ -117,23 +184,7 @@
             img.src = (f.thumbnail && f.thumbnail[0]) ? f.thumbnail[0].url : "";
         }
 
-        // Комменты
-        const cList = document.getElementById('comments-list');
-        cList.innerHTML = 'Загрузка истории...';
-        try {
-            const filter = encodeURIComponent("{shot_name}='" + f.shot_name + "'");
-            const res = await fetch("https://api.airtable.com/v0/"+BASE+"/"+TABLE_COMMS+"?filterByFormula="+filter, {
-                headers: { Authorization: "Bearer " + TOKEN }
-            });
-            const cData = await res.json();
-            cList.innerHTML = '';
-            (cData.records || []).forEach(c => {
-                const div = document.createElement('div');
-                div.className = 'comment';
-                div.innerHTML = '<div class="author">'+(c.fields.author || "Super")+'</div>' + (c.fields.text || "");
-                cList.appendChild(div);
-            });
-        } catch (e) { cList.innerText = ""; }
+        loadComments(f.shot_name);
 
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
@@ -142,6 +193,68 @@
             document.getElementById('list-view').style.display = 'block';
             tg.BackButton.hide();
         });
+    }
+
+    async function loadComments(shotName) {
+        const cList = document.getElementById('comments-list');
+        cList.innerHTML = 'Загрузка истории...';
+        try {
+            const filter = encodeURIComponent(`{shot_name}='${shotName}'`);
+            const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE_COMMS}?filterByFormula=${filter}&sort[0][field]=Created&sort[0][direction]=desc`, {
+                headers: { Authorization: "Bearer " + TOKEN }
+            });
+            const cData = await res.json();
+            cList.innerHTML = '<h4 style="margin: 10px 0;">History</h4>';
+            (cData.records || []).forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'comment';
+                div.innerHTML = `<div class="author">${c.fields.author || "User"} • ${formatVer(c.fields.version)}</div>${c.fields.text || ""}`;
+                cList.appendChild(div);
+            });
+        } catch (e) { cList.innerText = ""; }
+    }
+
+    async function sendComment() {
+        const input = document.getElementById('new-comment');
+        const text = input.value.trim();
+        if(!text) return;
+
+        const user = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Unknown";
+
+        // Показываем лоадер на кнопке или просто дизейблим
+        try {
+            const response = await fetch(N8N_COMMENT_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    shot_id: currentShotId,
+                    shot_name: currentShotName,
+                    text: text,
+                    author: user
+                })
+            });
+
+            if(response.ok) {
+                input.value = '';
+                // Маленький хак: добавим коммент в список визуально сразу
+                const cList = document.getElementById('comments-list');
+                const div = document.createElement('div');
+                div.className = 'comment';
+                div.style.borderColor = '#007aff';
+                div.innerHTML = `<div class="author">${user} (Just now)</div>${text}`;
+                cList.insertBefore(div, cList.firstChild.nextSibling);
+            }
+        } catch (e) {
+            alert("Ошибка отправки");
+        }
+    }
+
+    // Управление видео
+    const vPlayer = document.getElementById('detail-video');
+    function togglePlay() { vPlayer.paused ? vPlayer.play() : vPlayer.pause(); }
+    function stepFrame(dir) {
+        vPlayer.pause();
+        vPlayer.currentTime += (1/24) * dir; // Считаем 24 fps
     }
 
     init();
