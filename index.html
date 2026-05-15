@@ -2,16 +2,16 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VFX Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
         
         .header-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
-        .project-header { font-size: 20px; font-weight: 900; text-transform: uppercase; }
+        .project-header { font-size: 20px; font-weight: 900; }
         .view-toggle { display: flex; gap: 8px; background: #1c1c1e; padding: 4px; border-radius: 8px; }
-        .view-btn { border: none; background: none; color: #666; cursor: pointer; padding: 6px 12px; font-size: 16px; border-radius: 6px; }
+        .view-btn { border: none; background: none; color: #666; padding: 6px 12px; font-size: 16px; border-radius: 6px; cursor: pointer; }
         .view-btn.active { background: #3a3a3c; color: #fff; }
 
         #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; border-bottom: 1px solid #222; }
@@ -19,35 +19,32 @@
         .tab.active { background: #007aff; color: #fff; }
 
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
-        .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; cursor: pointer; }
+        .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #111; }
         
-        /* LIST MODE */
+        /* Исправленный LIST MODE */
         #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
         .list-mode .card { display: flex; align-items: center; padding: 8px 12px; flex-direction: row; }
-        .list-mode .thumb { width: 60px; height: 35px; border-radius: 4px; margin-right: 12px; aspect-ratio: auto; }
-        .list-mode .card-info { display: flex; align-items: center; width: 100%; gap: 5px; overflow: hidden; }
+        .list-mode .thumb { width: 60px; height: 35px; border-radius: 4px; margin-right: 12px; }
+        .list-mode .card-info { display: flex; flex: 1; align-items: center; justify-content: space-between; min-width: 0; }
         
-        .info-name { flex: 1; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-        .info-ver { color: #007aff; font-weight: bold; font-size: 13px; width: 45px; flex-shrink: 0; }
-        .info-status { width: 85px; text-align: right; font-weight: 800; font-size: 10px; text-transform: uppercase; flex-shrink: 0; }
+        .info-name { font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
+        .info-ver { color: #007aff; font-weight: bold; font-size: 13px; margin-right: 10px; }
+        .info-status { font-weight: 800; font-size: 10px; text-transform: uppercase; white-space: nowrap; }
 
         /* Player */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
-        .player-container { width: 100%; background: #000; display: flex; align-items: center; justify-content: center; padding-top: 10px; }
-        video { width: 100%; max-height: calc(100vh - 180px); object-fit: contain; background: #000; }
-        
-        .custom-controls { display: flex; justify-content: center; align-items: center; gap: 15px; padding: 15px; background: #111; }
-        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 44px; height: 44px; border-radius: 8px; font-size: 20px; cursor: pointer; }
+        video { width: 100%; max-height: 70vh; background: #000; object-fit: contain; }
+        .custom-controls { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 20px; background: #111; }
+        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 50px; height: 50px; border-radius: 10px; font-size: 24px; }
 
-        .info-panel { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
-        .shot-head { font-size: 18px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .st-badge { padding: 4px 12px; border-radius: 6px; text-transform: uppercase; font-size: 18px; font-weight: 800; }
+        .info-panel { padding: 20px 15px; }
+        .shot-head { font-size: 18px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .st-badge { padding: 4px 12px; border-radius: 6px; text-transform: uppercase; font-size: 16px; }
         
-        .comment-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
-        .comment-input { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; min-height: 100px; font-size: 16px; outline: none; font-family: inherit; }
-        .send-btn { background: #007aff; border: none; color: #fff; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 16px; }
-        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #222; font-size: 14px; color: #ccc; }
+        .comment-input { width: 100%; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; min-height: 80px; box-sizing: border-box; font-family: inherit; margin-bottom: 10px; }
+        .send-btn { width: 100%; background: #007aff; border: none; color: #fff; padding: 14px; border-radius: 10px; font-weight: bold; }
+        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #222; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -66,25 +63,18 @@
 
 <div id="detail-view">
     <div class="player-wrapper">
-        <div class="player-container"><video id="main-v" loop playsinline></video></div>
+        <video id="main-v" loop playsinline></video>
         <div class="custom-controls">
             <button class="p-btn" onclick="step(-1)">⏮</button>
             <button class="p-btn" onclick="toggleP()">⏯</button>
             <button class="p-btn" onclick="step(1)">⏭</button>
-            <button class="p-btn" style="background:none;color:#666;margin-left:10px;" onclick="goFS()">⛶</button>
         </div>
     </div>
     <div class="info-panel">
-        <div class="shot-head">
-            <span id="det-title"></span>
-            <span id="det-ver" style="color:#007aff;"></span>
-            <span id="det-status" class="st-badge"></span>
-        </div>
-        <div class="comment-box">
-            <textarea id="comm-text" class="comment-input" placeholder="Enter your comment..."></textarea>
-            <button class="send-btn" onclick="sendComment()">Send</button>
-        </div>
-        <div id="history"></div>
+        <div class="shot-head"><span id="det-title"></span> <span id="det-ver" style="color:#007aff;"></span> <span id="det-status" class="st-badge"></span></div>
+        <textarea id="comm-text" class="comment-input" placeholder="Ваш комментарий..."></textarea>
+        <button class="send-btn" onclick="sendComment()">Отправить</button>
+        <div id="history" style="margin-top:20px;"></div>
     </div>
 </div>
 
@@ -94,10 +84,7 @@
     const BASE = 'appgiNHAoONgW8Ha6';
     const N8N_WEBHOOK = 'https://n8n.cg-vfx.ru/webhook/6226068d-be62-466d-883a-446ec2726589';
 
-    const statusConfig = { 
-        'ready to start': '#808080', 'in progress': '#3498db', 'pause': '#9b59b6', 
-        'to fix': '#e67e22', 'review': '#f1c40f', 'approved': '#2ecc71' 
-    };
+    const statusConfig = { 'ready to start': '#808080', 'in progress': '#3498db', 'pause': '#9b59b6', 'to fix': '#e67e22', 'review': '#f1c40f', 'approved': '#2ecc71' };
 
     let allRecords = [];
     let currentFilter = '';
@@ -106,12 +93,42 @@
     const vid = document.getElementById('main-v');
 
     async function init() {
-        try {
-            tg.expand();
-            const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, { headers: { Authorization: "Bearer " + TOKEN } });
-            const data = await r.json();
-            allRecords = data.records || [];
-            renderTabs();
-        } catch(e) {
-            document.getElementById('main-grid').innerText = "Ошибка загрузки данных.";
+        const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, { headers: { Authorization: "Bearer " + TOKEN } });
+        const data = await r.json();
+        allRecords = data.records || [];
+        renderTabs();
+    }
+
+    function setView(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        if (mode === 'list') {
+            document.getElementById('main-grid').classList.add('list-mode');
+            document.getElementById('btn-list').classList.add('active');
+        } else {
+            document.getElementById('main-grid').classList.remove('list-mode');
+            document.getElementById('btn-tiles').classList.add('active');
         }
+        renderGrid(currentFilter);
+    }
+
+    function renderTabs() {
+        const eps = [...new Set(allRecords.map(r => (r.fields.shot_name || "").substring(0, 4).toLowerCase()))].filter(e => e.startsWith('ep')).sort();
+        document.getElementById('tabs-bar').innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="currentFilter='${ep}'; renderGrid('${ep}'); selectTab(this)">${ep.toUpperCase()}</div>`).join('');
+        if(eps.length > 0) { currentFilter = eps[0]; renderGrid(eps[0]); }
+    }
+
+    function selectTab(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
+
+    function renderGrid(filter) {
+        const grid = document.getElementById('main-grid');
+        grid.innerHTML = allRecords.filter(r => (r.fields.shot_name || "").toLowerCase().startsWith(filter)).map(r => {
+            const st = r.fields.status || '';
+            const ver = 'v' + String(r.fields.version || 0).padStart(3, '0');
+            const color = statusConfig[st.toLowerCase()] || '#8e8e93';
+            
+            return `
+            <div class="card" onclick='openShot(${JSON.stringify(r)})'>
+                <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
+                <div class="card-info">
+                    <div class="info-name">${r.fields.shot_name}</div>
