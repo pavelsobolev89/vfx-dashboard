@@ -27,14 +27,14 @@
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .card-info { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
         
-        /* LIST (Strict Alignment) */
+        /* LIST FIX */
         #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
-        .list-mode .card { flex-direction: row; align-items: center; padding: 8px 15px; }
+        .list-mode .card { flex-direction: row; align-items: center; padding: 8px 15px; height: 60px; }
         .list-mode .thumb { width: 80px; height: 45px; margin-right: 15px; border-radius: 4px; }
         .list-mode .card-info { flex-direction: row; flex: 1; justify-content: space-between; align-items: center; padding: 0; }
-        .list-mode .info-name { flex: 2; font-size: 15px; }
-        .list-mode .info-ver { flex: 1; text-align: center; }
-        .list-mode .info-status { flex: 1; text-align: right; }
+        .list-mode .info-name { flex: 2; font-size: 15px; text-align: left; margin: 0; }
+        .list-mode .info-ver { flex: 1; text-align: center; margin: 0; }
+        .list-mode .info-status { flex: 1; text-align: right; margin: 0; }
 
         .info-name { font-weight: bold; }
         .info-ver { color: #007aff; font-weight: bold; font-size: 13px; }
@@ -42,13 +42,11 @@
 
         /* Player */
         #detail-view { display: none; position: fixed; inset: 0; background: #000; z-index: 100; overflow-y: auto; }
-        .v-container { width: 100%; background: #000; position: relative; }
         video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
         .controls { display: flex; justify-content: center; gap: 25px; padding: 15px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 50px; height: 50px; border-radius: 12px; font-size: 22px; cursor: pointer; }
+        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 50px; height: 50px; border-radius: 12px; font-size: 22px; }
         .p-panel { padding: 20px; }
-        
-        .history-item { background: #161618; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; line-height: 1.4; }
+        .history-item { background: #161618; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -66,9 +64,7 @@
 </div>
 
 <div id="detail-view">
-    <div class="v-container">
-        <video id="main-v" loop playsinline autoplay muted controls></video>
-    </div>
+    <video id="main-v" loop playsinline autoplay muted controls></video>
     <div class="controls">
         <button class="p-btn" onclick="step(-1)">⏮</button>
         <button class="p-btn" onclick="toggleP()">⏯</button>
@@ -77,10 +73,8 @@
     <div class="p-panel">
         <h2 id="det-title" style="margin:0 0 10px 0; font-size: 22px;"></h2>
         <div id="det-meta" style="margin-bottom: 20px;"></div>
-        
-        <textarea id="comm-text" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; min-height:100px; box-sizing:border-box; font-family:inherit; font-size:16px;" placeholder="Ваш комментарий..."></textarea>
-        <button onclick="sendComment()" style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">ОТПРАВИТЬ</button>
-        
+        <textarea id="comm-text" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; min-height:100px; box-sizing:border-box; font-size:16px; font-family:inherit;" placeholder="Add comment..."></textarea>
+        <button onclick="sendComment()" style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">SEND</button>
         <div id="history" style="margin-top:30px;"></div>
     </div>
 </div>
@@ -114,7 +108,7 @@
     }
 
     function renderTabs() {
-        const eps = [...new Set(allRecords.map(r => r.fields.shot_name.split('_')[0].toLowerCase()))].sort();
+        const eps = [...new Set(allRecords.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
         document.getElementById('tabs-bar').innerHTML = eps.map((ep, i) => `
             <div class="tab ${i===0?'active':''}" onclick="currentFilter='${ep}'; renderGrid('${ep}'); selectTab(this)">
                 ${ep.toUpperCase()}
@@ -129,16 +123,15 @@
 
     function renderGrid(f) {
         const grid = document.getElementById('main-grid');
-        grid.innerHTML = allRecords.filter(r => r.fields.shot_name.toLowerCase().startsWith(f)).map(r => {
+        grid.innerHTML = allRecords.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(f)).map(r => {
             const st = r.fields.status || '';
             const color = statusConfig[st.toLowerCase()] || '#8e8e93';
-            const ver = 'v' + String(r.fields.version || 0).padStart(3, '0');
             return `
             <div class="card" onclick='openShot(${JSON.stringify(r)})'>
                 <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
                 <div class="card-info">
                     <div class="info-name">${r.fields.shot_name}</div>
-                    <div class="info-ver">${ver}</div>
+                    <div class="info-ver">v${String(r.fields.version || 0).padStart(3, '0')}</div>
                     <div class="info-status" style="color:${color}">${st}</div>
                 </div>
             </div>`;
@@ -149,18 +142,15 @@
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
         
-        // 1. БЕРЕМ ВИДЕО НАПРЯМУЮ ИЗ SHOTS (как работало раньше)
+        // ВОЗВРАТ К СТАРОЙ ЛОГИКЕ: Видео из preview_file основной таблицы Shots
         const videoUrl = r.fields.preview_file || "";
         vid.src = videoUrl;
         if(videoUrl) {
             vid.load();
-            vid.play().catch(() => {
-                // Если автоплей заблокирован, попробуем еще раз при клике
-                console.log("Autoplay blocked, waiting for interaction");
-            });
+            vid.play().catch(() => {});
         }
 
-        // 2. ЗАГРУЖАЕМ ИСТОРИЮ ИЗ COMMENTS
+        // Подгружаем комменты для истории
         const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
         const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, {
             headers: { Authorization: "Bearer " + TOKEN }
@@ -170,7 +160,7 @@
         document.getElementById('det-title').innerText = r.fields.shot_name;
         document.getElementById('det-meta').innerHTML = `
             <span style="color:#007aff; font-weight:bold; font-size:16px;">v${String(r.fields.version || 0).padStart(3, '0')}</span> 
-            <span style="margin: 0 10px; color: #444;">|</span> 
+            <span style="margin:0 10px; color:#444;">|</span> 
             <span style="color:${statusConfig[(r.fields.status||'').toLowerCase()] || '#fff'}; font-weight:800;">${r.fields.status || ''}</span>`;
         
         document.getElementById('history').innerHTML = (cData.records || []).map(c => `
