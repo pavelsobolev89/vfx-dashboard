@@ -27,24 +27,28 @@
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .card-info { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
         
-        /* LIST FIX */
+        /* LIST MODE FIX */
         #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
         .list-mode .card { flex-direction: row; align-items: center; padding: 8px 15px; height: 60px; }
         .list-mode .thumb { width: 80px; height: 45px; margin-right: 15px; border-radius: 4px; }
         .list-mode .card-info { flex-direction: row; flex: 1; justify-content: space-between; align-items: center; padding: 0; }
-        .list-mode .info-name { flex: 2; font-size: 15px; text-align: left; margin: 0; }
-        .list-mode .info-ver { flex: 1; text-align: center; margin: 0; }
+        .list-mode .info-name { flex: 2; font-size: 15px; text-align: left; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-mode .info-ver { flex: 0.5; text-align: center; margin: 0; }
         .list-mode .info-status { flex: 1; text-align: right; margin: 0; }
 
         .info-name { font-weight: bold; }
         .info-ver { color: #007aff; font-weight: bold; font-size: 13px; }
         .info-status { font-weight: 800; font-size: 11px; text-transform: uppercase; }
 
-        /* Player */
+        /* Player - NO DEFAULT CONTROLS */
         #detail-view { display: none; position: fixed; inset: 0; background: #000; z-index: 100; overflow-y: auto; }
-        video { width: 100%; display: block; aspect-ratio: 16/9; background: #000; }
-        .controls { display: flex; justify-content: center; gap: 25px; padding: 15px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 50px; height: 50px; border-radius: 12px; font-size: 22px; }
+        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+        video { width: 100%; height: 100%; display: block; object-fit: contain; }
+        
+        .controls { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
+        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 55px; height: 55px; border-radius: 14px; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .p-btn:active { background: #3a3a3c; }
+
         .p-panel { padding: 20px; }
         .history-item { background: #161618; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; }
     </style>
@@ -64,7 +68,9 @@
 </div>
 
 <div id="detail-view">
-    <video id="main-v" loop playsinline autoplay muted controls></video>
+    <div class="video-container">
+        <video id="main-v" loop playsinline autoplay muted></video>
+    </div>
     <div class="controls">
         <button class="p-btn" onclick="step(-1)">⏮</button>
         <button class="p-btn" onclick="toggleP()">⏯</button>
@@ -73,8 +79,8 @@
     <div class="p-panel">
         <h2 id="det-title" style="margin:0 0 10px 0; font-size: 22px;"></h2>
         <div id="det-meta" style="margin-bottom: 20px;"></div>
-        <textarea id="comm-text" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; min-height:100px; box-sizing:border-box; font-size:16px; font-family:inherit;" placeholder="Add comment..."></textarea>
-        <button onclick="sendComment()" style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">SEND</button>
+        <textarea id="comm-text" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; min-height:100px; box-sizing:border-box; font-size:16px; font-family:inherit;" placeholder="Ваш комментарий..."></textarea>
+        <button onclick="sendComment()" style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">ОТПРАВИТЬ</button>
         <div id="history" style="margin-top:30px;"></div>
     </div>
 </div>
@@ -102,7 +108,7 @@
 
     function setView(mode) {
         const grid = document.getElementById('main-grid');
-        document.querySelectorAll('.view-btn').forEach((b, i) => b.classList.toggle('active', (i===0 && mode==='tiles') || (i===1 && mode==='list')));
+        document.querySelectorAll('.view-toggle button').forEach((b, i) => b.classList.toggle('active', (i===0 && mode==='tiles') || (i===1 && mode==='list')));
         grid.className = mode === 'list' ? 'list-mode' : '';
         renderGrid(currentFilter);
     }
@@ -142,7 +148,6 @@
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
         
-        // ВОЗВРАТ К СТАРОЙ ЛОГИКЕ: Видео из preview_file основной таблицы Shots
         const videoUrl = r.fields.preview_file || "";
         vid.src = videoUrl;
         if(videoUrl) {
@@ -150,7 +155,6 @@
             vid.play().catch(() => {});
         }
 
-        // Подгружаем комменты для истории
         const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
         const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, {
             headers: { Authorization: "Bearer " + TOKEN }
