@@ -30,154 +30,55 @@
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .info { padding: 12px; }
 
-        /* LIST MODE (TABLE) */
-        .list-mode { display: flex !important; flex-direction: column !important; padding: 0 !important; gap: 0 !important; border-top: 1px solid #333; }
+        /* LIST MODE (TABLE STYLE c отступами по краям) */
+        .list-mode { 
+            display: flex !important; 
+            flex-direction: column !important; 
+            padding: 10px 12px !important; /* ОТСТУПЫ СЛЕВА И СПРАВА */
+            gap: 0 !important; 
+        }
         .list-mode .card { 
             display: grid !important; 
-            grid-template-columns: 100px 1fr 60px 110px; 
-            border: none; 
-            border-bottom: 1px solid #333; 
+            grid-template-columns: 80px 1fr 65px 105px; 
+            border: 1px solid #333; /* Рамка вокруг каждой строки */
+            border-bottom: none; 
             border-radius: 0; 
             background: transparent;
+            align-items: stretch;
+            min-height: 50px;
+        }
+        .list-mode .card:first-child { border-radius: 8px 8px 0 0; }
+        .list-mode .card:last-child { border-bottom: 1px solid #333; border-radius: 0 0 8px 8px; }
+
+        .list-mode .thumb { width: 100%; height: 100%; border-right: 1px solid #333; border-radius: 0; object-fit: cover; }
+        .list-mode .info { display: contents; }
+        
+        .list-mode .info-name { 
+            padding: 8px 12px; 
+            border-right: 1px solid #333; 
+            font-size: 13px; 
+            font-weight: 700; 
+            word-break: break-all;
+            display: flex;
             align-items: center;
-            height: 60px;
+            line-height: 1.2;
         }
-        .list-mode .thumb { width: 100%; height: 100%; border-right: 1px solid #333; border-radius: 0; }
-        .list-mode .info { 
-            display: contents; /* Разваливаем инфо на колонки грида */
+        .list-mode .info-ver { 
+            border-right: 1px solid #333; 
+            text-align: center; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 13px;
         }
-        .list-mode .info-name { padding: 0 15px; border-right: 1px solid #333; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .list-mode .info-ver { border-right: 1px solid #333; text-align: center; height: 100%; display: flex; align-items: center; justify-content: center; }
-        .list-mode .info-status { text-align: center; font-size: 10px; font-weight: 900; padding: 0 5px; }
+        .list-mode .info-status { 
+            text-align: center; 
+            font-size: 9px; 
+            font-weight: 900; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 0 5px;
+        }
 
-        /* Player */
-        #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
-        .video-box { width: 100%; aspect-ratio: 16/9; background: #000; }
-        video { width: 100%; height: 100%; display: block; }
-        
-        .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; transition: 0.1s; outline: none; -webkit-tap-highlight-color: transparent; }
-        
-        /* Эффект нажатия (белая вспышка) */
-        .p-btn:active { background: #fff !important; color: #000 !important; transform: scale(0.95); }
-
-        .p-body { padding: 20px; }
-        .history-item { background: #161618; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; }
-    </style>
-</head>
-<body>
-
-<div id="grid-view">
-    <div class="header">
-        <div style="font-weight:900; font-size:22px;">БОГАТЫРИ</div>
-        <div class="view-toggle">
-            <button class="v-btn active" onclick="setView('grid', this)">田</button>
-            <button class="v-btn" onclick="setView('list', this)">≡</button>
-        </div>
-    </div>
-    <div id="tabs"></div>
-    <div id="main-grid"></div>
-</div>
-
-<div id="player-view">
-    <div class="video-box" id="v-container"></div>
-    <div class="p-nav">
-        <button class="p-btn" onclick="vStep(-1)">⏮</button>
-        <button class="p-btn" onclick="vToggle()">⏯</button>
-        <button class="p-btn" onclick="vStep(1)">⏭</button>
-    </div>
-    <div class="p-body">
-        <h2 id="p-title" style="margin:0 0 5px 0;"></h2>
-        <div id="p-meta" style="margin-bottom: 20px; font-size: 16px; font-weight: bold;"></div>
-        <textarea id="p-comm" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; height:100px; box-sizing:border-box; font-family:inherit; font-size:16px;" placeholder="Ваш комментарий..."></textarea>
-        <button style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px;">ОТПРАВИТЬ</button>
-        <div id="p-history" style="margin-top:30px;"></div>
-    </div>
-</div>
-
-<script>
-    const tg = window.Telegram.WebApp;
-    const KEY = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
-    const BASE = 'appgiNHAoONgW8Ha6';
-    
-    let records = [];
-    let curFilter = '';
-
-    const statusMap = {
-        'review': 'st-review',
-        'ready to start': 'st-ready',
-        'approved': 'st-approved',
-        'in progress': 'st-progress',
-        'to fix': 'st-fix'
-    };
-
-    async function init() {
-        tg.expand();
-        const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, {
-            headers: { Authorization: `Bearer ${KEY}` }
-        });
-        const json = await r.json();
-        records = json.records || [];
-        
-        const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
-        document.getElementById('tabs').innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
-        if(eps.length > 0) setFilter(eps[0]);
-    }
-
-    function setFilter(f, el) {
-        curFilter = f;
-        if(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
-        render();
-    }
-
-    function setView(mode, el) {
-        document.getElementById('main-grid').className = mode === 'list' ? 'list-mode' : '';
-        document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-    }
-
-    function render() {
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = records.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curFilter)).map(r => {
-            const st = (r.fields.status || '').toLowerCase();
-            const stClass = statusMap[st] || '';
-            const version = `v${String(r.fields.version || 0).padStart(3, '0')}`;
-            
-            return `
-            <div class="card" onclick='openPlayer(${JSON.stringify(r)})'>
-                <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
-                <div class="info">
-                    <div class="info-name">${r.fields.shot_name}</div>
-                    <div class="info-ver" style="color:#007aff; font-weight:700;">${version}</div>
-                    <div class="info-status ${stClass}">${(r.fields.status || '').toUpperCase()}</div>
-                </div>
-            </div>`;
-        }).join('');
-    }
-
-    function openPlayer(r) {
-        document.getElementById('grid-view').style.display = 'none';
-        document.getElementById('player-view').style.display = 'block';
-        const container = document.getElementById('v-container');
-        const videoUrl = (r.fields.preview_file2 && r.fields.preview_file2[0]) ? r.fields.preview_file2[0].url : "";
-        container.innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
-        document.getElementById('p-title').innerText = r.fields.shot_name;
-        const st = (r.fields.status || '').toLowerCase();
-        document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">v${String(r.fields.version || 0).padStart(3, '0')}</span> <span style="color:#444; margin:0 10px;">|</span> <span class="${statusMap[st] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
-
-        tg.BackButton.show();
-        tg.BackButton.onClick(() => {
-            container.innerHTML = "";
-            document.getElementById('player-view').style.display = 'none';
-            document.getElementById('grid-view').style.display = 'block';
-            tg.BackButton.hide();
-        });
-    }
-
-    function vToggle() { const v = document.getElementById('main-v'); if(v) v.paused ? v.play() : v.pause(); }
-    function vStep(d) { const v = document.getElementById('main-v'); if(v) { v.pause(); v.currentTime += d * (1/24); } }
-
-    init();
-</script>
-</body>
-</html>
+        /* Player
