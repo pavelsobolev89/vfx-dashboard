@@ -6,14 +6,14 @@
     <title>VFX Review</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
         
         /* Цвета статусов */
-        .st-review { color: #f1c40f; } /* Желтый */
-        .st-ready { color: #8e8e93; } /* Серый */
-        .st-approved { color: #2ecc71; } /* Зеленый */
-        .st-progress { color: #3498db; } /* Синий */
-        .st-fix { color: #e67e22; } /* Оранжевый */
+        .st-review { color: #f1c40f; }
+        .st-ready { color: #8e8e93; }
+        .st-approved { color: #2ecc71; }
+        .st-progress { color: #3498db; }
+        .st-fix { color: #e67e22; }
 
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
         .view-toggle { display: flex; gap: 5px; background: #1c1c1e; padding: 4px; border-radius: 10px; }
@@ -24,15 +24,31 @@
         .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
 
+        /* GRID MODE */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .info { padding: 12px; }
-        
-        .list-mode { display: flex !important; flex-direction: column !important; }
-        .list-mode .card { display: flex; align-items: center; padding: 8px 15px; height: 60px; }
-        .list-mode .thumb { width: 80px; height: 45px; margin-right: 15px; border-radius: 6px; }
-        .list-mode .info { display: flex; flex: 1; justify-content: space-between; align-items: center; padding: 0; }
+
+        /* LIST MODE (TABLE) */
+        .list-mode { display: flex !important; flex-direction: column !important; padding: 0 !important; gap: 0 !important; border-top: 1px solid #333; }
+        .list-mode .card { 
+            display: grid !important; 
+            grid-template-columns: 100px 1fr 60px 110px; 
+            border: none; 
+            border-bottom: 1px solid #333; 
+            border-radius: 0; 
+            background: transparent;
+            align-items: center;
+            height: 60px;
+        }
+        .list-mode .thumb { width: 100%; height: 100%; border-right: 1px solid #333; border-radius: 0; }
+        .list-mode .info { 
+            display: contents; /* Разваливаем инфо на колонки грида */
+        }
+        .list-mode .info-name { padding: 0 15px; border-right: 1px solid #333; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-mode .info-ver { border-right: 1px solid #333; text-align: center; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .list-mode .info-status { text-align: center; font-size: 10px; font-weight: 900; padding: 0 5px; }
 
         /* Player */
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
@@ -40,10 +56,10 @@
         video { width: 100%; height: 100%; display: block; }
         
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; transition: background 0.1s; }
+        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; transition: 0.1s; outline: none; -webkit-tap-highlight-color: transparent; }
         
-        /* Подсветка при нажатии */
-        .p-btn:active { background: #fff !important; color: #000 !important; }
+        /* Эффект нажатия (белая вспышка) */
+        .p-btn:active { background: #fff !important; color: #000 !important; transform: scale(0.95); }
 
         .p-body { padding: 20px; }
         .history-item { background: #161618; padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; }
@@ -53,7 +69,7 @@
 
 <div id="grid-view">
     <div class="header">
-        <div style="font-weight:900; font-size:20px;">БОГАТЫРИ</div>
+        <div style="font-weight:900; font-size:22px;">БОГАТЫРИ</div>
         <div class="view-toggle">
             <button class="v-btn active" onclick="setView('grid', this)">田</button>
             <button class="v-btn" onclick="setView('list', this)">≡</button>
@@ -74,7 +90,7 @@
         <h2 id="p-title" style="margin:0 0 5px 0;"></h2>
         <div id="p-meta" style="margin-bottom: 20px; font-size: 16px; font-weight: bold;"></div>
         <textarea id="p-comm" style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; height:100px; box-sizing:border-box; font-family:inherit; font-size:16px;" placeholder="Ваш комментарий..."></textarea>
-        <button style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">ОТПРАВИТЬ</button>
+        <button style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px;">ОТПРАВИТЬ</button>
         <div id="p-history" style="margin-top:30px;"></div>
     </div>
 </div>
@@ -125,43 +141,29 @@
         grid.innerHTML = records.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curFilter)).map(r => {
             const st = (r.fields.status || '').toLowerCase();
             const stClass = statusMap[st] || '';
+            const version = `v${String(r.fields.version || 0).padStart(3, '0')}`;
+            
             return `
             <div class="card" onclick='openPlayer(${JSON.stringify(r)})'>
                 <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
                 <div class="info">
-                    <div style="font-weight:700; font-size:14px; margin-bottom:4px;">${r.fields.shot_name}</div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="color:#007aff; font-size:12px; font-weight:700;">v${String(r.fields.version || 0).padStart(3, '0')}</span>
-                        <span class="${stClass}" style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status || ''}</span>
-                    </div>
+                    <div class="info-name">${r.fields.shot_name}</div>
+                    <div class="info-ver" style="color:#007aff; font-weight:700;">${version}</div>
+                    <div class="info-status ${stClass}">${(r.fields.status || '').toUpperCase()}</div>
                 </div>
             </div>`;
         }).join('');
     }
 
-    async function openPlayer(r) {
+    function openPlayer(r) {
         document.getElementById('grid-view').style.display = 'none';
         document.getElementById('player-view').style.display = 'block';
-        
         const container = document.getElementById('v-container');
         const videoUrl = (r.fields.preview_file2 && r.fields.preview_file2[0]) ? r.fields.preview_file2[0].url : "";
-
         container.innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
-
         document.getElementById('p-title').innerText = r.fields.shot_name;
         const st = (r.fields.status || '').toLowerCase();
-        document.getElementById('p-meta').innerHTML = `
-            <span style="color:#007aff">v${String(r.fields.version || 0).padStart(3, '0')}</span> 
-            <span style="color:#444; margin:0 10px;">|</span> 
-            <span class="${statusMap[st] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
-
-        // Загрузка комментов
-        const fCom = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
-        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${fCom}&sort[0][field]=Created&sort[0][direction]=desc`, {
-            headers: { Authorization: `Bearer ${KEY}` }
-        });
-        const cData = await res.json();
-        document.getElementById('p-history').innerHTML = (cData.records || []).map(c => `<div class="history-item">${c.fields.text || ''}</div>`).join('');
+        document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">v${String(r.fields.version || 0).padStart(3, '0')}</span> <span style="color:#444; margin:0 10px;">|</span> <span class="${statusMap[st] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
 
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
