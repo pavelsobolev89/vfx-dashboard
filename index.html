@@ -8,249 +8,182 @@
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
         
-        /* Проект и Табы */
-        .project-header { padding: 15px 15px 5px 15px; font-size: 20px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        .project-header { padding: 15px 15px 5px 15px; font-size: 20px; font-weight: 900; color: #fff; text-transform: uppercase; }
         #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; background: #000; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #222; }
-        .tab { padding: 6px 12px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; color: #8e8e93; cursor: pointer; transition: 0.2s; }
-        .tab:hover { background: #2c2c2e; }
-        .tab.active { background: #007aff; color: #fff; }
+        .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; cursor: pointer; color: #8e8e93; border: 1px solid transparent; }
+        .tab.active { background: #007aff; color: #fff; border-color: #007aff; }
 
-        /* Сетка карточек */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 15px; }
-        .card { background: #1c1c1e; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #222; cursor: pointer; transition: transform 0.1s; }
-        .card:hover { transform: translateY(-2px); border-color: #444; }
+        .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; cursor: pointer; position: relative; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
-        .v-tag { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.8); padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: bold; border: 1px solid rgba(255,255,255,0.1); }
+        .v-tag { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.8); padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: bold; }
         
-        /* Плеер (Детальный вид) */
+        /* Плеер без нативного управления */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
-        .sticky-player { position: sticky; top: 0; z-index: 110; background: #000; border-bottom: 1px solid #222; }
-        .video-wrapper { max-width: 900px; margin: 0 auto; background: #000; position: relative; }
-        video { width: 100%; display: block; }
+        .player-block { position: sticky; top: 0; z-index: 110; background: #000; }
+        video { width: 100%; max-width: 1000px; display: block; margin: 0 auto; background: #000; }
         
-        /* Компактный пульт управления */
-        .player-controls { 
-            display: flex; align-items: center; justify-content: center; gap: 15px; 
-            padding: 8px 0; background: #111; 
+        /* Твои компактные кнопки */
+        .custom-controls { 
+            display: flex; justify-content: center; align-items: center; gap: 10px; 
+            padding: 8px; background: #111; border-bottom: 1px solid #222; 
         }
         .p-btn { 
             background: #2c2c2e; border: none; color: #fff; 
             width: 32px; height: 32px; border-radius: 6px; 
-            font-size: 14px; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.2s;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            font-size: 14px; transition: 0.1s;
         }
         .p-btn:hover { background: #3a3a3c; }
-        .p-btn:active { transform: scale(0.9); }
-        .play-pause { background: #007aff; width: 40px; } /* Синяя кнопка плей */
-        .fs-btn { background: none; color: #666; font-size: 16px; }
+        .play-btn { background: #007aff; width: 40px; }
+        .fs-btn { background: none; color: #666; font-size: 16px; margin-left: 10px; }
 
-        /* Панель информации */
-        .info-panel { max-width: 900px; margin: 0 auto; padding: 20px 15px; }
-        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; font-weight: 800; margin-bottom: 8px; }
+        .info-panel { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
+        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 5px; font-size: 10px; text-transform: uppercase; font-weight: 800; margin-bottom: 10px; }
+        
+        .comment-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 10px 15px; border-radius: 10px; outline: none; }
+        .send-btn { background: #007aff; border: none; color: #fff; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-        /* Комментарии */
-        .comment-area { display: flex; gap: 10px; margin: 15px 0; }
-        .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 14px; }
-        .comment-input:focus { border-color: #007aff; }
-        .send-btn { background: #007aff; border: none; color: #fff; border-radius: 8px; padding: 0 18px; font-weight: bold; cursor: pointer; }
-        .send-btn:hover { background: #0063cc; }
-
-        .history-card { background: #161618; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid #222; border-left: 3px solid #444; font-size: 13px; }
-        .history-meta { font-size: 10px; color: #666; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        .history-item { background: #1c1c1e; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 3px solid #444; font-size: 13px; }
     </style>
 </head>
 <body>
 
 <div id="list-view">
-    <div class="project-header" id="proj-title">PROJECT</div>
+    <div class="project-header">БОГАТЫРИ</div>
     <div id="tabs-bar"></div>
-    <div id="main-grid">Загрузка данных...</div>
+    <div id="main-grid">Загрузка...</div>
 </div>
 
 <div id="detail-view">
-    <div class="sticky-player">
-        <div class="video-wrapper">
-            <video id="main-v" loop playsinline></video>
-        </div>
-        <div class="player-controls">
-            <button class="p-btn" title="Предыдущий кадр" onclick="step(-1)">⏮</button>
-            <button class="p-btn play-pause" title="Play/Pause" onclick="toggleP()">⏯</button>
-            <button class="p-btn" title="Следующий кадр" onclick="step(1)">⏭</button>
+    <div class="player-block">
+        <video id="main-v" loop playsinline></video>
+        <div class="custom-controls">
+            <button class="p-btn" title="Frame Back" onclick="step(-1)">⏮</button>
+            <button class="p-btn play-btn" title="Play/Pause" onclick="toggleP()">⏯</button>
+            <button class="p-btn" title="Frame Forward" onclick="step(1)">⏭</button>
             <button class="p-btn fs-btn" title="Full Screen" onclick="goFS()">⛶</button>
         </div>
     </div>
 
     <div class="info-panel">
-        <h2 id="det-title" style="margin:0; font-size: 20px;"></h2>
-        <div id="det-ver" style="color:#007aff; font-weight:bold; font-size: 14px; margin: 4px 0 10px 0;"></div>
+        <h2 id="det-title" style="margin:0;"></h2>
+        <div id="det-ver" style="color:#007aff; font-weight:bold; margin: 5px 0 10px 0;"></div>
         <div id="det-status"></div>
         
-        <div class="comment-area">
+        <div class="comment-box">
             <input type="text" id="comm-text" class="comment-input" placeholder="Leave your comment">
             <button class="send-btn" onclick="sendComment()">Send</button>
         </div>
         
-        <div id="history-list" style="margin-top:25px; padding-bottom: 100px;"></div>
+        <div id="history"></div>
     </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    const PROJECT_NAME = "Богатыри"; 
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
     const BASE = 'appgiNHAoONgW8Ha6';
-    const N8N_URL = 'ТВОЙ_ВЕБХУК_URL'; // Вставь сюда URL из n8n
-
-    document.getElementById('proj-title').innerText = PROJECT_NAME;
-
-    const statusColors = {
-        'ready to start': '#808080', 'in progress': '#3498db',
-        'pause': '#9b59b6', 'to fix': '#e67e22',
-        'review': '#f1c40f', 'send to client': '#1abc9c', 'approved': '#2ecc71'
-    };
+    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL'; // ВСТАВЬ СЮДА ССЫЛКУ
 
     let allRecords = [];
     let currentShot = null;
 
     async function init() {
-        try {
-            const res = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, {
-                headers: { Authorization: `Bearer ${TOKEN}` }
-            });
-            const data = await res.json();
-            allRecords = data.records || [];
-            renderTabs();
-        } catch (e) {
-            document.getElementById('main-grid').innerText = "Ошибка загрузки";
-        }
+        const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, { headers: { Authorization: "Bearer " + TOKEN } });
+        const data = await r.json();
+        allRecords = data.records || [];
+        renderTabs();
     }
 
     function renderTabs() {
         const bar = document.getElementById('tabs-bar');
-        const eps = [...new Set(allRecords.map(r => {
-            const n = r.fields.shot_name || "";
-            return n.toString().substring(0, 4).toLowerCase();
-        }))].filter(e => e.startsWith('ep')).sort();
-        
-        bar.innerHTML = '';
-        eps.forEach((ep, i) => {
-            const t = document.createElement('div');
-            t.className = 'tab' + (i === 0 ? ' active' : '');
-            t.innerText = ep.toUpperCase();
-            t.onclick = () => {
-                document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-                t.classList.add('active');
-                renderGrid(ep);
-            };
-            bar.appendChild(t);
-        });
+        const eps = [...new Set(allRecords.map(r => (r.fields.shot_name || "").substring(0, 4).toLowerCase()))].filter(e => e.startsWith('ep')).sort();
+        bar.innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="renderGrid('${ep}'); selectTab(this)">${ep.toUpperCase()}</div>`).join('');
         if(eps.length > 0) renderGrid(eps[0]);
+    }
+
+    function selectTab(el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
     }
 
     function renderGrid(filter) {
         const grid = document.getElementById('main-grid');
-        grid.innerHTML = allRecords
-            .filter(r => (r.fields.shot_name || "").toLowerCase().startsWith(filter))
-            .map(r => `
-                <div class="card" onclick='openShot(${JSON.stringify(r)})'>
-                    <div class="v-tag">v${String(r.fields.version || 0).padStart(3, '0')}</div>
-                    <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
-                    <div style="padding:10px">
-                        <div style="font-size:11px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.fields.shot_name}</div>
-                        <div class="status-badge" style="background:${statusColors[r.fields.status?.toLowerCase()] || '#333'}">${r.fields.status}</div>
-                    </div>
+        grid.innerHTML = allRecords.filter(r => (r.fields.shot_name || "").toLowerCase().startsWith(filter)).map(r => `
+            <div class="card" onclick='openShot(${JSON.stringify(r)})'>
+                <div class="v-tag">v${String(r.fields.version || 0).padStart(3, '0')}</div>
+                <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
+                <div style="padding:10px; font-size:11px;">
+                    <b>${r.fields.shot_name}</b><br>
+                    <span style="color:#007aff">${r.fields.status || ''}</span>
                 </div>
-            `).join('');
+            </div>
+        `).join('');
     }
 
     function openShot(r) {
         currentShot = r;
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
-        
         const v = document.getElementById('main-v');
         v.src = r.fields.preview_file2?.[0]?.url || "";
-        v.play().catch(() => {});
+        v.play();
 
         document.getElementById('det-title').innerText = r.fields.shot_name;
         document.getElementById('det-ver').innerText = 'v' + String(r.fields.version || 0).padStart(3, '0');
-        
-        const sCol = statusColors[r.fields.status?.toLowerCase()] || '#333';
-        document.getElementById('det-status').innerHTML = `<div class="status-badge" style="background:${sCol}">${r.fields.status}</div>`;
-
+        updateStatusBadge(r.fields.status);
         loadHistory(r.fields.shot_name);
 
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            v.pause(); v.src = "";
-            document.getElementById('detail-view').style.display = 'none';
+            v.pause(); document.getElementById('detail-view').style.display = 'none';
             document.getElementById('list-view').style.display = 'block';
             tg.BackButton.hide();
         });
     }
 
-    async function sendComment() {
-        const input = document.getElementById('comm-text');
-        const text = input.value.trim();
-        if(!text) return;
-
-        const payload = {
-            shot_id: currentShot.id,
-            shot_name: currentShot.fields.shot_name,
-            version: currentShot.fields.version,
-            text: text,
-            author: tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "User",
-            new_status: "to fix"
-        };
-
-        try {
-            const res = await fetch(N8N_URL, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            if(res.ok) {
-                input.value = '';
-                tg.showAlert("Sent! Shot moved to 'to fix'");
-                document.getElementById('det-status').innerHTML = `<div class="status-badge" style="background:${statusColors['to fix']}">to fix</div>`;
-                loadHistory(currentShot.fields.shot_name);
-            }
-        } catch (e) { alert("Ошибка отправки"); }
+    function updateStatusBadge(st) {
+        const col = st?.toLowerCase() === 'to fix' ? '#e67e22' : '#007aff';
+        document.getElementById('det-status').innerHTML = `<div class="status-badge" style="background:${col}">${st || 'No Status'}</div>`;
     }
 
-    async function loadHistory(shotName) {
-        const hList = document.getElementById('history-list');
-        hList.innerHTML = '<span style="color:#666; font-size:12px;">Загрузка истории...</span>';
-        const filter = encodeURIComponent(`{shot_name}='${shotName}'`);
-        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort[0][field]=Created&sort[0][direction]=desc`, {
-            headers: { Authorization: `Bearer ${TOKEN}` }
+    async function sendComment() {
+        const txt = document.getElementById('comm-text').value;
+        if(!txt) return;
+        
+        // 1. Отправляем в n8n для смены статуса в базе
+        fetch(N8N_WEBHOOK, { method: 'POST', body: JSON.stringify({
+            shot_id: currentShot.id,
+            text: txt,
+            author: tg.initDataUnsafe?.user?.username || "Super",
+            new_status: "to fix"
+        })});
+
+        // 2. Мгновенно обновляем интерфейс
+        document.getElementById('comm-text').value = '';
+        updateStatusBadge('to fix');
+        tg.showAlert("Status changed to To Fix");
+    }
+
+    async function loadHistory(name) {
+        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=`+encodeURIComponent(`{shot_name}='${name}'`), {
+            headers: { Authorization: "Bearer " + TOKEN }
         });
         const data = await res.json();
-        hList.innerHTML = '<h4 style="margin: 0 0 10px 0; font-size: 14px;">Activity</h4>';
-        data.records.forEach(c => {
-            const div = document.createElement('div');
-            div.className = 'history-card';
-            div.innerHTML = `
-                <div class="history-meta">
-                    <span>${c.fields.author || 'User'}</span>
-                    <span>v${String(c.fields.version || 0).padStart(3, '0')}</span>
-                </div>
-                <div>${c.fields.text || ''}</div>
-            `;
-            hList.appendChild(div);
-        });
+        document.getElementById('history').innerHTML = (data.records || []).map(c => `
+            <div class="history-item">
+                <div style="font-size:10px; color:#8e8e93; margin-bottom:4px;"><b>${c.fields.author || 'Super'}</b></div>
+                ${c.fields.text || ''}
+            </div>
+        `).join('');
     }
 
-    // Управление плеером (24 fps)
     const vid = document.getElementById('main-v');
     function toggleP() { vid.paused ? vid.play() : vid.pause(); }
     function step(d) { vid.pause(); vid.currentTime += (1/24) * d; }
-    function goFS() {
-        if (vid.requestFullscreen) vid.requestFullscreen();
-        else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen();
-    }
+    function goFS() { if(vid.requestFullscreen) vid.requestFullscreen(); else if(vid.webkitEnterFullscreen) vid.webkitEnterFullscreen(); }
 
     init();
 </script>
