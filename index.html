@@ -8,7 +8,6 @@
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
         
-        /* Список */
         .project-header { padding: 15px 15px 5px 15px; font-size: 20px; font-weight: 900; color: #fff; text-transform: uppercase; }
         #tabs-bar { display: flex; overflow-x: auto; padding: 10px; gap: 6px; background: #000; border-bottom: 1px solid #222; }
         .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; cursor: pointer; color: #8e8e93; }
@@ -17,43 +16,35 @@
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; cursor: pointer; position: relative; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
-        .v-tag { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.8); padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: bold; }
         
-        /* Плеер */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
-        
-        /* Контейнер плеера для Fullscreen */
         .player-wrapper { display: flex; flex-direction: column; background: #000; }
-        .player-container { padding-top: 20px; background: #000; flex-grow: 1; display: flex; align-items: center; }
+        .player-container { padding-top: 20px; background: #000; }
         video { width: 100%; max-width: 1000px; display: block; margin: 0 auto; background: #000; }
         
-        /* Кнопки */
         .custom-controls { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { 
-            background: #2c2c2e; border: none; color: #fff; 
-            width: 38px; height: 38px; border-radius: 8px; 
-            cursor: pointer; display: flex; align-items: center; justify-content: center; 
-            font-size: 16px; outline: none; -webkit-tap-highlight-color: transparent;
-        }
+        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 38px; height: 38px; border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; outline: none; -webkit-tap-highlight-color: transparent; }
         .p-btn:active { background: #007aff !important; }
-        .fs-btn { background: none; color: #666; margin-left: 10px; }
 
-        /* История и Инфо */
+        /* ИНФО (Одинаковый размер шрифта) */
         .info-panel { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
-        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 10px; text-transform: uppercase; font-weight: 800; margin-bottom: 12px; }
-        .comment-box { display: flex; gap: 10px; margin-bottom: 25px; }
-        .comment-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px 15px; border-radius: 10px; outline: none; }
-        .send-btn { background: #007aff; border: none; color: #fff; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; color: #ccc; }
+        .shot-head { font-size: 18px; font-weight: bold; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .st-badge { padding: 2px 10px; border-radius: 6px; text-transform: uppercase; font-size: 18px; font-weight: 800; }
+        .ver-txt { color: #007aff; font-size: 18px; font-weight: bold; }
 
-        /* Режим Фуллскрин (CSS Force) */
-        .fullscreen-active #detail-view { overflow: hidden; }
-        .fullscreen-active .player-wrapper { 
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-            z-index: 9999; justify-content: center; background: #000;
+        /* ПОЛЕ КОММЕНТАРИЯ (Многострочное) */
+        .comment-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
+        .comment-input { 
+            background: #1c1c1e; border: 1px solid #333; color: #fff; 
+            padding: 12px; border-radius: 10px; outline: none; 
+            font-size: 15px; resize: vertical; min-height: 80px; font-family: inherit;
         }
-        .fullscreen-active .player-container { padding: 0; }
-        .fullscreen-active video { max-width: none; height: auto; max-height: 100vh; }
+        .send-btn { background: #007aff; border: none; color: #fff; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
+
+        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #222; font-size: 14px; line-height: 1.4; color: #ccc; }
+
+        /* Фуллскрин */
+        .fullscreen-active .player-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; justify-content: center; background: #000; }
         .fullscreen-active .info-panel { display: none; }
     </style>
 </head>
@@ -67,26 +58,27 @@
 
 <div id="detail-view">
     <div class="player-wrapper" id="p-wrap">
-        <div class="player-block">
-            <div class="player-container">
-                <video id="main-v" loop playsinline></video>
-            </div>
-            <div class="custom-controls">
-                <button class="p-btn" onclick="step(-1)">⏮</button>
-                <button class="p-btn" onclick="toggleP()">⏯</button>
-                <button class="p-btn" onclick="step(1)">⏭</button>
-                <button class="p-btn fs-btn" onclick="goFS()">⛶</button>
-            </div>
+        <div class="player-container">
+            <video id="main-v" loop playsinline></video>
+        </div>
+        <div class="custom-controls">
+            <button class="p-btn" onclick="step(-1)">⏮</button>
+            <button class="p-btn" onclick="toggleP()">⏯</button>
+            <button class="p-btn" onclick="step(1)">⏭</button>
+            <button class="p-btn" style="background:none;color:#666;margin-left:10px;" onclick="goFS()">⛶</button>
         </div>
     </div>
 
     <div class="info-panel">
-        <h2 id="det-title" style="margin:0;"></h2>
-        <div id="det-ver" style="color:#007aff; font-weight:bold; margin: 5px 0 12px 0;"></div>
-        <div id="det-status"></div>
+        <div class="shot-head">
+            <span id="det-title"></span>
+            <span id="det-ver" class="ver-txt"></span>
+            <span id="det-status" class="st-badge"></span>
+        </div>
+        
         <div class="comment-box">
-            <input type="text" id="comm-text" class="comment-input" placeholder="Leave your comment">
-            <button class="send-btn" onclick="sendComment()">Send</button>
+            <textarea id="comm-text" class="comment-input" placeholder="Enter your comment..."></textarea>
+            <button class="send-btn" onclick="sendComment()">Send & Set 'To Fix'</button>
         </div>
         <div id="history"></div>
     </div>
@@ -96,12 +88,11 @@
     const tg = window.Telegram.WebApp;
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
     const BASE = 'appgiNHAoONgW8Ha6';
-    const N8N_WEBHOOK = 'ТВОЙ_URL_N8N';
+    const N8N_WEBHOOK = 'ТВОЙ_ВЕБХУК_N8N'; 
 
     const statusConfig = {
-        'ready to start': '#808080', 'in progress': '#3498db',
-        'pause': '#9b59b6', 'to fix': '#e67e22',
-        'review': '#f1c40f', 'approved': '#2ecc71', 'send to client': '#1abc9c'
+        'ready to start': '#808080', 'in progress': '#3498db', 'pause': '#9b59b6',
+        'to fix': '#e67e22', 'review': '#f1c40f', 'approved': '#2ecc71'
     };
 
     let allRecords = [];
@@ -115,52 +106,53 @@
         renderTabs();
     }
 
-    // Клавиатура
-    window.addEventListener('keydown', (e) => {
-        if (document.activeElement.tagName === 'INPUT') return;
-        if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
-        if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
-        if (e.key === ' ') { e.preventDefault(); toggleP(); }
-        if (e.key === 'Escape' && document.body.classList.contains('fullscreen-active')) goFS();
-    });
-
+    // Рендер вкладок и сетки (как раньше)
     function renderTabs() {
-        const bar = document.getElementById('tabs-bar');
         const eps = [...new Set(allRecords.map(r => (r.fields.shot_name || "").substring(0, 4).toLowerCase()))].filter(e => e.startsWith('ep')).sort();
-        bar.innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="renderGrid('${ep}'); selectTab(this)">${ep.toUpperCase()}</div>`).join('');
+        document.getElementById('tabs-bar').innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="renderGrid('${ep}'); selectTab(this)">${ep.toUpperCase()}</div>`).join('');
         if(eps.length > 0) renderGrid(eps[0]);
     }
-
-    function selectTab(el) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-    }
-
+    function selectTab(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
+    
     function renderGrid(filter) {
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = allRecords.filter(r => (r.fields.shot_name || "").toLowerCase().startsWith(filter)).map(r => {
-            const color = statusConfig[r.fields.status?.toLowerCase()] || '#333';
-            return `<div class="card" onclick='openShot(${JSON.stringify(r)})'>
-                <div class="v-tag">v${String(r.fields.version || 0).padStart(3, '0')}</div>
+        document.getElementById('main-grid').innerHTML = allRecords.filter(r => (r.fields.shot_name || "").toLowerCase().startsWith(filter)).map(r => `
+            <div class="card" onclick='openShot(${JSON.stringify(r)})'>
                 <img src="${r.fields.thumbnail?.[0]?.url || ''}" class="thumb">
-                <div style="padding:10px; font-size:11px;">
-                    <b>${r.fields.shot_name}</b><br>
-                    <span style="color:${color}">${r.fields.status || ''}</span>
-                </div>
-            </div>`;
-        }).join('');
+                <div style="padding:10px; font-size:12px;"><b>${r.fields.shot_name}</b></div>
+            </div>
+        `).join('');
     }
 
-    function openShot(r) {
+    async function openShot(r) {
         currentShot = r;
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
-        vid.src = r.fields.preview_file2?.[0]?.url || "";
+        
+        // ТЯНЕМ ПРЕВЬЮ ИЗ COMMENTS
+        const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
+        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, {
+            headers: { Authorization: "Bearer " + TOKEN }
+        });
+        const cData = await res.json();
+        
+        // Ищем первое попавшееся превью в последних комментах
+        let videoUrl = r.fields.preview_file2?.[0]?.url; // Запасной
+        const lastCommentWithVideo = (cData.records || []).find(c => c.fields.preview && c.fields.preview.length > 0);
+        if (lastCommentWithVideo) videoUrl = lastCommentWithVideo.fields.preview[0].url;
+
+        vid.src = videoUrl || "";
         vid.play().catch(() => {});
+
         document.getElementById('det-title').innerText = r.fields.shot_name;
         document.getElementById('det-ver').innerText = 'v' + String(r.fields.version || 0).padStart(3, '0');
-        updateStatusBadge(r.fields.status);
-        loadHistory(r.fields.shot_name);
+        
+        const st = r.fields.status || 'No Status';
+        const stEl = document.getElementById('det-status');
+        stEl.innerText = st;
+        stEl.style.background = statusConfig[st.toLowerCase()] || '#444';
+
+        renderHistory(cData.records);
+
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
             if(document.body.classList.contains('fullscreen-active')) goFS();
@@ -170,51 +162,32 @@
         });
     }
 
-    function updateStatusBadge(st) {
-        const color = statusConfig[st?.toLowerCase()] || '#444';
-        document.getElementById('det-status').innerHTML = `<div class="status-badge" style="background:${color}">${st || 'No Status'}</div>`;
-    }
-
-    async function sendComment() {
-        const input = document.getElementById('comm-text');
-        if(!input.value) return;
-        fetch(N8N_WEBHOOK, { method: 'POST', body: JSON.stringify({
-            shot_id: currentShot.id, text: input.value, author: tg.initDataUnsafe?.user?.username || "User", new_status: "to fix"
-        })});
-        input.value = '';
-        updateStatusBadge('to fix');
-        tg.showAlert("Sent!");
-    }
-
-    async function loadHistory(name) {
-        const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=`+encodeURIComponent(`{shot_name}='${name}'`), {
-            headers: { Authorization: "Bearer " + TOKEN }
-        });
-        const data = await res.json();
-        document.getElementById('history').innerHTML = (data.records || []).map(c => `
+    function renderHistory(records) {
+        document.getElementById('history').innerHTML = (records || []).map(c => `
             <div class="history-item">${c.fields.text || ''}</div>
         `).join('');
     }
 
+    async function sendComment() {
+        const txt = document.getElementById('comm-text').value;
+        if(!txt) return;
+        fetch(N8N_WEBHOOK, { method: 'POST', body: JSON.stringify({
+            shot_id: currentShot.id, text: txt, author: tg.initDataUnsafe?.user?.username || "User", new_status: "to fix"
+        })});
+        document.getElementById('comm-text').value = '';
+        tg.showAlert("Status: To Fix");
+    }
+
     function toggleP() { vid.paused ? vid.play() : vid.pause(); }
     function step(d) { vid.pause(); vid.currentTime += (1/24) * d; }
+    function goFS() { document.body.classList.toggle('fullscreen-active'); }
 
-    // НОВЫЙ ФУЛЛСКРИН
-    function goFS() {
-        const body = document.body;
-        if (!body.classList.contains('fullscreen-active')) {
-            body.classList.add('fullscreen-active');
-            // Попытка программно повернуть экран для Android
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(() => {});
-            }
-        } else {
-            body.classList.remove('fullscreen-active');
-            if (screen.orientation && screen.orientation.unlock) {
-                screen.orientation.unlock();
-            }
-        }
-    }
+    window.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'TEXTAREA') return;
+        if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+        if (e.key === ' ') { e.preventDefault(); toggleP(); }
+    });
 
     init();
 </script>
