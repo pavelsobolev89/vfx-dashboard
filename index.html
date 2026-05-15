@@ -24,13 +24,13 @@
         .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
 
-        /* GRID MODE */
+        /* СЕТКА (GRID) */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .info { padding: 12px; }
 
-        /* LIST MODE (Table Style) */
+        /* ТАБЛИЦА (LIST) */
         .list-mode { display: flex !important; flex-direction: column !important; padding: 10px 12px !important; gap: 0 !important; }
         .list-mode .card { 
             display: grid !important; 
@@ -40,18 +40,20 @@
         .list-mode .card:first-child { border-radius: 8px 8px 0 0; }
         .list-mode .card:last-child { border-bottom: 1px solid #333; border-radius: 0 0 8px 8px; }
         .list-mode .thumb { width: 100%; height: 100%; border-right: 1px solid #333; border-radius: 0; }
+        
+        /* Контейнер инфо в режиме списка */
         .list-mode .info { display: contents; }
         .list-mode .info-name { padding: 10px 12px; border-right: 1px solid #333; font-size: 13px; font-weight: 700; display: flex; align-items: center; word-break: break-all; line-height: 1.2; }
         .list-mode .info-ver { border-right: 1px solid #333; color: #007aff; font-weight: 700; text-align: center; display: flex; align-items: center; justify-content: center; font-size: 13px; }
         .list-mode .info-status { text-align: center; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 5px; text-transform: uppercase; }
 
-        /* Player */
+        /* ПЛЕЕР */
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
         .video-box { width: 100%; aspect-ratio: 16/9; background: #000; }
         video { width: 100%; height: 100%; display: block; }
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
         .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; transition: 0.1s; }
-        .p-btn:active { background: #fff !important; color: #000 !important; }
+        .p-btn:active { background: #fff !important; color: #000 !important; } /* Вспышка кнопок */
         .p-body { padding: 20px; }
     </style>
 </head>
@@ -95,13 +97,26 @@
 
     async function init() {
         tg.expand();
-        const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { headers: { Authorization: `Bearer ${KEY}` } });
-        const json = await r.json();
-        records = json.records || [];
-        
-        const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
-        document.getElementById('tabs').innerHTML = eps.map((ep, i) => `<div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
-        if(eps.length > 0) setFilter(eps[0]);
+        try {
+            const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
+                headers: { Authorization: `Bearer ${KEY}` } 
+            });
+            const json = await r.json();
+            records = json.records || [];
+            
+            if (records.length > 0) {
+                const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
+                document.getElementById('tabs').innerHTML = eps.map((ep, i) => `
+                    <div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
+                
+                curFilter = eps[0];
+                render();
+            } else {
+                document.getElementById('main-grid').innerText = "База пуста";
+            }
+        } catch(e) {
+            document.getElementById('main-grid').innerText = "Ошибка загрузки";
+        }
     }
 
     function setFilter(f, el) {
@@ -153,8 +168,11 @@
 
     function openPlayer(id) {
         const r = records.find(rec => rec.id === id);
+        if(!r) return;
+        
         document.getElementById('grid-view').style.display = 'none';
         document.getElementById('player-view').style.display = 'block';
+        
         const videoUrl = (r.fields.preview_file2 && r.fields.preview_file2[0]) ? r.fields.preview_file2[0].url : "";
         document.getElementById('v-container').innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
         document.getElementById('p-title').innerText = r.fields.shot_name;
@@ -164,4 +182,15 @@
         tg.BackButton.onClick(() => {
             document.getElementById('v-container').innerHTML = "";
             document.getElementById('player-view').style.display = 'none';
-            document.getElementById('grid
+            document.getElementById('grid-view').style.display = 'block';
+            tg.BackButton.hide();
+        });
+    }
+
+    function vToggle() { const v = document.getElementById('main-v'); if(v) v.paused ? v.play() : v.pause(); }
+    function vStep(d) { const v = document.getElementById('main-v'); if(v) { v.pause(); v.currentTime += d * (1/24); } }
+
+    init();
+</script>
+</body>
+</html>
