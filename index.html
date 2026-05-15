@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>VFX Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -12,7 +12,7 @@
         .header-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 15px 5px 15px; }
         .project-header { font-size: 20px; font-weight: 900; text-transform: uppercase; }
         .view-toggle { display: flex; gap: 8px; background: #1c1c1e; padding: 4px; border-radius: 8px; }
-        .view-btn { border: none; background: none; color: #666; cursor: pointer; padding: 6px 10px; font-size: 16px; border-radius: 6px; line-height: 1; }
+        .view-btn { border: none; background: none; color: #666; cursor: pointer; padding: 6px 10px; font-size: 16px; border-radius: 6px; }
         .view-btn.active { background: #3a3a3c; color: #fff; }
 
         /* Tabs */
@@ -20,36 +20,55 @@
         .tab { padding: 6px 14px; background: #1c1c1e; border-radius: 8px; font-size: 12px; white-space: nowrap; cursor: pointer; color: #8e8e93; }
         .tab.active { background: #007aff; color: #fff; }
 
-        /* Grid & Cards */
+        /* Grid */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 10px; overflow: hidden; border: 1px solid #222; cursor: pointer; display: flex; flex-direction: column; }
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; flex-shrink: 0; }
+        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; flex-shrink: 0; background: #111; }
         
-        /* Tiles Mode Info */
+        /* Tiles Info */
         .card-info { padding: 10px; font-size: 12px; line-height: 1.4; }
-        .card-info b { display: block; margin-bottom: 2px; }
 
-        /* LIST MODE STYLES */
+        /* LIST MODE (Фикс для Android) */
         #main-grid.list-mode { display: flex; flex-direction: column; gap: 8px; }
         .list-mode .card { flex-direction: row; align-items: center; padding: 8px 12px; }
-        .list-mode .thumb { width: 70px; height: 40px; border-radius: 4px; margin-right: 15px; }
-        .list-mode .card-info { display: flex; flex-direction: row; align-items: center; width: 100%; padding: 0; }
-        
-        .list-mode .info-name { flex: 1; font-size: 15px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .list-mode .info-ver { width: 70px; text-align: center; color: #007aff; font-weight: bold; font-size: 14px; }
-        .list-mode .info-status { width: 120px; text-align: right; font-weight: 800; font-size: 13px; text-transform: uppercase; }
+        .list-mode .thumb { width: 70px; height: 40px; border-radius: 4px; margin-right: 12px; aspect-ratio: auto; }
+        .list-mode .card-info { 
+            display: grid; 
+            grid-template-columns: 1fr 60px 100px; /* Жесткая сетка: Имя | Версия | Статус */
+            align-items: center; 
+            width: 100%; 
+            padding: 0; 
+            gap: 10px;
+        }
+        .list-mode .info-name { font-size: 14px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .list-mode .info-ver { color: #007aff; font-weight: bold; font-size: 14px; text-align: left; }
+        .list-mode .info-status { text-align: right; font-weight: 800; font-size: 11px; text-transform: uppercase; overflow: hidden; }
 
-        /* Player View */
+        /* Player View & Landscape Fix */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; overflow-y: auto; }
-        .player-wrapper { display: flex; flex-direction: column; background: #000; }
-        .player-container { padding-top: 20px; }
-        video { width: 100%; max-width: 1000px; display: block; margin: 0 auto; background: #000; }
+        .player-wrapper { display: flex; flex-direction: column; background: #000; width: 100%; }
+        .player-container { 
+            width: 100%; 
+            background: #000; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            padding-top: 10px;
+        }
+        video { 
+            width: 100%; 
+            max-width: 100%; 
+            max-height: calc(100vh - 120px); /* Оставляем место под кнопки и инфо */
+            display: block; 
+            background: #000; 
+            object-fit: contain; 
+        }
         
-        .custom-controls { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; outline: none; -webkit-tap-highlight-color: transparent; }
+        .custom-controls { display: flex; justify-content: center; align-items: center; gap: 15px; padding: 12px; background: #111; border-bottom: 1px solid #222; }
+        .p-btn { background: #2c2c2e; border: none; color: #fff; width: 42px; height: 42px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; outline: none; -webkit-tap-highlight-color: transparent; }
         .p-btn:active { background: #007aff !important; }
 
-        /* Info Panel */
+        /* Info Panel (Все шрифты 18px) */
         .info-panel { max-width: 1000px; margin: 0 auto; padding: 20px 15px; }
         .shot-head { font-size: 18px; font-weight: bold; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
         .st-badge { padding: 4px 12px; border-radius: 6px; text-transform: uppercase; font-size: 18px; font-weight: 800; }
@@ -58,10 +77,11 @@
         .comment-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
         .comment-input { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; min-height: 100px; outline: none; font-size: 16px; resize: vertical; font-family: inherit; }
         .send-btn { background: #007aff; border: none; color: #fff; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #222; font-size: 14px; color: #ccc; line-height: 1.4; }
+        .history-item { background: #161618; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #222; font-size: 14px; color: #ccc; }
 
-        /* Fullscreen Force */
-        .fullscreen-active .player-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; justify-content: center; background: #000; display: flex; flex-direction: column; }
+        /* Fullscreen Mode */
+        .fullscreen-active .player-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; justify-content: center; background: #000; }
+        .fullscreen-active video { max-height: calc(100vh - 70px); }
         .fullscreen-active .info-panel { display: none; }
     </style>
 </head>
@@ -107,7 +127,7 @@
     const tg = window.Telegram.WebApp;
     const TOKEN = 'patBsCg6ofoalEdYD.55dabf06728a4aaf6e5767957fa9a8577bcfdabb4fd055239e10d5edcd987143';
     const BASE = 'appgiNHAoONgW8Ha6';
-    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL'; // ЗАМЕНИ НА СВОЙ
+    const N8N_WEBHOOK = 'ТВОЙ_N8N_URL'; 
 
     const statusConfig = { 
         'ready to start': '#808080', 'in progress': '#3498db', 'pause': '#9b59b6', 
@@ -117,9 +137,11 @@
     let allRecords = [];
     let currentFilter = '';
     let currentMode = 'tiles';
+    let currentShot = null;
     const vid = document.getElementById('main-v');
 
     async function init() {
+        tg.expand();
         const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots`, { headers: { Authorization: "Bearer " + TOKEN } });
         const data = await r.json();
         allRecords = data.records || [];
@@ -128,8 +150,8 @@
 
     function setView(mode) {
         currentMode = mode;
-        const grid = document.getElementById('main-grid');
         document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        const grid = document.getElementById('main-grid');
         if (mode === 'list') {
             grid.classList.add('list-mode');
             document.getElementById('btn-list').classList.add('active');
@@ -184,22 +206,22 @@
         document.getElementById('list-view').style.display = 'none';
         document.getElementById('detail-view').style.display = 'block';
         
-        // Видео из таблицы Comments
+        // ТОЛЬКО ИЗ ТАБЛИЦЫ COMMENTS
         const filter = encodeURIComponent(`{shot_name}='${r.fields.shot_name}'`);
         const res = await fetch(`https://api.airtable.com/v0/${BASE}/Comments?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`, {
             headers: { Authorization: "Bearer " + TOKEN }
         });
         const cData = await res.json();
         
-        let videoUrl = r.fields.preview_file2?.[0]?.url;
         const lastWithVid = (cData.records || []).find(c => c.fields.preview?.length > 0);
-        if (lastWithVid) videoUrl = lastWithVid.fields.preview[0].url;
+        const videoUrl = lastWithVid ? lastWithVid.fields.preview[0].url : "";
 
-        vid.src = videoUrl || "";
-        vid.play().catch(() => {});
+        vid.src = videoUrl;
+        if(videoUrl) vid.play().catch(() => {});
 
         document.getElementById('det-title').innerText = r.fields.shot_name;
         document.getElementById('det-ver').innerText = 'v' + String(r.fields.version || 0).padStart(3, '0');
+        
         const st = r.fields.status || 'No Status';
         const stEl = document.getElementById('det-status');
         stEl.innerText = st;
