@@ -8,7 +8,6 @@
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
         
-        /* Цвета статусов */
         .st-review { color: #f1c40f; }
         .st-ready { color: #8e8e93; }
         .st-approved { color: #2ecc71; }
@@ -24,36 +23,33 @@
         .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
 
-        /* СЕТКА (GRID) */
+        /* GRID */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .info { padding: 12px; }
 
-        /* ТАБЛИЦА (LIST) */
+        /* LIST (TABLE) */
         .list-mode { display: flex !important; flex-direction: column !important; padding: 10px 12px !important; gap: 0 !important; }
         .list-mode .card { 
             display: grid !important; 
-            grid-template-columns: 80px 1fr 60px 105px; 
+            grid-template-columns: 80px 1fr 105px; /* Убрана колонка версии */
             border: 1px solid #333; border-bottom: none; border-radius: 0; background: transparent; align-items: stretch; min-height: 55px;
         }
         .list-mode .card:first-child { border-radius: 8px 8px 0 0; }
         .list-mode .card:last-child { border-bottom: 1px solid #333; border-radius: 0 0 8px 8px; }
         .list-mode .thumb { width: 100%; height: 100%; border-right: 1px solid #333; border-radius: 0; }
-        
-        /* Контейнер инфо в режиме списка */
         .list-mode .info { display: contents; }
         .list-mode .info-name { padding: 10px 12px; border-right: 1px solid #333; font-size: 13px; font-weight: 700; display: flex; align-items: center; word-break: break-all; line-height: 1.2; }
-        .list-mode .info-ver { border-right: 1px solid #333; color: #007aff; font-weight: 700; text-align: center; display: flex; align-items: center; justify-content: center; font-size: 13px; }
         .list-mode .info-status { text-align: center; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 5px; text-transform: uppercase; }
 
-        /* ПЛЕЕР */
+        /* PLAYER */
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
         .video-box { width: 100%; aspect-ratio: 16/9; background: #000; }
         video { width: 100%; height: 100%; display: block; }
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; transition: 0.1s; }
-        .p-btn:active { background: #fff !important; color: #000 !important; } /* Вспышка кнопок */
+        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; }
+        .p-btn:active { background: #fff !important; color: #000 !important; }
         .p-body { padding: 20px; }
     </style>
 </head>
@@ -139,7 +135,6 @@
 
         grid.innerHTML = filtered.map(r => {
             const st = (r.fields.status || '').toLowerCase();
-            const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
             const img = r.fields.thumbnail?.[0]?.url || '';
 
             if (isList) {
@@ -147,7 +142,6 @@
                 <div class="card" onclick='openPlayer("${r.id}")'>
                     <img src="${img}" class="thumb">
                     <div class="info-name">${r.fields.shot_name}</div>
-                    <div class="info-ver">${ver}</div>
                     <div class="info-status ${statusMap[st]||''}">${(r.fields.status||'').toUpperCase()}</div>
                 </div>`;
             } else {
@@ -156,10 +150,7 @@
                     <img src="${img}" class="thumb">
                     <div class="info">
                         <div style="font-weight:700; font-size:14px; margin-bottom:4px;">${r.fields.shot_name}</div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="color:#007aff; font-size:12px; font-weight:700;">${ver}</span>
-                            <span class="${statusMap[st]||''}" style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status||''}</span>
-                        </div>
+                        <div class="${statusMap[st]||''}" style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status||''}</div>
                     </div>
                 </div>`;
             }
@@ -176,7 +167,10 @@
         const videoUrl = (r.fields.preview_file2 && r.fields.preview_file2[0]) ? r.fields.preview_file2[0].url : "";
         document.getElementById('v-container').innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
         document.getElementById('p-title').innerText = r.fields.shot_name;
-        document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">v${String(r.fields.version || 0).padStart(3, '0')}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
+        
+        // Версия остается только здесь
+        const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
+        document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">${ver}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
 
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
