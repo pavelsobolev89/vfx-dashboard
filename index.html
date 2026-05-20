@@ -73,9 +73,9 @@
     const KEY = 'patBsCg6ofoalEdYD.7fe0a35b60f18a67439ad759432ec5a063276df89842847200d6b9ec42224e79';
     
     // ЛОГИКА РАЗБОРА ПАРАМЕТРА
-    const rawParam = tg.initDataUnsafe?.start_param || ""; // Получаем "appID_ProjectName"
-    let CURRENT_BASE = 'appgiNHAoONgW8Ha6'; 
-    let PROJECT_TITLE = 'TEST'
+    const rawParam = tg.initDataUnsafe?.start_param || ""; 
+    let CURRENT_BASE = 'appgiNHAoONgW8Ha6'; // Дефолт (Богатыри)
+    let PROJECT_TITLE = 'БОГАТЫРИ';
 
     if (rawParam) {
         if (rawParam.includes('_')) {
@@ -83,27 +83,10 @@
             CURRENT_BASE = parts[0];
             PROJECT_TITLE = decodeURIComponent(parts[1]).toUpperCase();
         } else {
-            // Если в ссылке только ID (старый формат)
             CURRENT_BASE = rawParam;
             PROJECT_TITLE = "PROJECT: " + rawParam.substring(0, 8);
         }
     }
-
-    async function init() {
-        tg.expand();
-        // Сразу ставим правильное название из ссылки
-        document.getElementById('project-name').innerText = PROJECT_TITLE;
-        
-        try {
-            const r = await fetch(`https://api.airtable.com/v0/${CURRENT_BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
-                headers: { Authorization: `Bearer ${KEY}` } 
-            });
-            // ... остальной код запроса ...
-    
-    // ЛОГИКА ОПРЕДЕЛЕНИЯ ПРОЕКТА
-    const DEFAULT_BASE = 'appgiNHAoONgW8Ha6'; // Твои Богатыри
-    const startParam = tg.initDataUnsafe?.start_param;
-    const CURRENT_BASE = startParam ? startParam : DEFAULT_BASE;
 
     let records = [];
     let curFilter = '';
@@ -111,8 +94,7 @@
 
     async function init() {
         tg.expand();
-        // Ставим временный заголовок, пока качаем данные
-        document.getElementById('project-name').innerText = startParam ? `PROJECT: ${startParam.substring(0,8)}` : "БОГАТЫРИ";
+        document.getElementById('project-name').innerText = PROJECT_TITLE;
         
         try {
             const r = await fetch(`https://api.airtable.com/v0/${CURRENT_BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
@@ -122,40 +104,39 @@
             records = json.records || [];
             
             if (records.length > 0) {
-                // Если в Airtable есть поле или можно вытащить имя базы - можно допилить. 
-                // Пока просто подтверждаем, что мы в нужном проекте.
-                if (startParam) document.getElementById('project-name').innerText = "VFX STORAGE";
-
                 const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
-                document.getElementById('tabs').innerHTML = eps.map((ep, i) => `
-                    <div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
-                
-                curFilter = eps[0];
+                if (eps.length > 0) {
+                    document.getElementById('tabs').innerHTML = eps.map((ep, i) => `
+                        <div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
+                    curFilter = eps[0];
+                }
                 render();
             } else {
                 document.getElementById('main-grid').innerText = "База пуста. Добавьте шоты в Airtable.";
             }
         } catch(e) {
-            document.getElementById('main-grid').innerText = "Ошибка доступа к базе. Проверьте Base ID.";
+            document.getElementById('main-grid').innerText = "Ошибка доступа к базе.";
         }
     }
 
-    // Остальные функции (render, openPlayer и т.д.) остаются без изменений
     function setFilter(f, el) {
         curFilter = f;
         if(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
         render();
     }
+
     function setView(mode, el) {
         document.getElementById('main-grid').className = mode === 'list' ? 'list-mode' : '';
         document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active');
         render();
     }
+
     function render() {
         const grid = document.getElementById('main-grid');
         const isList = grid.classList.contains('list-mode');
-        const filtered = records.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curFilter));
+        const filtered = curFilter ? records.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curFilter)) : records;
+        
         grid.innerHTML = filtered.map(r => {
             const st = (r.fields.status || '').toLowerCase();
             const img = r.fields.thumbnail?.[0]?.url || '';
@@ -166,6 +147,7 @@
             }
         }).join('');
     }
+
     function openPlayer(id) {
         const r = records.find(rec => rec.id === id);
         if(!r) return;
@@ -176,6 +158,7 @@
         document.getElementById('p-title').innerText = r.fields.shot_name;
         const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
         document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">${ver}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
+        
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
             document.getElementById('v-container').innerHTML = "";
@@ -184,8 +167,10 @@
             tg.BackButton.hide();
         });
     }
+
     function vToggle() { const v = document.getElementById('main-v'); if(v) v.paused ? v.play() : v.pause(); }
     function vStep(d) { const v = document.getElementById('main-v'); if(v) { v.pause(); v.currentTime += d * (1/24); } }
+    
     init();
 </script>
 </body>
