@@ -72,6 +72,34 @@
     const tg = window.Telegram.WebApp;
     const KEY = 'patBsCg6ofoalEdYD.7fe0a35b60f18a67439ad759432ec5a063276df89842847200d6b9ec42224e79';
     
+    // ЛОГИКА РАЗБОРА ПАРАМЕТРА
+    const rawParam = tg.initDataUnsafe?.start_param || ""; // Получаем "appID_ProjectName"
+    let CURRENT_BASE = 'appgiNHAoONgW8Ha6'; 
+    let PROJECT_TITLE = 'TEST'
+
+    if (rawParam) {
+        if (rawParam.includes('_')) {
+            const parts = rawParam.split('_');
+            CURRENT_BASE = parts[0];
+            PROJECT_TITLE = decodeURIComponent(parts[1]).toUpperCase();
+        } else {
+            // Если в ссылке только ID (старый формат)
+            CURRENT_BASE = rawParam;
+            PROJECT_TITLE = "PROJECT: " + rawParam.substring(0, 8);
+        }
+    }
+
+    async function init() {
+        tg.expand();
+        // Сразу ставим правильное название из ссылки
+        document.getElementById('project-name').innerText = PROJECT_TITLE;
+        
+        try {
+            const r = await fetch(`https://api.airtable.com/v0/${CURRENT_BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
+                headers: { Authorization: `Bearer ${KEY}` } 
+            });
+            // ... остальной код запроса ...
+    
     // ЛОГИКА ОПРЕДЕЛЕНИЯ ПРОЕКТА
     const DEFAULT_BASE = 'appgiNHAoONgW8Ha6'; // Твои Богатыри
     const startParam = tg.initDataUnsafe?.start_param;
