@@ -7,49 +7,35 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; margin: 0; padding: 0; }
-        
         .st-review { color: #f1c40f; }
         .st-ready { color: #8e8e93; }
         .st-approved { color: #2ecc71; }
         .st-progress { color: #3498db; }
         .st-fix { color: #e67e22; }
-
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
         .view-toggle { display: flex; gap: 5px; background: #1c1c1e; padding: 4px; border-radius: 10px; }
         .v-btn { border: none; background: none; color: #555; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 18px; }
         .v-btn.active { background: #3a3a3c; color: #fff; }
-
         #tabs { display: flex; gap: 10px; padding: 0 15px 15px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #222; }
         .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
-
-        /* GRID */
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .info { padding: 12px; }
-
-        /* LIST (TABLE) */
         .list-mode { display: flex !important; flex-direction: column !important; padding: 10px 12px !important; gap: 0 !important; }
-        .list-mode .card { 
-            display: grid !important; 
-            grid-template-columns: 80px 1fr 105px; /* Убрана колонка версии */
-            border: 1px solid #333; border-bottom: none; border-radius: 0; background: transparent; align-items: stretch; min-height: 55px;
-        }
+        .list-mode .card { display: grid !important; grid-template-columns: 80px 1fr 105px; border: 1px solid #333; border-bottom: none; border-radius: 0; background: transparent; align-items: stretch; min-height: 55px; }
         .list-mode .card:first-child { border-radius: 8px 8px 0 0; }
         .list-mode .card:last-child { border-bottom: 1px solid #333; border-radius: 0 0 8px 8px; }
         .list-mode .thumb { width: 100%; height: 100%; border-right: 1px solid #333; border-radius: 0; }
         .list-mode .info { display: contents; }
         .list-mode .info-name { padding: 10px 12px; border-right: 1px solid #333; font-size: 13px; font-weight: 700; display: flex; align-items: center; word-break: break-all; line-height: 1.2; }
         .list-mode .info-status { text-align: center; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 5px; text-transform: uppercase; }
-
-        /* PLAYER */
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
         .video-box { width: 100%; aspect-ratio: 16/9; background: #000; }
         video { width: 100%; height: 100%; display: block; }
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
         .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; }
-        .p-btn:active { background: #fff !important; color: #000 !important; }
         .p-body { padding: 20px; }
     </style>
 </head>
@@ -57,14 +43,14 @@
 
 <div id="grid-view">
     <div class="header">
-        <div style="font-weight:900; font-size:22px;">БОГАТЫРИ</div>
+        <div id="project-name" style="font-weight:900; font-size:22px; text-transform: uppercase;">ЗАГРУЗКА...</div>
         <div class="view-toggle">
             <button class="v-btn active" onclick="setView('grid', this)">田</button>
             <button class="v-btn" onclick="setView('list', this)">≡</button>
         </div>
     </div>
     <div id="tabs"></div>
-    <div id="main-grid">Загрузка...</div>
+    <div id="main-grid">Загрузка данных...</div>
 </div>
 
 <div id="player-view">
@@ -85,22 +71,33 @@
 <script>
     const tg = window.Telegram.WebApp;
     const KEY = 'patBsCg6ofoalEdYD.7fe0a35b60f18a67439ad759432ec5a063276df89842847200d6b9ec42224e79';
-    const BASE = 'appgiNHAoONgW8Ha6';
     
+    // ЛОГИКА ОПРЕДЕЛЕНИЯ ПРОЕКТА
+    const DEFAULT_BASE = 'appgiNHAoONgW8Ha6'; // Твои Богатыри
+    const startParam = tg.initDataUnsafe?.start_param;
+    const CURRENT_BASE = startParam ? startParam : DEFAULT_BASE;
+
     let records = [];
     let curFilter = '';
     const statusMap = { 'review': 'st-review', 'ready to start': 'st-ready', 'approved': 'st-approved', 'in progress': 'st-progress', 'to fix': 'st-fix' };
 
     async function init() {
         tg.expand();
+        // Ставим временный заголовок, пока качаем данные
+        document.getElementById('project-name').innerText = startParam ? `PROJECT: ${startParam.substring(0,8)}` : "БОГАТЫРИ";
+        
         try {
-            const r = await fetch(`https://api.airtable.com/v0/${BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
+            const r = await fetch(`https://api.airtable.com/v0/${CURRENT_BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
                 headers: { Authorization: `Bearer ${KEY}` } 
             });
             const json = await r.json();
             records = json.records || [];
             
             if (records.length > 0) {
+                // Если в Airtable есть поле или можно вытащить имя базы - можно допилить. 
+                // Пока просто подтверждаем, что мы в нужном проекте.
+                if (startParam) document.getElementById('project-name').innerText = "VFX STORAGE";
+
                 const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
                 document.getElementById('tabs').innerHTML = eps.map((ep, i) => `
                     <div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
@@ -108,70 +105,49 @@
                 curFilter = eps[0];
                 render();
             } else {
-                document.getElementById('main-grid').innerText = "База пуста";
+                document.getElementById('main-grid').innerText = "База пуста. Добавьте шоты в Airtable.";
             }
         } catch(e) {
-            document.getElementById('main-grid').innerText = "Ошибка загрузки";
+            document.getElementById('main-grid').innerText = "Ошибка доступа к базе. Проверьте Base ID.";
         }
     }
 
+    // Остальные функции (render, openPlayer и т.д.) остаются без изменений
     function setFilter(f, el) {
         curFilter = f;
         if(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
         render();
     }
-
     function setView(mode, el) {
         document.getElementById('main-grid').className = mode === 'list' ? 'list-mode' : '';
         document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active');
         render();
     }
-
     function render() {
         const grid = document.getElementById('main-grid');
         const isList = grid.classList.contains('list-mode');
         const filtered = records.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curFilter));
-
         grid.innerHTML = filtered.map(r => {
             const st = (r.fields.status || '').toLowerCase();
             const img = r.fields.thumbnail?.[0]?.url || '';
-
             if (isList) {
-                return `
-                <div class="card" onclick='openPlayer("${r.id}")'>
-                    <img src="${img}" class="thumb">
-                    <div class="info-name">${r.fields.shot_name}</div>
-                    <div class="info-status ${statusMap[st]||''}">${(r.fields.status||'').toUpperCase()}</div>
-                </div>`;
+                return `<div class="card" onclick='openPlayer("${r.id}")'><img src="${img}" class="thumb"><div class="info-name">${r.fields.shot_name}</div><div class="info-status ${statusMap[st]||''}">${(r.fields.status||'').toUpperCase()}</div></div>`;
             } else {
-                return `
-                <div class="card" onclick='openPlayer("${r.id}")'>
-                    <img src="${img}" class="thumb">
-                    <div class="info">
-                        <div style="font-weight:700; font-size:14px; margin-bottom:4px;">${r.fields.shot_name}</div>
-                        <div class="${statusMap[st]||''}" style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status||''}</div>
-                    </div>
-                </div>`;
+                return `<div class="card" onclick='openPlayer("${r.id}")'><img src="${img}" class="thumb"><div class="info"><div style="font-weight:700; font-size:14px; margin-bottom:4px;">${r.fields.shot_name}</div><div class="${statusMap[st]||''}" style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status||''}</div></div></div>`;
             }
         }).join('');
     }
-
     function openPlayer(id) {
         const r = records.find(rec => rec.id === id);
         if(!r) return;
-        
         document.getElementById('grid-view').style.display = 'none';
         document.getElementById('player-view').style.display = 'block';
-        
         const videoUrl = (r.fields.preview_file2 && r.fields.preview_file2[0]) ? r.fields.preview_file2[0].url : "";
         document.getElementById('v-container').innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
         document.getElementById('p-title').innerText = r.fields.shot_name;
-        
-        // Версия остается только здесь
         const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
         document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">${ver}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
-
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
             document.getElementById('v-container').innerHTML = "";
@@ -180,10 +156,8 @@
             tg.BackButton.hide();
         });
     }
-
     function vToggle() { const v = document.getElementById('main-v'); if(v) v.paused ? v.play() : v.pause(); }
     function vStep(d) { const v = document.getElementById('main-v'); if(v) { v.pause(); v.currentTime += d * (1/24); } }
-
     init();
 </script>
 </body>
