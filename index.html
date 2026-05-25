@@ -32,11 +32,12 @@
         .list-mode .info-name { padding: 10px 12px; border-right: 1px solid #333; font-size: 13px; font-weight: 700; display: flex; align-items: center; word-break: break-all; line-height: 1.2; }
         .list-mode .info-status { text-align: center; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 5px; text-transform: uppercase; }
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
-        .video-box { width: 100%; aspect-ratio: 16/9; background: #000; }
+        .video-box { width: 100%; aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center; }
         video { width: 100%; height: 100%; display: block; }
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
         .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; }
         .p-body { padding: 20px; }
+        .video-loading { color: #8e8e93; font-size: 14px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -71,10 +72,11 @@
 <script>
     const tg = window.Telegram.WebApp;
     const KEY = 'patBsCg6ofoalEdYD.7fe0a35b60f18a67439ad759432ec5a063276df89842847200d6b9ec42224e79';
+    // Токен бота для генерации прямых ссылок из file_id
+    const BOT_TOKEN = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
     
-    // ЛОГИКА РАЗБОРА ПАРАМЕТРА
     const rawParam = tg.initDataUnsafe?.start_param || ""; 
-    let CURRENT_BASE = 'appgiNHAoONgW8Ha6'; // Дефолт (Богатыри)
+    let CURRENT_BASE = 'appgiNHAoONgW8Ha6'; 
     let PROJECT_TITLE = 'БОГАТЫРИ';
 
     if (rawParam) {
@@ -112,7 +114,7 @@
                 }
                 render();
             } else {
-                document.getElementById('main-grid').innerText = "База пуста. Добавьте шоты в Airtable.";
+                document.getElementById('main-grid').innerText = "База пуста. Добавьте шоты in Airtable.";
             }
         } catch(e) {
             document.getElementById('main-grid').innerText = "Ошибка доступа к базе.";
@@ -148,16 +150,53 @@
         }).join('');
     }
 
-    function openPlayer(id) {
+    // Хелпер для превращения file_id в прямую ссылку на .mp4
+    async function getTelegramVideoUrl(fileId) {
+        try {
+            const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const data = await r.json();
+            if (data.ok && data.result.file_path) {
+                return `https://api.telegram.org/file/bot${BOT_TOKEN}/${data.result.file_path}`;
+            }
+        } catch (e) {
+            console.error("Ошибка получения видео из ТГ:", e);
+        }
+        return null;
+    }
+
+    async function openPlayer(id) {
         const r = records.find(rec => rec.id === id);
         if(!r) return;
+
         document.getElementById('grid-view').style.display = 'none';
         document.getElementById('player-view').style.display = 'block';
-        const videoUrl = (r.fields.preview_file2 && r.fields.preview_file2[0]) ? r.fields.preview_file2[0].url : "";
-        document.getElementById('v-container').innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
+        
+        // Рендерим метаданные сразу, чтобы интерфейс не казался пустым
         document.getElementById('p-title').innerText = r.fields.shot_name;
         const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
         document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">${ver}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
+        
+        // Показываем лоадер в контейнере видео
+        const container = document.getElementById('v-container');
+        container.innerHTML = `<div class="video-loading">ПОДКЛЮЧЕНИЕ К ОБЛАКУ ТГ...</div>`;
+
+        let videoUrl = "";
+
+        // ПРОВЕРЯЕМ: Если есть наш новый tg_file_id, запрашиваем ссылку у Дурова на лету
+        if (r.fields.tg_file_id) {
+            videoUrl = await getTelegramVideoUrl(r.fields.tg_file_id);
+        } 
+        // Старый фолбек: если tg_file_id нет, берем из старого поля Airtable (если оно заполнено)
+        if (!videoUrl && r.fields.preview_file2 && r.fields.preview_file2[0]) {
+            videoUrl = r.fields.preview_file2[0].url;
+        }
+
+        // Если нашли ссылку — вставляем плеер с автоплеем, зацикливанием и без звука
+        if (videoUrl) {
+            container.innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
+        } else {
+            container.innerHTML = `<div class="video-loading" style="color:#ff3b30;">ВИДЕО ОШИБКА ИЛИ НЕ НАЙДЕНО</div>`;
+        }
         
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
