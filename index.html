@@ -12,17 +12,31 @@
         .st-approved { color: #2ecc71; }
         .st-progress { color: #3498db; }
         .st-fix { color: #e67e22; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; gap: 10px; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .refresh-btn { background: #1c1c1e; border: 1px solid #222; color: #007aff; font-size: 16px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .refresh-btn:active { background: #3a3a3c; }
+        
         .view-toggle { display: flex; gap: 5px; background: #1c1c1e; padding: 4px; border-radius: 10px; }
         .v-btn { border: none; background: none; color: #555; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 18px; }
         .v-btn.active { background: #3a3a3c; color: #fff; }
-        #tabs { display: flex; gap: 10px; padding: 0 15px 15px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #222; }
+        
+        .filter-bar { display: flex; flex-direction: column; gap: 8px; padding: 0 15px 15px; border-bottom: 1px solid #222; }
+        #tabs { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+        #tabs::-webkit-scrollbar { display: none; }
         .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
+        
+        /* Стили для селектора статусов */
+        .status-filter-box { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #8e8e93; }
+        .status-select { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none; max-width: 150px; }
+        
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
         .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
         .info { padding: 12px; }
+        
         .list-mode { display: flex !important; flex-direction: column !important; padding: 10px 12px !important; gap: 0 !important; }
         .list-mode .card { display: grid !important; grid-template-columns: 80px 1fr 105px; border: 1px solid #333; border-bottom: none; border-radius: 0; background: transparent; align-items: stretch; min-height: 55px; }
         .list-mode .card:first-child { border-radius: 8px 8px 0 0; }
@@ -31,6 +45,7 @@
         .list-mode .info { display: contents; }
         .list-mode .info-name { padding: 10px 12px; border-right: 1px solid #333; font-size: 13px; font-weight: 700; display: flex; align-items: center; word-break: break-all; line-height: 1.2; }
         .list-mode .info-status { text-align: center; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 5px; text-transform: uppercase; }
+        
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
         .video-box { width: 100%; aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center; }
         video { width: 100%; height: 100%; display: block; }
@@ -44,13 +59,31 @@
 
 <div id="grid-view">
     <div class="header">
-        <div id="project-name" style="font-weight:900; font-size:22px; text-transform: uppercase;">ЗАГРУЗКА...</div>
+        <div class="header-left">
+            <div id="project-name" style="font-weight:900; font-size:22px; text-transform: uppercase;">ЗАГРУЗКА...</div>
+            <button class="refresh-btn" onclick="fetchData()" title="Обновить данные">🔄</button>
+        </div>
         <div class="view-toggle">
             <button class="v-btn active" onclick="setView('grid', this)">田</button>
             <button class="v-btn" onclick="setView('list', this)">≡</button>
         </div>
     </div>
-    <div id="tabs"></div>
+    
+    <div class="filter-bar">
+        <div id="tabs"></div>
+        <div class="status-filter-box">
+            <span>Статус:</span>
+            <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
+                <option value="">ВСЕ СТАТУСЫ</option>
+                <option value="Review">REVIEW</option>
+                <option value="In Progress">IN PROGRESS</option>
+                <option value="To Fix">TO FIX</option>
+                <option value="Ready to start">READY TO START</option>
+                <option value="Approved">APPROVED</option>
+            </select>
+        </div>
+    </div>
+    
     <div id="main-grid">Загрузка данных...</div>
 </div>
 
@@ -72,7 +105,6 @@
 <script>
     const tg = window.Telegram.WebApp;
     const KEY = 'patBsCg6ofoalEdYD.7fe0a35b60f18a67439ad759432ec5a063276df89842847200d6b9ec42224e79';
-    // Токен бота для генерации прямых ссылок из file_id
     const BOT_TOKEN = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
     
     const rawParam = tg.initDataUnsafe?.start_param || ""; 
@@ -91,12 +123,17 @@
     }
 
     let records = [];
-    let curFilter = '';
+    let curEpFilter = '';
+    let curStatusFilter = '';
     const statusMap = { 'review': 'st-review', 'ready to start': 'st-ready', 'approved': 'st-approved', 'in progress': 'st-progress', 'to fix': 'st-fix' };
 
-    async function init() {
-        tg.expand();
-        document.getElementById('project-name').innerText = PROJECT_TITLE;
+    // Функция загрузки/обновления данных
+    async function fetchData() {
+        const grid = document.getElementById('main-grid');
+        const refreshBtn = document.querySelector('.refresh-btn');
+        
+        // Визуальный фидбек: крутим или подсвечиваем кнопку при рефреше
+        if (refreshBtn) refreshBtn.style.opacity = '0.5';
         
         try {
             const r = await fetch(`https://api.airtable.com/v0/${CURRENT_BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
@@ -106,24 +143,56 @@
             records = json.records || [];
             
             if (records.length > 0) {
+                // Вытаскиваем уникальные эпизоды
                 const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
+                
                 if (eps.length > 0) {
-                    document.getElementById('tabs').innerHTML = eps.map((ep, i) => `
-                        <div class="tab ${i===0?'active':''}" onclick="setFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
-                    curFilter = eps[0];
+                    // Если текущий фильтр эпизода пустой или пропал из базы, ставим первый доступный
+                    if (!curEpFilter || !eps.includes(curEpFilter)) {
+                        curEpFilter = eps[0];
+                    }
+                    
+                    document.getElementById('tabs').innerHTML = eps.map(ep => `
+                        <div class="tab ${ep===curEpFilter?'active':''}" onclick="setEpFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
                 }
                 render();
             } else {
-                document.getElementById('main-grid').innerText = "База пуста. Добавьте шоты in Airtable.";
+                grid.innerText = "База пуста. Добавьте шоты в Airtable.";
             }
         } catch(e) {
-            document.getElementById('main-grid').innerText = "Ошибка доступа к базе.";
+            grid.innerText = "Ошибка доступа к базе.";
+        } finally {
+            if (refreshBtn) refreshBtn.style.opacity = '1';
         }
     }
 
-    function setFilter(f, el) {
-        curFilter = f;
+    function init() {
+        tg.expand();
+        document.getElementById('project-name').innerText = PROJECT_TITLE;
+        
+        // Первичный запуск
+        fetchData();
+        
+        // 🔄 Авто-рефреш каждые 15 минут (15 * 60 * 1000 миллисекунд)
+        setInterval(() => {
+            // Обновляем данные только если пользователь находится на экране грида (не в плеере)
+            if (document.getElementById('grid-view').style.display !== 'none') {
+                console.log("Авто-рефреш данных из Airtable...");
+                fetchData();
+            }
+        }, 15 * 60 * 1000);
+    }
+
+    // Фильтр эпизодов
+    function setEpFilter(f, el) {
+        curEpFilter = f;
         if(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
+        render();
+    }
+
+    // Новая функция: фильтр статусов
+    function setStatusFilter(status) {
+        curStatusFilter = status;
         render();
     }
 
@@ -137,7 +206,22 @@
     function render() {
         const grid = document.getElementById('main-grid');
         const isList = grid.classList.contains('list-mode');
-        const filtered = curFilter ? records.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curFilter)) : records;
+        
+        // Комбинированная фильтрация: Эпизод + Статус
+        let filtered = records;
+        
+        if (curEpFilter) {
+            filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curEpFilter));
+        }
+        
+        if (curStatusFilter) {
+            filtered = filtered.filter(r => (r.fields.status || '') === curStatusFilter);
+        }
+        
+        if (filtered.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #8e8e93; padding: 40px 0; font-size: 14px;">Шотов с такими параметрами не найдено</div>`;
+            return;
+        }
         
         grid.innerHTML = filtered.map(r => {
             const st = (r.fields.status || '').toLowerCase();
@@ -150,7 +234,6 @@
         }).join('');
     }
 
-    // Хелпер для превращения file_id в прямую ссылку на .mp4
     async function getTelegramVideoUrl(fileId) {
         try {
             const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
@@ -171,28 +254,25 @@
         document.getElementById('grid-view').style.display = 'none';
         document.getElementById('player-view').style.display = 'block';
         
-        // Рендерим метаданные сразу, чтобы интерфейс не казался пустым
         document.getElementById('p-title').innerText = r.fields.shot_name;
         const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
         document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">${ver}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
         
-        // Показываем лоадер в контейнере видео
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">ПОДКЛЮЧЕНИЕ К ОБЛАКУ ТГ...</div>`;
 
         let videoUrl = "";
 
-        // ПРОВЕРЯЕМ: Если есть наш новый tg_file_id, запрашиваем ссылку у Дурова на лету
         if (r.fields.tg_file_id) {
             videoUrl = await getTelegramVideoUrl(r.fields.tg_file_id);
         } 
-        // Старый фолбек: если tg_file_id нет, берем из старого поля Airtable (если оно заполнено)
         if (!videoUrl && r.fields.preview_file2 && r.fields.preview_file2[0]) {
             videoUrl = r.fields.preview_file2[0].url;
         }
 
-        // Если нашли ссылку — вставляем плеер с автоплеем, зацикливанием и без звука
         if (videoUrl) {
+            // Если видео зависает или ссылка протухает во время открытого плеера, 
+            // ручной рефреш (выход и вход в плеер заново) сгенерирует свежий урл.
             container.innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
         } else {
             container.innerHTML = `<div class="video-loading" style="color:#ff3b30;">ВИДЕО ОШИБКА ИЛИ НЕ НАЙДЕНО</div>`;
@@ -204,6 +284,8 @@
             document.getElementById('player-view').style.display = 'none';
             document.getElementById('grid-view').style.display = 'block';
             tg.BackButton.hide();
+            // Делаем легкий рефреш списка при выходе из плеера, чтобы обновить статусы
+            render();
         });
     }
 
