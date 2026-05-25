@@ -15,7 +15,7 @@
         
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; gap: 10px; }
         .header-left { display: flex; align-items: center; gap: 10px; }
-        .refresh-btn { background: #1c1c1e; border: 1px solid #222; color: #007aff; font-size: 16px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .refresh-btn { background: #1c1c1e; border: 1px solid #222; color: #007aff; font-size: 16px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; outline: none; }
         .refresh-btn:active { background: #3a3a3c; }
         
         .view-toggle { display: flex; gap: 5px; background: #1c1c1e; padding: 4px; border-radius: 10px; }
@@ -32,7 +32,7 @@
         .status-select { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none; max-width: 150px; }
         
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
-        .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; position: relative; }
+        .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; position: relative; cursor: pointer; }
         
         .thumb-wrapper { width: 100%; aspect-ratio: 16/9; background: #111; position: relative; overflow: hidden; }
         .thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -53,11 +53,11 @@
         .video-box { width: 100%; aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center; }
         #player-view video { width: 100%; height: 100%; display: block; }
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
-        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; }
+        .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; cursor: pointer; }
         .p-body { padding: 20px; }
         .video-loading { color: #8e8e93; font-size: 14px; font-weight: bold; }
         
-        .comment-area { width: 100%; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 15px; border-radius: 12px; height: 100px; box-sizing: border-box; font-family: inherit; font-size: 16px; }
+        .comment-area { width: 100%; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 15px; border-radius: 12px; height: 100px; box-sizing: border-box; font-family: inherit; font-size: 16px; outline: none; }
         .submit-btn { width: 100%; background: #007aff; color: #fff; border: none; padding: 18px; border-radius: 12px; font-weight: 700; margin-top: 10px; font-size: 16px; cursor: pointer; }
         .submit-btn:disabled { background: #3a3a3c; color: #8e8e93; cursor: not-allowed; }
     </style>
@@ -134,10 +134,9 @@
     let curEpFilter = '';
     let curStatusFilter = '';
     
-    // Переменные для хранения метаданных текущего открытого шота
     let activeRecordId = null;
     let activeRecordStatus = "";
-    let activeRecordVersion = "";
+    let activeRecordVersion = 0;
 
     const statusMap = { 'review': 'st-review', 'ready to start': 'st-ready', 'approved': 'st-approved', 'in progress': 'st-progress', 'to fix': 'st-fix' };
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -285,10 +284,9 @@
         const r = records.find(rec => rec.id === id);
         if(!r) return;
 
-        // Запоминаем ID, статус и версию открытого шота для отправки в комменты
         activeRecordId = id; 
         activeRecordStatus = r.fields.status || "";
-        activeRecordVersion = r.fields.version ? String(r.fields.version) : "";
+        activeRecordVersion = r.fields.version ? Number(r.fields.version) : 0;
         
         document.getElementById('comment-input').value = ""; 
         document.getElementById('grid-view').style.display = 'none';
@@ -321,12 +319,11 @@
             
             activeRecordId = null;
             activeRecordStatus = "";
-            activeRecordVersion = "";
+            activeRecordVersion = 0;
             render();
         });
     }
 
-    // 💬 Обновленная функция отправки комментов под твои новые имена колонок
     async function sendComment() {
         const inputEl = document.getElementById('comment-input');
         const submitBtn = document.getElementById('comment-submit');
@@ -339,11 +336,10 @@
 
         const username = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Unknown Producer";
 
-        // Формируем payload под твои точные названия колонок
         const payload = {
             fields: {
                 "notes": text,
-                "shot_name": [activeRecordId], // Link-колонка требует массив ID
+                "shot_name": [activeRecordId], 
                 "artist": username,
                 "status": activeRecordStatus,
                 "version": activeRecordVersion
