@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -34,14 +34,12 @@
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
         .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; position: relative; }
         
-        /* Контейнер для медиа (картинки или мини-видео) */
         .thumb-wrapper { width: 100%; aspect-ratio: 16/9; background: #111; position: relative; overflow: hidden; }
         .thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
         .mini-preview-video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; display: block; }
         
         .info { padding: 12px; }
         
-        /* Стили режима СПИСКА */
         .list-mode { display: flex !important; flex-direction: column !important; padding: 10px 12px !important; gap: 0 !important; }
         .list-mode .card { display: grid !important; grid-template-columns: 80px 1fr 105px; border: 1px solid #333; border-bottom: none; border-radius: 0; background: transparent; align-items: stretch; min-height: 55px; }
         .list-mode .card:first-child { border-radius: 8px 8px 0 0; }
@@ -58,6 +56,10 @@
         .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; }
         .p-body { padding: 20px; }
         .video-loading { color: #8e8e93; font-size: 14px; font-weight: bold; }
+        
+        .comment-area { width: 100%; background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 15px; border-radius: 12px; height: 100px; box-sizing: border-box; font-family: inherit; font-size: 16px; }
+        .submit-btn { width: 100%; background: #007aff; color: #fff; border: none; padding: 18px; border-radius: 12px; font-weight: 700; margin-top: 10px; font-size: 16px; cursor: pointer; }
+        .submit-btn:disabled { background: #3a3a3c; color: #8e8e93; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -65,8 +67,8 @@
 <div id="grid-view">
     <div class="header">
         <div class="header-left">
-            <div id="project-name" style="font-weight:900; font-size:22px; text-transform: uppercase;">ЗАГРУЗКА...</div>
-            <button class="refresh-btn" onclick="fetchData()" title="Обновить данные">🔄</button>
+            <div id="project-name" style="font-weight:900; font-size:22px; text-transform: uppercase;">LOADING...</div>
+            <button class="refresh-btn" onclick="fetchData()" title="Refresh records">🔄</button>
         </div>
         <div class="view-toggle">
             <button class="v-btn active" onclick="setView('grid', this)">田</button>
@@ -77,9 +79,9 @@
     <div class="filter-bar">
         <div id="tabs"></div>
         <div class="status-filter-box">
-            <span>Статус:</span>
+            <span>Status:</span>
             <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
-                <option value="">ALL STATUSES</option>
+                <option value="">ALL</option>
                 <option value="Review">REVIEW</option>
                 <option value="In Progress">IN PROGRESS</option>
                 <option value="To Fix">TO FIX</option>
@@ -89,7 +91,7 @@
         </div>
     </div>
     
-    <div id="main-grid">Загрузка данных...</div>
+    <div id="main-grid">Loading grid data...</div>
 </div>
 
 <div id="player-view">
@@ -102,8 +104,8 @@
     <div class="p-body">
         <h2 id="p-title" style="margin:0 0 5px 0;"></h2>
         <div id="p-meta" style="margin-bottom: 20px; font-size: 16px; font-weight: bold;"></div>
-        <textarea style="width:100%; background:#1c1c1e; border:1px solid #333; color:#fff; padding:15px; border-radius:12px; height:100px; box-sizing:border-box; font-family:inherit; font-size:16px;" placeholder="Ваш комментарий..."></textarea>
-        <button style="width:100%; background:#007aff; color:#fff; border:none; padding:18px; border-radius:12px; font-weight:700; margin-top:10px; font-size:16px;">ОТПРАВИТЬ</button>
+        <textarea id="comment-input" class="comment-area" placeholder="Write your comment here..."></textarea>
+        <button id="comment-submit" class="submit-btn" onclick="sendComment()">SEND COMMENT</button>
     </div>
 </div>
 
@@ -114,7 +116,7 @@
     
     const rawParam = tg.initDataUnsafe?.start_param || ""; 
     let CURRENT_BASE = 'appgiNHAoONgW8Ha6'; 
-    let PROJECT_TITLE = 'БОГАТЫРИ';
+    let PROJECT_TITLE = 'BOGATYRI';
 
     if (rawParam) {
         if (rawParam.includes('_')) {
@@ -128,12 +130,16 @@
     }
 
     let records = [];
-    let tgUrlsCache = {}; // Кэш для прямых видео-ссылок, чтобы не запрашивать их по 100 раз
+    let tgUrlsCache = {}; 
     let curEpFilter = '';
     let curStatusFilter = '';
-    const statusMap = { 'review': 'st-review', 'ready to start': 'st-ready', 'approved': 'st-approved', 'in progress': 'st-progress', 'to fix': 'st-fix' };
+    
+    // Переменные для хранения метаданных текущего открытого шота
+    let activeRecordId = null;
+    let activeRecordStatus = "";
+    let activeRecordVersion = "";
 
-    // Определяем мобилка это или десктоп
+    const statusMap = { 'review': 'st-review', 'ready to start': 'st-ready', 'approved': 'st-approved', 'in progress': 'st-progress', 'to fix': 'st-fix' };
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     async function getTelegramVideoUrl(fileId) {
@@ -147,7 +153,7 @@
                 return url;
             }
         } catch (e) {
-            console.error("Ошибка ТГ API:", e);
+            console.error("Telegram API Error:", e);
         }
         return null;
     }
@@ -172,20 +178,18 @@
                         <div class="tab ${ep===curEpFilter?'active':''}" onclick="setEpFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
                 }
                 
-                // Предзагрузка путей для видео, у которых есть новые версии
                 await preloadVideoUrls();
                 render();
             } else {
-                grid.innerText = "База пуста.";
+                grid.innerText = "Base is empty. Add shots in Airtable.";
             }
         } catch(e) {
-            grid.innerText = "Ошибка доступа к базе.";
+            grid.innerText = "Error loading database access.";
         } finally {
             if (refreshBtn) refreshBtn.style.opacity = '1';
         }
     }
 
-    // Фоновая предзагрузка ссылок только для отфильтрованных/активных элементов
     async function preloadVideoUrls() {
         const promises = records
             .filter(r => r.fields.tg_file_id && !tgUrlsCache[r.fields.tg_file_id])
@@ -223,7 +227,6 @@
         render();
     }
 
-    // Управление воспроизведением мини-превью при наведении (для ПК)
     function hoverPlay(videoEl) { if(!isMobile && videoEl) videoEl.play().catch(()=>{}); }
     function hoverPause(videoEl) { if(!isMobile && videoEl) { videoEl.pause(); videoEl.currentTime = 0; } }
 
@@ -236,7 +239,7 @@
         if (curStatusFilter) filtered = filtered.filter(r => (r.fields.status || '') === curStatusFilter);
         
         if (filtered.length === 0) {
-            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #8e8e93; padding: 40px 0;">Шотов не найдено</div>`;
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #8e8e93; padding: 40px 0;">No shots found</div>`;
             return;
         }
         
@@ -246,21 +249,14 @@
             const fileId = r.fields.tg_file_id;
             const videoUrl = fileId ? tgUrlsCache[fileId] : '';
             
-            // Собираем блок медиа. Если есть видео-версия, вставляем скрытый или автоплеящийся тег <video>
             let mediaContent = `<img src="${img}" class="thumb">`;
             let hoverEvents = '';
 
             if (videoUrl) {
                 if (isMobile) {
-                    // На мобилках видео крутится всегда само, заменяя картинку
                     mediaContent = `<video class="mini-preview-video" loop muted playsinline autoplay><source src="${videoUrl}" type="video/mp4"></video>`;
                 } else {
-                    // На ПК видео лежит под картинкой и запускается ТОЛЬКО при наведении мыши на карточку
-                    mediaContent = `
-                        <img src="${img}" class="thumb" style="position:relative; z-index:2; transition: opacity 0.2s;" onmouseenter="this.style.opacity=0" onmouseleave="this.style.opacity=1">
-                        <video class="mini-preview-video" loop muted playsinline><source src="${videoUrl}" type="video/mp4"></video>
-                    `;
-                    // Вешаем события наведения на саму карточку
+                    mediaContent = `<video class="mini-preview-video" loop muted playsinline><source src="${videoUrl}" type="video/mp4"></video>`;
                     hoverEvents = `onmouseenter="hoverPlay(this.querySelector('video'))" onmouseleave="hoverPause(this.querySelector('video'))"`;
                 }
             }
@@ -289,6 +285,12 @@
         const r = records.find(rec => rec.id === id);
         if(!r) return;
 
+        // Запоминаем ID, статус и версию открытого шота для отправки в комменты
+        activeRecordId = id; 
+        activeRecordStatus = r.fields.status || "";
+        activeRecordVersion = r.fields.version ? String(r.fields.version) : "";
+        
+        document.getElementById('comment-input').value = ""; 
         document.getElementById('grid-view').style.display = 'none';
         document.getElementById('player-view').style.display = 'block';
         
@@ -297,7 +299,7 @@
         document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">${ver}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
         
         const container = document.getElementById('v-container');
-        container.innerHTML = `<div class="video-loading">ПОДКЛЮЧЕНИЕ К ОБЛАКУ ТГ...</div>`;
+        container.innerHTML = `<div class="video-loading">CONNECTING TO TG CLOUD...</div>`;
 
         let videoUrl = r.fields.tg_file_id ? tgUrlsCache[r.fields.tg_file_id] : '';
         if (!videoUrl && r.fields.preview_file2 && r.fields.preview_file2[0]) {
@@ -307,7 +309,7 @@
         if (videoUrl) {
             container.innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
         } else {
-            container.innerHTML = `<div class="video-loading" style="color:#ff3b30;">ВИДЕО ОШИБКА ИЛИ НЕ НАЙДЕНО</div>`;
+            container.innerHTML = `<div class="video-loading" style="color:#ff3b30;">VIDEO NOT FOUND</div>`;
         }
         
         tg.BackButton.show();
@@ -316,8 +318,63 @@
             document.getElementById('player-view').style.display = 'none';
             document.getElementById('grid-view').style.display = 'block';
             tg.BackButton.hide();
+            
+            activeRecordId = null;
+            activeRecordStatus = "";
+            activeRecordVersion = "";
             render();
         });
+    }
+
+    // 💬 Обновленная функция отправки комментов под твои новые имена колонок
+    async function sendComment() {
+        const inputEl = document.getElementById('comment-input');
+        const submitBtn = document.getElementById('comment-submit');
+        const text = inputEl.value.trim();
+        
+        if (!text || !activeRecordId) return;
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = "SENDING...";
+
+        const username = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Unknown Producer";
+
+        // Формируем payload под твои точные названия колонок
+        const payload = {
+            fields: {
+                "notes": text,
+                "shot_name": [activeRecordId], // Link-колонка требует массив ID
+                "artist": username,
+                "status": activeRecordStatus,
+                "version": activeRecordVersion
+            }
+        };
+
+        try {
+            const response = await fetch(`https://api.airtable.com/v0/${CURRENT_BASE}/Comments`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                inputEl.value = "";
+                tg.showAlert("Comment successfully added!");
+            } else {
+                const errData = await response.json();
+                console.error("Airtable Error Response:", errData);
+                tg.showAlert(`Failed to save comment. Check if the table "Comments" has column types matching: notes, shot_name, artist, status, version.`);
+            }
+        } catch (e) {
+            console.error("Network Error:", e);
+            tg.showAlert("Network error. Could not send comment.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "SEND COMMENT";
+        }
     }
 
     function vToggle() { const v = document.getElementById('main-v'); if(v) v.paused ? v.play() : v.pause(); }
