@@ -28,27 +28,32 @@
         .tab { padding: 8px 18px; background: #1c1c1e; border-radius: 10px; font-size: 13px; font-weight: 600; color: #8e8e93; white-space: nowrap; }
         .tab.active { background: #007aff; color: #fff; }
         
-        /* Стили для селектора статусов */
         .status-filter-box { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #8e8e93; }
         .status-select { background: #1c1c1e; border: 1px solid #333; color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; outline: none; max-width: 150px; }
         
         #main-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
-        .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; }
-        .thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #111; }
+        .card { background: #1c1c1e; border-radius: 12px; overflow: hidden; border: 1px solid #222; position: relative; }
+        
+        /* Контейнер для медиа (картинки или мини-видео) */
+        .thumb-wrapper { width: 100%; aspect-ratio: 16/9; background: #111; position: relative; overflow: hidden; }
+        .thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .mini-preview-video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; display: block; }
+        
         .info { padding: 12px; }
         
+        /* Стили режима СПИСКА */
         .list-mode { display: flex !important; flex-direction: column !important; padding: 10px 12px !important; gap: 0 !important; }
         .list-mode .card { display: grid !important; grid-template-columns: 80px 1fr 105px; border: 1px solid #333; border-bottom: none; border-radius: 0; background: transparent; align-items: stretch; min-height: 55px; }
         .list-mode .card:first-child { border-radius: 8px 8px 0 0; }
         .list-mode .card:last-child { border-bottom: 1px solid #333; border-radius: 0 0 8px 8px; }
-        .list-mode .thumb { width: 100%; height: 100%; border-right: 1px solid #333; border-radius: 0; }
+        .list-mode .thumb-wrapper { width: 100%; height: 100%; border-right: 1px solid #333; border-radius: 0; }
         .list-mode .info { display: contents; }
         .list-mode .info-name { padding: 10px 12px; border-right: 1px solid #333; font-size: 13px; font-weight: 700; display: flex; align-items: center; word-break: break-all; line-height: 1.2; }
         .list-mode .info-status { text-align: center; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 5px; text-transform: uppercase; }
         
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; overflow-y: auto; }
         .video-box { width: 100%; aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center; }
-        video { width: 100%; height: 100%; display: block; }
+        #player-view video { width: 100%; height: 100%; display: block; }
         .p-nav { display: flex; justify-content: center; gap: 30px; padding: 20px; background: #111; border-bottom: 1px solid #222; }
         .p-btn { background: #222; border: none; color: #fff; width: 60px; height: 60px; border-radius: 16px; font-size: 24px; }
         .p-body { padding: 20px; }
@@ -74,7 +79,7 @@
         <div class="status-filter-box">
             <span>Статус:</span>
             <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
-                <option value="">ВСЕ СТАТУСЫ</option>
+                <option value="">ALL STATUSES</option>
                 <option value="Review">REVIEW</option>
                 <option value="In Progress">IN PROGRESS</option>
                 <option value="To Fix">TO FIX</option>
@@ -123,16 +128,33 @@
     }
 
     let records = [];
+    let tgUrlsCache = {}; // Кэш для прямых видео-ссылок, чтобы не запрашивать их по 100 раз
     let curEpFilter = '';
     let curStatusFilter = '';
     const statusMap = { 'review': 'st-review', 'ready to start': 'st-ready', 'approved': 'st-approved', 'in progress': 'st-progress', 'to fix': 'st-fix' };
 
-    // Функция загрузки/обновления данных
+    // Определяем мобилка это или десктоп
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    async function getTelegramVideoUrl(fileId) {
+        if (tgUrlsCache[fileId]) return tgUrlsCache[fileId];
+        try {
+            const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const data = await r.json();
+            if (data.ok && data.result.file_path) {
+                const url = `https://api.telegram.org/file/bot${BOT_TOKEN}/${data.result.file_path}`;
+                tgUrlsCache[fileId] = url;
+                return url;
+            }
+        } catch (e) {
+            console.error("Ошибка ТГ API:", e);
+        }
+        return null;
+    }
+
     async function fetchData() {
         const grid = document.getElementById('main-grid');
         const refreshBtn = document.querySelector('.refresh-btn');
-        
-        // Визуальный фидбек: крутим или подсвечиваем кнопку при рефреше
         if (refreshBtn) refreshBtn.style.opacity = '0.5';
         
         try {
@@ -143,21 +165,18 @@
             records = json.records || [];
             
             if (records.length > 0) {
-                // Вытаскиваем уникальные эпизоды
                 const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
-                
                 if (eps.length > 0) {
-                    // Если текущий фильтр эпизода пустой или пропал из базы, ставим первый доступный
-                    if (!curEpFilter || !eps.includes(curEpFilter)) {
-                        curEpFilter = eps[0];
-                    }
-                    
+                    if (!curEpFilter || !eps.includes(curEpFilter)) curEpFilter = eps[0];
                     document.getElementById('tabs').innerHTML = eps.map(ep => `
                         <div class="tab ${ep===curEpFilter?'active':''}" onclick="setEpFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
                 }
+                
+                // Предзагрузка путей для видео, у которых есть новые версии
+                await preloadVideoUrls();
                 render();
             } else {
-                grid.innerText = "База пуста. Добавьте шоты в Airtable.";
+                grid.innerText = "База пуста.";
             }
         } catch(e) {
             grid.innerText = "Ошибка доступа к базе.";
@@ -166,31 +185,32 @@
         }
     }
 
+    // Фоновая предзагрузка ссылок только для отфильтрованных/активных элементов
+    async function preloadVideoUrls() {
+        const promises = records
+            .filter(r => r.fields.tg_file_id && !tgUrlsCache[r.fields.tg_file_id])
+            .map(r => getTelegramVideoUrl(r.fields.tg_file_id));
+        await Promise.all(promises);
+    }
+
     function init() {
         tg.expand();
         document.getElementById('project-name').innerText = PROJECT_TITLE;
-        
-        // Первичный запуск
         fetchData();
         
-        // 🔄 Авто-рефреш каждые 15 минут (15 * 60 * 1000 миллисекунд)
         setInterval(() => {
-            // Обновляем данные только если пользователь находится на экране грида (не в плеере)
             if (document.getElementById('grid-view').style.display !== 'none') {
-                console.log("Авто-рефреш данных из Airtable...");
                 fetchData();
             }
         }, 15 * 60 * 1000);
     }
 
-    // Фильтр эпизодов
     function setEpFilter(f, el) {
         curEpFilter = f;
         if(el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
         render();
     }
 
-    // Новая функция: фильтр статусов
     function setStatusFilter(status) {
         curStatusFilter = status;
         render();
@@ -203,48 +223,66 @@
         render();
     }
 
+    // Управление воспроизведением мини-превью при наведении (для ПК)
+    function hoverPlay(videoEl) { if(!isMobile && videoEl) videoEl.play().catch(()=>{}); }
+    function hoverPause(videoEl) { if(!isMobile && videoEl) { videoEl.pause(); videoEl.currentTime = 0; } }
+
     function render() {
         const grid = document.getElementById('main-grid');
         const isList = grid.classList.contains('list-mode');
         
-        // Комбинированная фильтрация: Эпизод + Статус
         let filtered = records;
-        
-        if (curEpFilter) {
-            filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curEpFilter));
-        }
-        
-        if (curStatusFilter) {
-            filtered = filtered.filter(r => (r.fields.status || '') === curStatusFilter);
-        }
+        if (curEpFilter) filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curEpFilter));
+        if (curStatusFilter) filtered = filtered.filter(r => (r.fields.status || '') === curStatusFilter);
         
         if (filtered.length === 0) {
-            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #8e8e93; padding: 40px 0; font-size: 14px;">Шотов с такими параметрами не найдено</div>`;
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #8e8e93; padding: 40px 0;">Шотов не найдено</div>`;
             return;
         }
         
         grid.innerHTML = filtered.map(r => {
             const st = (r.fields.status || '').toLowerCase();
             const img = r.fields.thumbnail?.[0]?.url || '';
+            const fileId = r.fields.tg_file_id;
+            const videoUrl = fileId ? tgUrlsCache[fileId] : '';
+            
+            // Собираем блок медиа. Если есть видео-версия, вставляем скрытый или автоплеящийся тег <video>
+            let mediaContent = `<img src="${img}" class="thumb">`;
+            let hoverEvents = '';
+
+            if (videoUrl) {
+                if (isMobile) {
+                    // На мобилках видео крутится всегда само, заменяя картинку
+                    mediaContent = `<video class="mini-preview-video" loop muted playsinline autoplay><source src="${videoUrl}" type="video/mp4"></video>`;
+                } else {
+                    // На ПК видео лежит под картинкой и запускается ТОЛЬКО при наведении мыши на карточку
+                    mediaContent = `
+                        <img src="${img}" class="thumb" style="position:relative; z-index:2; transition: opacity 0.2s;" onmouseenter="this.style.opacity=0" onmouseleave="this.style.opacity=1">
+                        <video class="mini-preview-video" loop muted playsinline><source src="${videoUrl}" type="video/mp4"></video>
+                    `;
+                    // Вешаем события наведения на саму карточку
+                    hoverEvents = `onmouseenter="hoverPlay(this.querySelector('video'))" onmouseleave="hoverPause(this.querySelector('video'))"`;
+                }
+            }
+
             if (isList) {
-                return `<div class="card" onclick='openPlayer("${r.id}")'><img src="${img}" class="thumb"><div class="info-name">${r.fields.shot_name}</div><div class="info-status ${statusMap[st]||''}">${(r.fields.status||'').toUpperCase()}</div></div>`;
+                return `
+                    <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
+                        <div class="thumb-wrapper">${mediaContent}</div>
+                        <div class="info-name">${r.fields.shot_name}</div>
+                        <div class="info-status ${statusMap[st]||''}">${(r.fields.status||'').toUpperCase()}</div>
+                    </div>`;
             } else {
-                return `<div class="card" onclick='openPlayer("${r.id}")'><img src="${img}" class="thumb"><div class="info"><div style="font-weight:700; font-size:14px; margin-bottom:4px;">${r.fields.shot_name}</div><div class="${statusMap[st]||''}" style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status||''}</div></div></div>`;
+                return `
+                    <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
+                        <div class="thumb-wrapper">${mediaContent}</div>
+                        <div class="info">
+                            <div style="font-weight:700; font-size:14px; margin-bottom:4px;">${r.fields.shot_name}</div>
+                            <div class="${statusMap[st]||''}" style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status||''}</div>
+                        </div>
+                    </div>`;
             }
         }).join('');
-    }
-
-    async function getTelegramVideoUrl(fileId) {
-        try {
-            const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
-            const data = await r.json();
-            if (data.ok && data.result.file_path) {
-                return `https://api.telegram.org/file/bot${BOT_TOKEN}/${data.result.file_path}`;
-            }
-        } catch (e) {
-            console.error("Ошибка получения видео из ТГ:", e);
-        }
-        return null;
     }
 
     async function openPlayer(id) {
@@ -261,18 +299,12 @@
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">ПОДКЛЮЧЕНИЕ К ОБЛАКУ ТГ...</div>`;
 
-        let videoUrl = "";
-
-        if (r.fields.tg_file_id) {
-            videoUrl = await getTelegramVideoUrl(r.fields.tg_file_id);
-        } 
+        let videoUrl = r.fields.tg_file_id ? tgUrlsCache[r.fields.tg_file_id] : '';
         if (!videoUrl && r.fields.preview_file2 && r.fields.preview_file2[0]) {
             videoUrl = r.fields.preview_file2[0].url;
         }
 
         if (videoUrl) {
-            // Если видео зависает или ссылка протухает во время открытого плеера, 
-            // ручной рефреш (выход и вход в плеер заново) сгенерирует свежий урл.
             container.innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
         } else {
             container.innerHTML = `<div class="video-loading" style="color:#ff3b30;">ВИДЕО ОШИБКА ИЛИ НЕ НАЙДЕНО</div>`;
@@ -284,7 +316,6 @@
             document.getElementById('player-view').style.display = 'none';
             document.getElementById('grid-view').style.display = 'block';
             tg.BackButton.hide();
-            // Делаем легкий рефреш списка при выходе из плеера, чтобы обновить статусы
             render();
         });
     }
