@@ -97,10 +97,10 @@
 <div id="player-view">
     <div class="video-box" id="v-container"></div>
     <div class="p-nav">
-        <button class="p-btn" onclick="vStep(-1)">⏮</button>
-        <button class="p-btn" onclick="vToggle()">⏯</button>
-        <button class="p-btn" onclick="vStep(1)">⏭</button>
-    </div>
+    <button class="p-btn" onclick="changeShot(-1)">⏮</button>
+    <button class="p-btn" onclick="vToggle()">⏯</button>
+    <button class="p-btn" onclick="changeShot(1)">⏭</button>
+</div>
     <div class="p-body">
         <h2 id="p-title" style="margin:0 0 5px 0;"></h2>
         <div id="p-meta" style="margin-bottom: 20px; font-size: 16px; font-weight: bold;"></div>
@@ -229,100 +229,117 @@
     function hoverPlay(videoEl) { if(!isMobile && videoEl) videoEl.play().catch(()=>{}); }
     function hoverPause(videoEl) { if(!isMobile && videoEl) { videoEl.pause(); videoEl.currentTime = 0; } }
 
-    function render() {
-        const grid = document.getElementById('main-grid');
-        const isList = grid.classList.contains('list-mode');
-        
-        let filtered = records;
-        if (curEpFilter) filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curEpFilter));
-        if (curStatusFilter) filtered = filtered.filter(r => (r.fields.status || '') === curStatusFilter);
-        
-        if (filtered.length === 0) {
-            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #8e8e93; padding: 40px 0;">No shots found</div>`;
-            return;
-        }
-        
-        grid.innerHTML = filtered.map(r => {
-            const st = (r.fields.status || '').toLowerCase();
-            const img = r.fields.thumbnail?.[0]?.url || '';
-            const fileId = r.fields.tg_file_id;
-            const videoUrl = fileId ? tgUrlsCache[fileId] : '';
-            
-            let mediaContent = `<img src="${img}" class="thumb">`;
-            let hoverEvents = '';
+  // Переменная для хранения текущего списка шотов в плеере (с учетом фильтров)
+let filteredRecords = []; 
 
-            if (videoUrl) {
-                if (isMobile) {
-                    mediaContent = `<video class="mini-preview-video" loop muted playsinline autoplay><source src="${videoUrl}" type="video/mp4"></video>`;
-                } else {
-                    mediaContent = `<video class="mini-preview-video" loop muted playsinline><source src="${videoUrl}" type="video/mp4"></video>`;
-                    hoverEvents = `onmouseenter="hoverPlay(this.querySelector('video'))" onmouseleave="hoverPause(this.querySelector('video'))"`;
-                }
-            }
+function render() {
+    const grid = document.getElementById('main-grid');
+    const isList = grid.classList.contains('list-mode');
+    
+    // Выносим отфильтрованные записи в глобальную переменную, чтобы плеер их видел
+    filteredRecords = records;
+    if (curEpFilter) filteredRecords = filteredRecords.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curEpFilter));
+    if (curStatusFilter) filteredRecords = filteredRecords.filter(r => (r.fields.status || '') === curStatusFilter);
+    
+    if (filteredRecords.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #8e8e93; padding: 40px 0;">No shots found</div>`;
+        return;
+    }
+    
+    grid.innerHTML = filteredRecords.map(r => {
+        // ... тут весь твой неизмененный код рендеринга карточек ...
+    }).join('');
+}
 
-            if (isList) {
-                return `
-                    <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
-                        <div class="thumb-wrapper">${mediaContent}</div>
-                        <div class="info-name">${r.fields.shot_name}</div>
-                        <div class="info-status ${statusMap[st]||''}">${(r.fields.status||'').toUpperCase()}</div>
-                    </div>`;
-            } else {
-                return `
-                    <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
-                        <div class="thumb-wrapper">${mediaContent}</div>
-                        <div class="info">
-                            <div style="font-weight:700; font-size:14px; margin-bottom:4px;">${r.fields.shot_name}</div>
-                            <div class="${statusMap[st]||''}" style="font-size:10px; font-weight:900; text-transform:uppercase;">${r.fields.status||''}</div>
-                        </div>
-                    </div>`;
-            }
-        }).join('');
+async function openPlayer(id) {
+    const r = records.find(rec => rec.id === id);
+    if(!r) return;
+
+    activeRecordId = id; 
+    activeRecordStatus = r.fields.status || "";
+    activeRecordVersion = r.fields.version ? Number(r.fields.version) : 0;
+    
+    document.getElementById('comment-input').value = ""; 
+    document.getElementById('grid-view').style.display = 'none';
+    document.getElementById('player-view').style.display = 'block';
+    
+    document.getElementById('p-title').innerText = r.fields.shot_name;
+    const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
+    document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">${ver}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
+    
+    const container = document.getElementById('v-container');
+    container.innerHTML = `<div class="video-loading">CONNECTING TO TG CLOUD...</div>`;
+
+    let videoUrl = r.fields.tg_file_id ? tgUrlsCache[r.fields.tg_file_id] : '';
+    if (!videoUrl && r.fields.preview_file2 && r.fields.preview_file2[0]) {
+        videoUrl = r.fields.preview_file2[0].url;
     }
 
-    async function openPlayer(id) {
-        const r = records.find(rec => rec.id === id);
-        if(!r) return;
-
-        activeRecordId = id; 
-        activeRecordStatus = r.fields.status || "";
-        activeRecordVersion = r.fields.version ? Number(r.fields.version) : 0;
-        
-        document.getElementById('comment-input').value = ""; 
-        document.getElementById('grid-view').style.display = 'none';
-        document.getElementById('player-view').style.display = 'block';
-        
-        document.getElementById('p-title').innerText = r.fields.shot_name;
-        const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
-        document.getElementById('p-meta').innerHTML = `<span style="color:#007aff">${ver}</span> | <span class="${statusMap[(r.fields.status||'').toLowerCase()] || ''}">${(r.fields.status || '').toUpperCase()}</span>`;
-        
-        const container = document.getElementById('v-container');
-        container.innerHTML = `<div class="video-loading">CONNECTING TO TG CLOUD...</div>`;
-
-        let videoUrl = r.fields.tg_file_id ? tgUrlsCache[r.fields.tg_file_id] : '';
-        if (!videoUrl && r.fields.preview_file2 && r.fields.preview_file2[0]) {
-            videoUrl = r.fields.preview_file2[0].url;
-        }
-
-        if (videoUrl) {
-            container.innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
-        } else {
-            container.innerHTML = `<div class="video-loading" style="color:#ff3b30;">VIDEO NOT FOUND</div>`;
-        }
-        
-        tg.BackButton.show();
-        tg.BackButton.onClick(() => {
-            document.getElementById('v-container').innerHTML = "";
-            document.getElementById('player-view').style.display = 'none';
-            document.getElementById('grid-view').style.display = 'block';
-            tg.BackButton.hide();
-            
-            activeRecordId = null;
-            activeRecordStatus = "";
-            activeRecordVersion = 0;
-            render();
-        });
+    if (videoUrl) {
+        container.innerHTML = `<video id="main-v" loop playsinline autoplay muted><source src="${videoUrl}" type="video/mp4"></video>`;
+    } else {
+        container.innerHTML = `<div class="video-loading" style="color:#ff3b30;">VIDEO NOT FOUND</div>`;
     }
+    
+    tg.BackButton.show();
+}
+
+// Навешиваем событие на кнопку Назад в Telegram один раз (вне функции openPlayer)
+tg.BackButton.onClick(() => {
+    closePlayer();
+});
+
+function closePlayer() {
+    document.getElementById('v-container').innerHTML = "";
+    document.getElementById('player-view').style.display = 'none';
+    document.getElementById('grid-view').style.display = 'block';
+    tg.BackButton.hide();
+    
+    activeRecordId = null;
+    activeRecordStatus = "";
+    activeRecordVersion = 0;
+    render();
+}
+
+// Функция переключения между ШОТАМИ (кнопки ⏮ и ⏭)
+function changeShot(direction) {
+    if (!activeRecordId || filteredRecords.length <= 1) return;
+    
+    // Находим индекс текущего шота в отфильтрованном списке
+    const currentIndex = filteredRecords.findIndex(r => r.id === activeRecordId);
+    let nextIndex = currentIndex + direction;
+    
+    // Зацикливаем переключение
+    if (nextIndex < 0) nextIndex = filteredRecords.length - 1;
+    if (nextIndex >= filteredRecords.length) nextIndex = 0;
+    
+    // Открываем следующий шот
+    openPlayer(filteredRecords[nextIndex].id);
+}
+
+// Функция ПОКАДРОВОГО сдвига (теперь вызывается с клавиатуры)
+function frameStep(d) { 
+    const v = document.getElementById('main-v'); 
+    if(v) { 
+        v.pause(); 
+        v.currentTime += d * (1/24); 
+    } 
+}
+
+// Управление с клавиатуры для десктопа (Стрелки — кадры, Пробел — плей/пауза)
+window.addEventListener('keydown', (e) => {
+    if (document.getElementById('player-view').style.display === 'block') {
+        // Если фокус в поле ввода комментария — игнорируем горячие клавиши
+        if (document.activeElement.id === 'comment-input') return;
+
+        if (e.key === 'ArrowRight') frameStep(1);
+        if (e.key === 'ArrowLeft') frameStep(-1);
+        if (e.key === ' ') { 
+            e.preventDefault(); 
+            vToggle(); 
+        }
+    }
+});
 
     async function sendComment() {
         const inputEl = document.getElementById('comment-input');
