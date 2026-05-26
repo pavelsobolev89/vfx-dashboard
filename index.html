@@ -978,8 +978,7 @@
         <div class="custom-timeline-container">
             <input type="range" id="timeline-scrubber" class="scrubber-input" min="0" max="100" value="0" step="0.01">
             <div class="timeline-timecode-row">
-                <span id="timecode-val">00:00:00:00</span>
-                <span id="frame-counter-val">0 / 0</span>
+                <span id="frame-counter-val">1 / 0</span>
             </div>
         </div>
         
@@ -1364,16 +1363,17 @@
                 if (v) {
                     v.addEventListener('loadedmetadata', () => {
                         const fps = 24;
-                        const totalFrames = Math.floor(v.duration * fps);
+                        const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
+                        const totalFrames = Math.floor(duration * fps);
                         const scrubber = document.getElementById('timeline-scrubber');
                         if (scrubber) {
-                            scrubber.min = 0;
+                            scrubber.min = 1;
                             scrubber.max = totalFrames;
                             scrubber.step = 1;
-                            scrubber.value = 0;
-                            updateScrubberBackground(0);
+                            scrubber.value = 1;
+                            updateScrubberBackground((1 / totalFrames) * 100);
                         }
-                        v.currentTime = 0;
+                        v.currentTime = 1 / fps;
                         updateFrameDisplay();
                     });
                     v.addEventListener('timeupdate', () => {
@@ -1381,10 +1381,12 @@
                             const scrubber = document.getElementById('timeline-scrubber');
                             if (scrubber && v.duration) {
                                 const fps = 24;
-                                const currentFrame = Math.round(v.currentTime * fps);
+                                const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
+                                const totalFrames = Math.floor(duration * fps);
+                                const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(v.currentTime * fps)));
                                 scrubber.value = currentFrame;
                                 
-                                const pct = (v.currentTime / v.duration) * 100;
+                                const pct = ((currentFrame - 1) / (totalFrames - 1)) * 100;
                                 updateScrubberBackground(pct);
                             }
                         }
@@ -1425,7 +1427,7 @@
             const currentFrame = parseInt(scrubber.value);
             const fps = 24;
             
-            const pct = (currentFrame / scrubber.max) * 100;
+            const pct = scrubber.max > 1 ? ((currentFrame - 1) / (scrubber.max - 1)) * 100 : 0;
             updateScrubberBackground(pct);
             
             if (!isNaN(video.duration)) {
@@ -1451,24 +1453,11 @@
         if (!video || isNaN(video.duration)) return;
         
         const fps = 24;
-        const currentFrame = Math.round(video.currentTime * fps);
-        const totalFrames = Math.floor(video.duration * fps);
-        
-        // Formulate Timecode: HH:MM:SS:FF
-        const hours = Math.floor(video.currentTime / 3600);
-        const minutes = Math.floor((video.currentTime % 3600) / 60);
-        const seconds = Math.floor(video.currentTime % 60);
-        const frames = Math.floor((video.currentTime % 1) * fps);
-        
-        const timecode = [
-            String(hours).padStart(2, '0'),
-            String(minutes).padStart(2, '0'),
-            String(seconds).padStart(2, '0'),
-            String(frames).padStart(2, '0')
-        ].join(':');
+        const duration = video.seekable.length > 0 ? video.seekable.end(0) : video.duration;
+        const totalFrames = Math.floor(duration * fps);
+        const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(video.currentTime * fps)));
         
         document.getElementById('frame-counter-val').innerText = `${currentFrame} / ${totalFrames}`;
-        document.getElementById('timecode-val').innerText = timecode;
     }
 
     function showHUD(isPlay) {
@@ -1503,9 +1492,10 @@
         if(v) {
             v.pause();
             const fps = 24;
-            const currentFrame = Math.round(v.currentTime * fps);
-            const totalFrames = Math.floor(v.duration * fps);
-            const nextFrame = Math.max(0, Math.min(totalFrames, currentFrame + d));
+            const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
+            const totalFrames = Math.floor(duration * fps);
+            const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(v.currentTime * fps)));
+            const nextFrame = Math.max(1, Math.min(totalFrames, currentFrame + d));
             
             v.currentTime = nextFrame / fps;
             updateFrameDisplay();
@@ -1514,7 +1504,7 @@
             const scrubber = document.getElementById('timeline-scrubber');
             if (scrubber) {
                 scrubber.value = nextFrame;
-                const pct = (v.currentTime / v.duration) * 100;
+                const pct = scrubber.max > 1 ? ((nextFrame - 1) / (scrubber.max - 1)) * 100 : 0;
                 updateScrubberBackground(pct);
             }
         }
