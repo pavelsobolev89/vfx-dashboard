@@ -1528,34 +1528,27 @@
         const username = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Unknown Producer";
 
         const payload = {
-            fields: {
-                "notes": text,
-                "shot_name": [activeRecordId], 
-                "artist": username,
-                "status": activeRecordStatus,
-                "version": activeRecordVersion
-            }
+            operation: "comment",
+            shot_name: activeRecordId,
+            version: activeRecordVersion,
+            artist: username,
+            notes: text,
+            status: activeRecordStatus
         };
 
         try {
-            const response = await fetch(`https://api.airtable.com/v0/${CURRENT_BASE}/Comments`, {
+            const response = await fetch('https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${KEY}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             if (response.ok) {
                 inputEl.value = "";
                 tg.showAlert("Comment successfully added!");
-                // Reload comment list logs
                 loadComments(activeRecordId);
             } else {
-                const errData = await response.json();
-                console.error("Airtable Error Response:", errData);
-                tg.showAlert(`Failed to save comment. Check if the table "Comments" has column types matching: notes, shot_name, artist, status, version.`);
+                tg.showAlert("Failed to send comment. Check n8n workflow.");
             }
         } catch (e) {
             console.error("Network Error:", e);
