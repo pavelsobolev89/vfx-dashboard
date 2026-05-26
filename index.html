@@ -1383,10 +1383,15 @@
                                 const fps = 24;
                                 const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
                                 const totalFrames = Math.floor(duration * fps);
+                                
+                                if (scrubber.max != totalFrames) {
+                                    scrubber.max = totalFrames;
+                                }
+                                
                                 const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(v.currentTime * fps)));
                                 scrubber.value = currentFrame;
                                 
-                                const pct = ((currentFrame - 1) / (totalFrames - 1)) * 100;
+                                const pct = totalFrames > 1 ? ((currentFrame - 1) / (totalFrames - 1)) * 100 : 0;
                                 updateScrubberBackground(pct);
                             }
                         }
