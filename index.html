@@ -1039,6 +1039,7 @@
     let searchQuery = '';
     
     let activeRecordId = null;
+    let activeRecordShotName = "";
     let activeRecordStatus = "";
     let activeRecordVersion = 0;
 
@@ -1320,6 +1321,7 @@
         if(!r) return;
 
         activeRecordId = id; 
+        activeRecordShotName = r.fields.shot_name || "";
         activeRecordStatus = r.fields.status || "";
         activeRecordVersion = r.fields.version ? Number(r.fields.version) : 0;
         
@@ -1417,6 +1419,7 @@
         tg.BackButton.hide();
         
         activeRecordId = null;
+        activeRecordShotName = "";
         activeRecordStatus = "";
         activeRecordVersion = 0;
         render();
@@ -1529,7 +1532,7 @@
 
         const payload = {
             operation: "comment",
-            shot_name: activeRecordId,
+            shot_name: activeRecordShotName,
             version: activeRecordVersion,
             artist: username,
             notes: text,
