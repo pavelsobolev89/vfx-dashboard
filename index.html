@@ -1364,7 +1364,7 @@
                 if (v) {
                     v.addEventListener('loadedmetadata', () => {
                         const fps = 24;
-                        const totalFrames = Math.floor(v.duration * fps);
+                        const totalFrames = Math.floor(v.duration * fps) - 1;
                         const scrubber = document.getElementById('timeline-scrubber');
                         if (scrubber) {
                             scrubber.min = 0;
@@ -1380,7 +1380,7 @@
                             const scrubber = document.getElementById('timeline-scrubber');
                             if (scrubber && v.duration) {
                                 const fps = 24;
-                                const currentFrame = Math.floor(v.currentTime * fps);
+                                const currentFrame = Math.round(v.currentTime * fps);
                                 scrubber.value = currentFrame;
                                 
                                 const pct = scrubber.max > 0 ? (currentFrame / scrubber.max) * 100 : 0;
@@ -1450,8 +1450,8 @@
         if (!video || isNaN(video.duration)) return;
         
         const fps = 24;
-        const currentFrame = Math.floor(video.currentTime * fps);
-        const totalFrames = Math.floor(video.duration * fps);
+        const currentFrame = Math.round(video.currentTime * fps);
+        const totalFrames = Math.floor(video.duration * fps) - 1;
         
         // Formulate Timecode: HH:MM:SS:FF
         const hours = Math.floor(video.currentTime / 3600);
@@ -1502,8 +1502,9 @@
         if(v) {
             v.pause();
             const fps = 24;
-            const currentFrame = Math.floor(v.currentTime * fps);
-            const nextFrame = Math.max(0, Math.min(Math.floor(v.duration * fps), currentFrame + d));
+            const currentFrame = Math.round(v.currentTime * fps);
+            const totalFrames = Math.floor(v.duration * fps) - 1;
+            const nextFrame = Math.max(0, Math.min(totalFrames, currentFrame + d));
             
             v.currentTime = nextFrame / fps;
             updateFrameDisplay();
