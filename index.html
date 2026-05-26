@@ -648,34 +648,27 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.15s ease;
             outline: none;
         }
 
         .p-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: var(--border-hover);
-            color: var(--accent);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.12);
         }
 
-        .p-btn:active {
-            transform: scale(0.9);
+        .p-btn:active, .p-btn.active-press {
+            background: var(--accent) !important;
+            border-color: var(--accent) !important;
+            color: #fff !important;
+            box-shadow: 0 0 14px var(--accent-glow) !important;
+            transform: scale(0.92);
         }
 
         .p-btn.play-pause-btn {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff;
             width: 56px;
             height: 56px;
             border-radius: 16px;
-            box-shadow: 0 4px 14px var(--accent-glow);
-        }
-
-        .p-btn.play-pause-btn:hover {
-            background: #2563eb;
-            border-color: #2563eb;
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
         }
 
         .p-header {
@@ -1000,7 +993,7 @@
         <div class="p-body">
             <!-- Comments Log Section -->
             <div class="comment-section-title">
-                <span>Comments History</span>
+                <span id="comments-section-title-val">Comments History</span>
             </div>
             
             <div id="comments-list" class="comment-history-container">
@@ -1263,8 +1256,14 @@
         const commentsList = document.getElementById('comments-list');
         commentsList.innerHTML = `<div class="comment-loading">Loading reviews history...</div>`;
         
+        const commentsTitle = document.getElementById('comments-section-title-val');
+        const verStr = `v${String(activeRecordVersion).padStart(3, '0')}`;
+        if (commentsTitle) {
+            commentsTitle.innerText = `Comments History (${verStr})`;
+        }
+        
         try {
-            const formula = `FIND('${shotId}', ARRAYJOIN({shot_name}))`;
+            const formula = `AND(FIND('${shotId}', ARRAYJOIN({shot_name})), {version} = ${activeRecordVersion})`;
             const url = `https://api.airtable.com/v0/${CURRENT_BASE}/Comments?filterByFormula=${encodeURIComponent(formula)}`;
             
             const response = await fetch(url, {
@@ -1280,7 +1279,7 @@
             items.sort((a, b) => new Date(b.createdTime) - new Date(a.createdTime));
             
             if (items.length === 0) {
-                commentsList.innerHTML = `<div class="comment-empty-state">No comments yet. Be the first to add a feedback!</div>`;
+                commentsList.innerHTML = `<div class="comment-empty-state">No comments for ${verStr} yet. Be the first to add a feedback!</div>`;
                 return;
             }
             
@@ -1364,14 +1363,27 @@
                 const v = document.getElementById('main-v');
                 if (v) {
                     v.addEventListener('loadedmetadata', () => {
+                        const fps = 24;
+                        const totalFrames = Math.floor(v.duration * fps);
+                        const scrubber = document.getElementById('timeline-scrubber');
+                        if (scrubber) {
+                            scrubber.min = 0;
+                            scrubber.max = totalFrames;
+                            scrubber.step = 1;
+                            scrubber.value = 0;
+                            updateScrubberBackground(0);
+                        }
                         updateFrameDisplay();
                     });
                     v.addEventListener('timeupdate', () => {
                         if (!isScrubbing) {
                             const scrubber = document.getElementById('timeline-scrubber');
                             if (scrubber && v.duration) {
-                                const pct = (v.currentTime / v.duration) * 100;
-                                scrubber.value = pct;
+                                const fps = 24;
+                                const currentFrame = Math.floor(v.currentTime * fps);
+                                scrubber.value = currentFrame;
+                                
+                                const pct = scrubber.max > 0 ? (currentFrame / scrubber.max) * 100 : 0;
                                 updateScrubberBackground(pct);
                             }
                         }
@@ -1409,10 +1421,14 @@
         
         scrubber.addEventListener('input', () => {
             isScrubbing = true;
-            const pct = parseFloat(scrubber.value);
+            const currentFrame = parseInt(scrubber.value);
+            const fps = 24;
+            
+            const pct = scrubber.max > 0 ? (currentFrame / scrubber.max) * 100 : 0;
             updateScrubberBackground(pct);
+            
             if (!isNaN(video.duration)) {
-                video.currentTime = (pct / 100) * video.duration;
+                video.currentTime = currentFrame / fps;
                 updateFrameDisplay();
             }
         });
@@ -1485,14 +1501,18 @@
         const v = document.getElementById('main-v');
         if(v) {
             v.pause();
-            v.currentTime = Math.max(0, Math.min(v.duration, v.currentTime + d * (1/24)));
+            const fps = 24;
+            const currentFrame = Math.floor(v.currentTime * fps);
+            const nextFrame = Math.max(0, Math.min(Math.floor(v.duration * fps), currentFrame + d));
+            
+            v.currentTime = nextFrame / fps;
             updateFrameDisplay();
             
             // Sync timeline scrubber
             const scrubber = document.getElementById('timeline-scrubber');
-            if (scrubber && v.duration) {
-                const pct = (v.currentTime / v.duration) * 100;
-                scrubber.value = pct;
+            if (scrubber) {
+                scrubber.value = nextFrame;
+                const pct = scrubber.max > 0 ? (nextFrame / scrubber.max) * 100 : 0;
                 updateScrubberBackground(pct);
             }
         }
@@ -1549,6 +1569,49 @@
         }
     }
     
+    // Keyboard frame-by-frame navigation & play-pause shortcut
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('player-view').style.display !== 'block') return;
+        
+        const act = document.activeElement;
+        if (act && (act.tagName === 'TEXTAREA' || act.tagName === 'INPUT' || act.isContentEditable)) {
+            return; // Skip when writing comments
+        }
+        
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            vStep(1);
+            // Highlight frame-step forward button
+            const btn = document.querySelector('.p-nav .p-btn:last-child');
+            if (btn) btn.classList.add('active-press');
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            vStep(-1);
+            // Highlight frame-step backward button
+            const btn = document.querySelector('.p-nav .p-btn:first-child');
+            if (btn) btn.classList.add('active-press');
+        } else if (e.key === ' ' || e.code === 'Space') {
+            e.preventDefault();
+            vToggle();
+            // Highlight play-pause button
+            const btn = document.querySelector('.p-nav .play-pause-btn');
+            if (btn) btn.classList.add('active-press');
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowRight') {
+            const btn = document.querySelector('.p-nav .p-btn:last-child');
+            if (btn) btn.classList.remove('active-press');
+        } else if (e.key === 'ArrowLeft') {
+            const btn = document.querySelector('.p-nav .p-btn:first-child');
+            if (btn) btn.classList.remove('active-press');
+        } else if (e.key === ' ' || e.code === 'Space') {
+            const btn = document.querySelector('.p-nav .play-pause-btn');
+            if (btn) btn.classList.remove('active-press');
+        }
+    });
+
     init();
 </script>
 </body>
