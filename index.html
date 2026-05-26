@@ -1364,7 +1364,7 @@
                 if (v) {
                     v.addEventListener('loadedmetadata', () => {
                         const fps = 24;
-                        const totalFrames = Math.floor(v.duration * fps) - 1;
+                        const totalFrames = Math.floor(v.duration * fps);
                         const scrubber = document.getElementById('timeline-scrubber');
                         if (scrubber) {
                             scrubber.min = 0;
@@ -1373,6 +1373,7 @@
                             scrubber.value = 0;
                             updateScrubberBackground(0);
                         }
+                        v.currentTime = 0;
                         updateFrameDisplay();
                     });
                     v.addEventListener('timeupdate', () => {
@@ -1383,7 +1384,7 @@
                                 const currentFrame = Math.round(v.currentTime * fps);
                                 scrubber.value = currentFrame;
                                 
-                                const pct = scrubber.max > 0 ? (currentFrame / scrubber.max) * 100 : 0;
+                                const pct = (v.currentTime / v.duration) * 100;
                                 updateScrubberBackground(pct);
                             }
                         }
@@ -1424,7 +1425,7 @@
             const currentFrame = parseInt(scrubber.value);
             const fps = 24;
             
-            const pct = scrubber.max > 0 ? (currentFrame / scrubber.max) * 100 : 0;
+            const pct = (currentFrame / scrubber.max) * 100;
             updateScrubberBackground(pct);
             
             if (!isNaN(video.duration)) {
@@ -1451,7 +1452,7 @@
         
         const fps = 24;
         const currentFrame = Math.round(video.currentTime * fps);
-        const totalFrames = Math.floor(video.duration * fps) - 1;
+        const totalFrames = Math.floor(video.duration * fps);
         
         // Formulate Timecode: HH:MM:SS:FF
         const hours = Math.floor(video.currentTime / 3600);
@@ -1503,7 +1504,7 @@
             v.pause();
             const fps = 24;
             const currentFrame = Math.round(v.currentTime * fps);
-            const totalFrames = Math.floor(v.duration * fps) - 1;
+            const totalFrames = Math.floor(v.duration * fps);
             const nextFrame = Math.max(0, Math.min(totalFrames, currentFrame + d));
             
             v.currentTime = nextFrame / fps;
@@ -1513,7 +1514,7 @@
             const scrubber = document.getElementById('timeline-scrubber');
             if (scrubber) {
                 scrubber.value = nextFrame;
-                const pct = scrubber.max > 0 ? (nextFrame / scrubber.max) * 100 : 0;
+                const pct = (v.currentTime / v.duration) * 100;
                 updateScrubberBackground(pct);
             }
         }
