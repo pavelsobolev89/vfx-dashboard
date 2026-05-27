@@ -1014,8 +1014,7 @@
 
 <script>
     const tg = window.Telegram.WebApp;
-    const KEY = 'patBsCg6ofoalEdYD.7fe0a35b60f18a67439ad759432ec5a063276df89842847200d6b9ec42224e79';
-    const BOT_TOKEN = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
+    const N8N_SHOTS_URL = 'https://viscous-hangup-unhook.ngrok-free.dev/webhook-test/shot_name';
     
     const rawParam = tg.initDataUnsafe?.start_param || ""; 
     let CURRENT_BASE = 'appgiNHAoONgW8Ha6'; 
@@ -1057,15 +1056,14 @@
     async function getTelegramVideoUrl(fileId) {
         if (tgUrlsCache[fileId]) return tgUrlsCache[fileId];
         try {
-            const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const r = await fetch(`https://viscous-hangup-unhook.ngrok-free.dev/webhook-test/video-url?file_id=${fileId}`);
             const data = await r.json();
-            if (data.ok && data.result.file_path) {
-                const url = `https://api.telegram.org/file/bot${BOT_TOKEN}/${data.result.file_path}`;
-                tgUrlsCache[fileId] = url;
-                return url;
+            if (data.url) {
+                tgUrlsCache[fileId] = data.url;
+                return data.url;
             }
         } catch (e) {
-            console.error("Telegram API Error:", e);
+            console.error("Video URL Error:", e);
         }
         return null;
     }
@@ -1114,9 +1112,7 @@
         showSkeletons();
         
         try {
-            const r = await fetch(`https://api.airtable.com/v0/${CURRENT_BASE}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`, { 
-                headers: { Authorization: `Bearer ${KEY}` } 
-            });
+            const r = await fetch(N8N_SHOTS_URL);
             const json = await r.json();
             records = json.records || [];
             
