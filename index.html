@@ -1057,6 +1057,7 @@
 
     async function getTelegramVideoUrl(fileId) {
         if (tgUrlsCache[fileId]) return tgUrlsCache[fileId];
+        tg.showAlert("Fetching video for:\n" + fileId);
         try {
             const r = await fetch(`https://viscous-hangup-unhook.ngrok-free.dev/webhook-test/video-url?file_id=${fileId}`);
             const text = await r.text();
