@@ -1137,19 +1137,18 @@
             }
         } catch(e) {
             console.error("fetchData error:", e);
+            const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Shots`;
             let errorMsg = "Error loading database access.";
-            let alertMsg = "fetchData ERROR:\n" + e.message + "\n\nURL:\n" + N8N_SHOTS_URL;
+            let alertMsg = `fetchData ERROR:\n${e.message}\n\nURL:\n${airtableUrl}`;
             if (!r) {
                 errorMsg = "Network error: no response from server.";
-                alertMsg = "fetchData ERROR:\nNo response from server.\n\nURL:\n" + N8N_SHOTS_URL;
+                alertMsg = `fetchData ERROR:\nNo response from server.\n\nURL:\n${airtableUrl}`;
             } else {
-                errorMsg = `Error ${r.status}: ${r.statusText}<br>URL: ${N8N_SHOTS_URL}`;
-                alertMsg = "fetchData ERROR:\nStatus: " + r.status + "\n" + r.statusText + "\n\nURL:\n" + N8N_SHOTS_URL;
+                errorMsg = `Error ${r.status}: ${r.statusText}<br>URL: ${airtableUrl}`;
+                alertMsg = `fetchData ERROR:\nStatus: ${r.status}\n${r.statusText}\n\nURL:\n${airtableUrl}`;
             }
-            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--danger); padding: 40px 0; font-size: 12px; line-height: 1.6;">${errorMsg}<br><br>Check browser console (F12) for details.</div>`;
-            if (r && r.status !== 200) {
-                tg.showAlert("fetchData ERROR:\nStatus: " + r.status + "\nAirtable API Error");
-            }
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--danger); padding: 40px 0; font-size: 12px; line-height: 1.6;">${errorMsg}</div>`;
+            tg.showAlert(alertMsg);
         } finally {
             if (refreshBtn) refreshBtn.style.opacity = '1';
         }
