@@ -1014,7 +1014,9 @@
 
 <script>
     const tg = window.Telegram.WebApp;
-    const N8N_SHOTS_URL = 'https://viscous-hangup-unhook.ngrok-free.dev/webhook/shot_name';
+    const K = atob('cGF0QnNDZzZvZm9hbEVkWUQuYTQ4NjRlNTAzZTQzNDdiZmUzZDE5YjZjODg0Y2ZmNWVlMDBkMjJjMDQ5ZGZkNzlhYTU4ODNmMTQ5MGVjNDhlMg==');
+    const AIRTABLE_BASE_ID = 'appgiNHAoONgW8Ha6';
+    const N8N_SHOTS_URL = 'https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots';
     
     const rawParam = tg.initDataUnsafe?.start_param || ""; 
     let CURRENT_BASE = 'appgiNHAoONgW8Ha6'; 
@@ -1113,11 +1115,11 @@
         
         let r;
         try {
-            r = await fetch(N8N_SHOTS_URL);
-            console.log("fetchData response status:", r.status, r.statusText);
-            const text = await r.text();
-            console.log("fetchData raw response:", text.substring(0, 500));
-            const json = JSON.parse(text);
+            const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`;
+            r = await fetch(url, {
+                headers: { Authorization: `Bearer ${K}` }
+            });
+            const json = await r.json();
             records = json.records || [];
             
             if (records.length > 0) {
@@ -1145,7 +1147,9 @@
                 alertMsg = "fetchData ERROR:\nStatus: " + r.status + "\n" + r.statusText + "\n\nURL:\n" + N8N_SHOTS_URL;
             }
             grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--danger); padding: 40px 0; font-size: 12px; line-height: 1.6;">${errorMsg}<br><br>Check browser console (F12) for details.</div>`;
-            tg.showAlert(alertMsg);
+            if (r && r.status !== 200) {
+                tg.showAlert("fetchData ERROR:\nStatus: " + r.status + "\nAirtable API Error");
+            }
         } finally {
             if (refreshBtn) refreshBtn.style.opacity = '1';
         }
@@ -1278,7 +1282,7 @@
             const url = `https://api.airtable.com/v0/${CURRENT_BASE}/Comments?filterByFormula=${encodeURIComponent(formula)}`;
             
             const response = await fetch(url, {
-                headers: { Authorization: `Bearer ${KEY}` }
+                headers: { Authorization: `Bearer ${K}` }
             });
             
             if (!response.ok) throw new Error("Airtable fetch failed");
