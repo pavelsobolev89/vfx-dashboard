@@ -1056,11 +1056,9 @@
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     async function getTelegramVideoUrl(fileId) {
-        tg.showAlert("getTelegramVideoUrl called:\nfileId=" + fileId);
         if (tgUrlsCache[fileId]) return tgUrlsCache[fileId];
         try {
             const tgToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
-            tg.showAlert("Fetching from Telegram API...");
             const r = await fetch(`https://api.telegram.org/bot${tgToken}/getFile?file_id=${fileId}`);
             const data = await r.json();
             if (data.ok && data.result && data.result.file_path) {
@@ -1070,7 +1068,6 @@
             }
         } catch (e) {
             console.error("Video URL Error:", e);
-            tg.showAlert("Video URL Error:\n" + e.message);
         }
         return null;
     }
