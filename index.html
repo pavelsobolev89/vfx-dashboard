@@ -1057,26 +1057,17 @@
 
     async function getTelegramVideoUrl(fileId) {
         if (tgUrlsCache[fileId]) return tgUrlsCache[fileId];
-        tg.showAlert("Fetching video for:\n" + fileId);
         try {
-            const r = await fetch(`https://viscous-hangup-unhook.ngrok-free.dev/webhook-test/video-url?file_id=${fileId}`);
-            const text = await r.text();
-            console.log("video-url response:", text.substring(0, 500));
-            const data = JSON.parse(text);
-            
-            if (data.result && data.result.file_path) {
-                const url = `https://api.telegram.org/file/bot8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ/${data.result.file_path}`;
+            const tgToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
+            const r = await fetch(`https://api.telegram.org/bot${tgToken}/getFile?file_id=${fileId}`);
+            const data = await r.json();
+            if (data.ok && data.result && data.result.file_path) {
+                const url = `https://api.telegram.org/file/bot${tgToken}/${data.result.file_path}`;
                 tgUrlsCache[fileId] = url;
                 return url;
-            } else if (data.url) {
-                tgUrlsCache[fileId] = data.url;
-                return data.url;
-            } else {
-                tg.showAlert("Video URL Error:\n" + text.substring(0, 200));
             }
         } catch (e) {
             console.error("Video URL Error:", e);
-            tg.showAlert("Video URL Error:\n" + e.message);
         }
         return null;
     }
