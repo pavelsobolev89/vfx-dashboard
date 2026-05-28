@@ -1136,13 +1136,16 @@
         } catch(e) {
             console.error("fetchData error:", e);
             let errorMsg = "Error loading database access.";
+            let alertMsg = "fetchData ERROR:\n" + e.message + "\n\nURL:\n" + N8N_SHOTS_URL;
             if (!r) {
                 errorMsg = "Network error: no response from server.";
+                alertMsg = "fetchData ERROR:\nNo response from server.\n\nURL:\n" + N8N_SHOTS_URL;
             } else {
                 errorMsg = `Error ${r.status}: ${r.statusText}<br>URL: ${N8N_SHOTS_URL}`;
+                alertMsg = "fetchData ERROR:\nStatus: " + r.status + "\n" + r.statusText + "\n\nURL:\n" + N8N_SHOTS_URL;
             }
             grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--danger); padding: 40px 0; font-size: 12px; line-height: 1.6;">${errorMsg}<br><br>Check browser console (F12) for details.</div>`;
-            tg.showAlert("fetchData ERROR:\n" + (r ? `Status: ${r.status}\n` : '') + "Check console F12");
+            tg.showAlert(alertMsg);
         } finally {
             if (refreshBtn) refreshBtn.style.opacity = '1';
         }
