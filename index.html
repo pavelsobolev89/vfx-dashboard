@@ -1156,8 +1156,8 @@
 
     async function preloadVideoUrls() {
         const promises = records
-            .filter(r => r.fields.tg_file_id && !tgUrlsCache[r.fields.tg_file_id])
-            .map(r => getTelegramVideoUrl(r.fields.tg_file_id));
+            .filter(r => r.fields.file_id && !tgUrlsCache[r.fields.file_id])
+            .map(r => getTelegramVideoUrl(r.fields.file_id));
         await Promise.all(promises);
     }
 
@@ -1224,7 +1224,7 @@
         grid.innerHTML = filtered.map(r => {
             const st = (r.fields.status || '').toLowerCase();
             const img = r.fields.thumbnail?.[0]?.url || '';
-            const fileId = r.fields.tg_file_id;
+            const fileId = r.fields.file_id;
             const videoUrl = fileId ? tgUrlsCache[fileId] : '';
             
             let mediaContent = `<img src="${img}" class="thumb">`;
@@ -1355,7 +1355,7 @@
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">CONNECTING TO TELEGRAM CLOUD...</div>`;
 
-        let videoUrl = r.fields.tg_file_id ? tgUrlsCache[r.fields.tg_file_id] : '';
+        let videoUrl = r.fields.file_id ? tgUrlsCache[r.fields.file_id] : '';
         if (!videoUrl && r.fields.preview_file2 && r.fields.preview_file2[0]) {
             videoUrl = r.fields.preview_file2[0].url;
         }
