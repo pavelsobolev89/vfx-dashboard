@@ -960,11 +960,12 @@
 </div>
 
 <div id="player-view" class="fade-in">
-    <div class="p-header" style="display: flex; align-items: center; gap: 12px;">
+    <div class="p-header" style="display: flex; align-items: center; justify-content: space-between;">
         <button class="p-back-btn" onclick="closePlayer()">
             <span>←</span> Back
         </button>
-        <span id="p-project-name" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; text-transform: uppercase; background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></span>
+        <span id="p-project-name" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; text-transform: uppercase; background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; position: absolute; left: 50%; transform: translateX(-50%);"></span>
+        <div style="width: 60px;"></div>
     </div>
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
@@ -1002,14 +1003,12 @@
         
 <div class="p-body">
             <!-- Description -->
-            <div id="description-container" style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: none;">
+            <div id="description-container" style="padding: 12px 20px; border-bottom: 1px solid var(--border-color);">
                 <div class="comment-section-title" style="font-size: 14px; margin-bottom: 8px;">
                     <span>Description</span>
-                    <button id="edit-desc-btn" onclick="editDescription()" style="display: none; background: transparent; border: none; color: var(--accent); cursor: pointer; font-size: 12px; margin-left: auto;">✏️ Edit</button>
                 </div>
-                <div id="description-text" style="font-size: 14px; color: var(--text-primary); line-height: 1.4;"></div>
-                <textarea id="description-input" style="display: none; width: 100%; min-height: 60px; background: var(--surface-2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px; border-radius: 6px; font-size: 14px; margin-top: 8px; resize: vertical;"></textarea>
-                <button id="save-desc-btn" onclick="saveDescription()" style="display: none; background: var(--accent); border: none; color: #000; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px;">Save</button>
+                <textarea id="description-input" style="width: 100%; min-height: 60px; background: var(--surface-2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; resize: vertical;"></textarea>
+                <button id="save-desc-btn" onclick="saveDescription()" style="display: none; background: var(--accent); border: none; color: #000; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">Save</button>
             </div>
 
             <!-- Comments Log Section -->
@@ -1394,21 +1393,12 @@ const statusSelect = document.getElementById('p-status-select');
             statusSelect.style.borderColor = borderColor;
         }
 
-        const descContainer = document.getElementById('description-container');
-        const descText = document.getElementById('description-text');
-        const editBtn = document.getElementById('edit-desc-btn');
-        const desc = r.fields.description;
-        if (desc) {
-            descText.innerText = desc;
-            descContainer.style.display = 'block';
-        } else {
-            descText.innerText = '';
-            descContainer.style.display = 'block';
-        }
-        if (currentUserRole === 'super' || currentUserRole === 'producer') {
-            editBtn.style.display = 'block';
-        } else {
-            editBtn.style.display = 'none';
+        const descInput = document.getElementById('description-input');
+        const saveBtn = document.getElementById('save-desc-btn');
+        if (descInput) {
+            descInput.value = r.fields.description || '';
+            descInput.disabled = !(currentUserRole === 'super' || currentUserRole === 'producer');
+            saveBtn.style.display = (currentUserRole === 'super' || currentUserRole === 'producer') ? 'block' : 'none';
         }
 
         const container = document.getElementById('v-container');
@@ -1642,25 +1632,9 @@ async function sendComment() {
         }
     }
 
-    function editDescription() {
-        const descText = document.getElementById('description-text');
-        const descInput = document.getElementById('description-input');
-        const saveBtn = document.getElementById('save-desc-btn');
-        const editBtn = document.getElementById('edit-desc-btn');
-
-        descText.style.display = 'none';
-        editBtn.style.display = 'none';
-        descInput.style.display = 'block';
-        descInput.value = descText.innerText;
-        descInput.focus();
-        saveBtn.style.display = 'block';
-    }
-
     async function saveDescription() {
         const descInput = document.getElementById('description-input');
-        const descText = document.getElementById('description-text');
         const saveBtn = document.getElementById('save-desc-btn');
-        const editBtn = document.getElementById('edit-desc-btn');
         const newDesc = descInput.value.trim();
 
         saveBtn.disabled = true;
@@ -1681,12 +1655,6 @@ async function sendComment() {
             });
 
             if (response.ok) {
-                descText.innerText = newDesc;
-                descText.style.display = 'block';
-                descInput.style.display = 'none';
-                saveBtn.style.display = 'none';
-                editBtn.style.display = 'block';
-
                 if (activeRecordId) {
                     const rec = records.find(r => r.id === activeRecordId);
                     if (rec) rec.fields.description = newDesc;
