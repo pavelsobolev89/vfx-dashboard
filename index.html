@@ -966,7 +966,7 @@
         </button>
     </div>
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
-        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
+        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
             <option value="">Select Status</option>
             <option value="Ready To Start">Ready To Start</option>
             <option value="In Progress">In Progress</option>
@@ -1618,6 +1618,11 @@ async function sendComment() {
                 activeRecordStatus = newStatus;
                 const statusSelect = document.getElementById('p-status-select');
                 if (statusSelect) statusSelect.value = newStatus;
+                // Update local record so grid shows new status without reload
+                if (activeRecordId) {
+                    const rec = records.find(r => r.id === activeRecordId);
+                    if (rec) rec.fields.status = newStatus;
+                }
             } else {
                 tg.showAlert("Failed to update status.");
             }
