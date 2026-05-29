@@ -961,12 +961,15 @@
 
 <div id="player-view" class="fade-in">
     <div class="p-header">
-        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 8px;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></span>
         </div>
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-            <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; flex: 1;">
+        <button class="p-back-btn" onclick="closePlayer()">
+            <span>←</span> Back
+        </button>
+        <div style="margin-top: 8px;">
+            <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; width: 100%;">
                 <option value="">Select Status</option>
                 <option value="Ready To Start">Ready To Start</option>
                 <option value="In Progress">In Progress</option>
@@ -975,9 +978,6 @@
                 <option value="Approved">Approved</option>
             </select>
         </div>
-        <button class="p-back-btn" onclick="closePlayer()">
-            <span>←</span> Back
-        </button>
     </div>
     
     <div class="player-container">
