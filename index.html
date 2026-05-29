@@ -965,8 +965,19 @@
             <span>←</span> Back
         </button>
         <div class="p-header-left">
-            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></h2>
-            <div id="p-meta" style="font-size: 12px; font-weight: 600;"></div>
+            <h2 id="p-title" style="margin: 0 0 4px 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px;"></h2>
+            <div id="p-meta-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span id="p-version" style="font-family: monospace; font-size: 14px; color: var(--accent); font-weight: 700;"></span>
+                <span id="p-status-badge" class="status-badge" style="transform: scale(1.1);"></span>
+                <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 13px;">
+                    <option value="">Change Status</option>
+                    <option value="Ready To Start">Ready To Start</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Review">Review</option>
+                    <option value="To Fix">To Fix</option>
+                    <option value="Approved">Approved</option>
+                </select>
+            </div>
         </div>
     </div>
     
@@ -987,18 +998,6 @@
             <button class="p-btn" onclick="vStep(-1)" title="Step Frame Backward (1/24s)">⏮</button>
             <button class="p-btn play-pause-btn" onclick="vToggle()" title="Play / Pause">⏯</button>
 <button class="p-btn" onclick="vStep(1)" title="Step Frame Forward (1/24s)">⏭</button>
-        </div>
-        
-        <div id="status-control" style="display:none; padding: 12px 20px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--border-color);">
-            <span style="color: var(--text-secondary); font-size: 12px; margin-right: 8px;">STATUS:</span>
-            <select id="main-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px;">
-                <option value="">SELECT STATUS</option>
-                <option value="Ready To Start">READY TO START</option>
-                <option value="In Progress">IN PROGRESS</option>
-                <option value="Review">REVIEW</option>
-                <option value="To Fix">TO FIX</option>
-                <option value="Approved">APPROVED</option>
-            </select>
         </div>
         
         <div class="p-body">
@@ -1370,22 +1369,15 @@ async function openPlayer(id) {
         document.getElementById('player-view').style.display = 'block';
         
         document.getElementById('p-title').innerText = r.fields.shot_name;
-        const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
+        document.getElementById('p-version').innerText = `v${String(r.fields.version || 0).padStart(3, '0')}`;
         const badgeClass = statusMap[(r.fields.status||'').toLowerCase()] || 'st-ready';
-        document.getElementById('p-meta').innerHTML = `
-            <span style="color: var(--accent); font-family: monospace; font-size: 13px;">${ver}</span> | 
-            <span class="status-badge ${badgeClass}" id="p-status-badge" style="transform: scale(0.9);">${(r.fields.status || 'READY TO START').toUpperCase()}</span>
-            <span style="color:yellow; font-size:10px;">DEBUG:${currentUserRole}</span>
-            ${(currentUserRole === 'supervisor' || currentUserRole === 'producer') ? `
-            <select id="p-status-select" onchange="changeShotStatus(this.value)" style="margin-left: 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px;">
-                <option value="">CHANGE STATUS</option>
-                <option value="Ready To Start">READY TO START</option>
-                <option value="In Progress">IN PROGRESS</option>
-                <option value="Review">REVIEW</option>
-                <option value="To Fix">TO FIX</option>
-                <option value="Approved">APPROVED</option>
-            </select>` : ''}
-        `;
+        const statusBadge = document.getElementById('p-status-badge');
+        if (statusBadge) {
+            statusBadge.className = `status-badge ${badgeClass}`;
+            statusBadge.innerText = (r.fields.status || 'READY TO START').toUpperCase();
+        }
+        const statusSelect = document.getElementById('p-status-select');
+        if (statusSelect) statusSelect.value = r.fields.status || '';
         
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">CONNECTING TO TELEGRAM CLOUD...</div>`;
@@ -1454,12 +1446,6 @@ let videoUrl = getVideoUrl(r);
 // Load past comments
         loadComments(id);
         
-        // Show status control for all users
-        const statusControl = document.getElementById('status-control');
-        if (statusControl) {
-            statusControl.style.display = 'block';
-        }
-        
         tg.BackButton.show();
         tg.BackButton.onClick(closePlayer);
     }
@@ -1468,8 +1454,6 @@ function closePlayer() {
         document.getElementById('v-container').innerHTML = "";
         document.getElementById('player-view').style.display = 'none';
         document.getElementById('grid-view').style.display = 'block';
-        const statusControl = document.getElementById('status-control');
-        if (statusControl) statusControl.style.display = 'none';
         tg.BackButton.hide();
         
         activeRecordId = null;
@@ -1641,7 +1625,8 @@ async function sendComment() {
                     badge.className = `status-badge ${badgeClass}`;
                     badge.innerText = newStatus.toUpperCase();
                 }
-                tg.showAlert("Status updated!");
+                const statusSelect = document.getElementById('p-status-select');
+                if (statusSelect) statusSelect.value = newStatus;
             } else {
                 tg.showAlert("Failed to update status.");
             }
