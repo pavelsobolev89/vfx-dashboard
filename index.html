@@ -1039,10 +1039,12 @@
     let curStatusFilter = '';
     let searchQuery = '';
     
-    let activeRecordId = null;
+let activeRecordId = null;
     let activeRecordShotName = "";
     let activeRecordStatus = "";
     let activeRecordVersion = 0;
+    let currentUserRole = 'artist';
+    let currentUsername = '';
 
     let isScrubbing = false;
 
@@ -1054,6 +1056,27 @@
         'to fix': 'st-fix' 
     };
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    async function checkUserRole() {
+        const username = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || '';
+        currentUsername = username;
+        
+        try {
+            const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Team?filterByFormula=FIND('${username}', ARRAYJOIN({username}))`;
+            const r = await fetch(url, {
+                headers: { Authorization: `Bearer ${K}` }
+            });
+            const data = await r.json();
+            if (data.records && data.records.length > 0) {
+                const role = data.records[0].fields.role || 'artist';
+                currentUserRole = role.toLowerCase();
+                console.log("User role:", currentUserRole);
+            }
+        } catch (e) {
+            console.error("Failed to check user role:", e);
+            currentUserRole = 'artist';
+        }
+    }
 
     async function getTelegramVideoUrl(fileId) {
         return null;
@@ -1153,10 +1176,10 @@ async function preloadVideoUrls() {
         // No need to preload - we get video_url directly from Airtable
     }
 
-    function init() {
+function init() {
         tg.expand();
         document.getElementById('project-name').innerText = PROJECT_TITLE;
-        fetchData();
+        checkUserRole().then(() => fetchData());
         
         setInterval(() => {
             if (document.getElementById('grid-view').style.display !== 'none') {
@@ -1338,9 +1361,18 @@ const img = r.fields.thumbnail?.[0]?.url || '';
         const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
         
         const badgeClass = statusMap[(r.fields.status||'').toLowerCase()] || 'st-ready';
-        document.getElementById('p-meta').innerHTML = `
+document.getElementById('p-meta').innerHTML = `
             <span style="color: var(--accent); font-family: monospace; font-size: 13px;">${ver}</span> | 
-            <span class="status-badge ${badgeClass}" style="transform: scale(0.9);">${(r.fields.status || 'READY TO START').toUpperCase()}</span>
+            <span class="status-badge ${badgeClass}" id="p-status-badge" style="transform: scale(0.9);">${(r.fields.status || 'READY TO START').toUpperCase()}</span>
+            ${currentUserRole === 'supervisor' || currentUserRole === 'producer' ? `
+            <select id="p-status-select" onchange="changeShotStatus(this.value)" style="margin-left: 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px;">
+                <option value="">CHANGE STATUS</option>
+                <option value="Ready To Start">READY TO START</option>
+                <option value="In Progress">IN PROGRESS</option>
+                <option value="Review">REVIEW</option>
+                <option value="To Fix">TO FIX</option>
+                <option value="Approved">APPROVED</option>
+            </select>` : ''}
         `;
         
         const container = document.getElementById('v-container');
@@ -1520,7 +1552,7 @@ let videoUrl = getVideoUrl(r);
         }
     }
 
-    async function sendComment() {
+async function sendComment() {
         const inputEl = document.getElementById('comment-input');
         const submitBtn = document.getElementById('comment-submit');
         const text = inputEl.value.trim();
@@ -1561,6 +1593,41 @@ let videoUrl = getVideoUrl(r);
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = "SEND COMMENT";
+        }
+    }
+    
+    async function changeShotStatus(newStatus) {
+        if (!newStatus || !activeRecordId) return;
+        
+        const payload = {
+            operation: "status_update",
+            shot_name: activeRecordShotName,
+            version: activeRecordVersion,
+            status: newStatus
+        };
+
+        try {
+            const response = await fetch('https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                activeRecordStatus = newStatus;
+                const badgeClass = statusMap[newStatus.toLowerCase()] || 'st-ready';
+                const badge = document.getElementById('p-status-badge');
+                if (badge) {
+                    badge.className = `status-badge ${badgeClass}`;
+                    badge.innerText = newStatus.toUpperCase();
+                }
+                tg.showAlert("Status updated!");
+            } else {
+                tg.showAlert("Failed to update status.");
+            }
+        } catch (e) {
+            console.error("Status update error:", e);
+            tg.showAlert("Network error. Could not update status.");
         }
     }
     
