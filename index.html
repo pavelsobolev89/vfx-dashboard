@@ -964,8 +964,14 @@
         <button class="p-back-btn" onclick="closePlayer()">
             <span>←</span> Back
         </button>
+        <span id="p-project-name" style="font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 14px; color: var(--text-secondary); margin-left: 8px;"></span>
     </div>
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></h2>
+            <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></span>
+        </div>
+        <button onclick="toggleFullscreen()" style="background: var(--surface-2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer;">⛶ Full Screen</button>
         <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
             <option value="Ready To Start">Ready To Start</option>
             <option value="In Progress">In Progress</option>
@@ -973,10 +979,6 @@
             <option value="To Fix">To Fix</option>
             <option value="Approved">Approved</option>
         </select>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></h2>
-            <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></span>
-        </div>
     </div>
     
     <div class="player-container">
@@ -998,19 +1000,25 @@
 <button class="p-btn" onclick="vStep(1)" title="Step Frame Forward (1/24s)">⏭</button>
         </div>
         
-        <div class="p-body">
-            <!-- Comments Log Section -->
-            <div class="comment-section-title">
-                <span id="comments-section-title-val">Comments History</span>
+<div class="p-body">
+            <!-- Description -->
+            <div id="description-container" style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: none;">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Description</div>
+                <div id="description-text" style="font-size: 14px; color: var(--text-primary); line-height: 1.4;"></div>
             </div>
-            
+
+            <!-- Comments Log Section -->
+            <div id="comment-section-header" class="comment-section-title" style="display: none;">
+                <span id="comments-section-title-val">Comments</span>
+            </div>
+
             <div id="comments-list" class="comment-history-container">
                 <!-- Loaded dynamically -->
             </div>
-            
+
             <!-- Composer -->
             <div class="comment-section-title" style="margin-top: 10px;">
-                <span>Add Feedback</span>
+                <span>Comments</span>
             </div>
             
             <div class="comment-composer">
@@ -1289,37 +1297,37 @@ const img = r.fields.thumbnail?.[0]?.url || '';
     }
 
     // Load past comments log
-    async function loadComments(shotId) {
+async function loadComments(shotId) {
         const commentsList = document.getElementById('comments-list');
+        const commentSectionHeader = document.getElementById('comment-section-header');
         commentsList.innerHTML = `<div class="comment-loading">Loading reviews history...</div>`;
-        
+
         const commentsTitle = document.getElementById('comments-section-title-val');
-        const verStr = `v${String(activeRecordVersion).padStart(3, '0')}`;
-        if (commentsTitle) {
-            commentsTitle.innerText = `Comments History (${verStr})`;
-        }
-        
+
         try {
             const formula = `AND(FIND('${shotId}', ARRAYJOIN({shot_name})), {version} = ${activeRecordVersion})`;
             const url = `https://api.airtable.com/v0/${CURRENT_BASE}/Comments?filterByFormula=${encodeURIComponent(formula)}`;
-            
+
             const response = await fetch(url, {
                 headers: { Authorization: `Bearer ${K}` }
             });
-            
+
             if (!response.ok) throw new Error("Airtable fetch failed");
-            
+
             const json = await response.json();
             const items = json.records || [];
-            
-            // Sort comments by createdTime descending (Implicit field always present in Airtable)
+
             items.sort((a, b) => new Date(b.createdTime) - new Date(a.createdTime));
-            
+
             if (items.length === 0) {
-                commentsList.innerHTML = `<div class="comment-empty-state">No comments for ${verStr} yet. Be the first to add a feedback!</div>`;
+                commentsList.innerHTML = `<div class="comment-empty-state">No comments for this version yet.</div>`;
+                if (commentSectionHeader) commentSectionHeader.style.display = 'none';
                 return;
             }
-            
+
+            if (commentSectionHeader) commentSectionHeader.style.display = 'block';
+            if (commentsTitle) commentsTitle.innerText = `Comments (${items.length})`;
+
             commentsList.innerHTML = items.map(c => {
                 const artist = c.fields.artist || "Producer";
                 const notes = c.fields.notes || "";
@@ -1367,14 +1375,25 @@ async function openPlayer(id) {
         document.getElementById('player-view').style.display = 'block';
         
         document.getElementById('p-title').innerText = r.fields.shot_name;
+        document.getElementById('p-project-name').innerText = PROJECT_TITLE;
         const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
         document.getElementById('p-version').innerText = ver;
         const st = (r.fields.status || '').toLowerCase();
         const versionColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
         document.getElementById('p-version').style.color = versionColor;
-        const statusSelect = document.getElementById('p-status-select');
+const statusSelect = document.getElementById('p-status-select');
         if (statusSelect) statusSelect.value = r.fields.status || '';
-        
+
+        const descContainer = document.getElementById('description-container');
+        const descText = document.getElementById('description-text');
+        const desc = r.fields.description;
+        if (desc) {
+            descText.innerText = desc;
+            descContainer.style.display = 'block';
+        } else {
+            descContainer.style.display = 'none';
+        }
+
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">CONNECTING TO TELEGRAM CLOUD...</div>`;
 
@@ -1456,7 +1475,17 @@ function closePlayer() {
         activeRecordShotName = "";
         activeRecordStatus = "";
         activeRecordVersion = 0;
-        render();
+render();
+    }
+
+    function toggleFullscreen() {
+        const video = document.getElementById('main-v');
+        if (!video) return;
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            video.requestFullscreen();
+        }
     }
 
     function initScrubber() {
