@@ -1071,6 +1071,7 @@ let activeRecordId = null;
     let currentUserRole = 'producer';
     let currentUsername = '';
     let playMode = 'loop';
+    let reverseInterval = null;
 
     let isScrubbing = false;
 
@@ -1315,7 +1316,7 @@ async function loadComments(shotId) {
 
         try {
             const formula = `AND({shot_name} = '${activeRecordShotName}', {version} = ${activeRecordVersion})`;
-            const url = `https://api.airtable.com/v0/${CURRENT_BASE}/Comments?filterByFormula=${encodeURIComponent(formula)}`;
+            const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Comments?filterByFormula=${encodeURIComponent(formula)}`;
 
             const response = await fetch(url, {
                 headers: { Authorization: `Bearer ${K}` }
@@ -1405,6 +1406,11 @@ const statusSelect = document.getElementById('p-status-select');
             descInput.disabled = !(currentUserRole === 'super' || currentUserRole === 'producer');
             saveBtn.style.display = (currentUserRole === 'super' || currentUserRole === 'producer') ? 'block' : 'none';
         }
+
+        stopReverse();
+        playMode = 'loop';
+        const lrBtn = document.getElementById('loop-reverse-btn');
+        if (lrBtn) { lrBtn.innerText = '🔄'; lrBtn.title = 'Loop'; }
 
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">CONNECTING TO TELEGRAM CLOUD...</div>`;
@@ -1496,6 +1502,7 @@ tg.BackButton.onClick(closePlayer);
     }
 
 function closePlayer() {
+        stopReverse();
         document.getElementById('v-container').innerHTML = "";
         document.getElementById('player-view').style.display = 'none';
         document.getElementById('grid-view').style.display = 'block';
@@ -1526,19 +1533,50 @@ render();
             btn.innerText = '🔁';
             btn.title = 'Reverse';
             if (video) {
+                video.pause();
                 video.loop = false;
-                video.playbackRate = -1;
-                video.play();
+                startReverse(video);
             }
         } else {
             playMode = 'loop';
             btn.innerText = '🔄';
             btn.title = 'Loop';
+            stopReverse();
             if (video) {
-                video.playbackRate = 1;
                 video.loop = true;
                 video.play();
             }
+        }
+    }
+
+    function startReverse(video) {
+        stopReverse();
+        const fps = 24;
+        reverseInterval = setInterval(() => {
+            if (video.paused || video.ended) return;
+            video.currentTime = Math.max(0, video.currentTime - (1 / fps));
+            updateFrameDisplay();
+            const scrubber = document.getElementById('timeline-scrubber');
+            if (scrubber && video.duration) {
+                const duration = video.seekable.length > 0 ? video.seekable.end(0) : video.duration;
+                const totalFrames = Math.floor(duration * fps);
+                const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(video.currentTime * fps)));
+                scrubber.value = currentFrame;
+                const pct = totalFrames > 1 ? ((currentFrame - 1) / (totalFrames - 1)) * 100 : 0;
+                updateScrubberBackground(pct);
+            }
+            if (video.currentTime <= 0) {
+                stopReverse();
+                video.pause();
+            }
+        }, 1000 / fps);
+        video.play();
+    }
+
+    function stopReverse() {
+        if (reverseInterval) {
+            clearInterval(reverseInterval);
+            reverseInterval = null;
         }
     }
 
