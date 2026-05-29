@@ -960,24 +960,24 @@
 </div>
 
 <div id="player-view" class="fade-in">
-    <div class="p-header">
-        <button class="p-back-btn" onclick="closePlayer()">
-            <span>←</span> Back
-        </button>
-        <div class="p-header-left">
-            <h2 id="p-title" style="margin: 0 0 4px 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px;"></h2>
-            <div id="p-meta-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <span id="p-version" style="font-family: monospace; font-size: 14px; color: var(--accent); font-weight: 700;"></span>
-                <span id="p-status-badge" class="status-badge" style="transform: scale(1.1);"></span>
-                <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 13px;">
-                    <option value="">Change Status</option>
-                    <option value="Ready To Start">Ready To Start</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Review">Review</option>
-                    <option value="To Fix">To Fix</option>
-                    <option value="Approved">Approved</option>
-                </select>
-            </div>
+    <div class="p-header" style="flex-direction: column; gap: 12px; padding: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <button class="p-back-btn" onclick="closePlayer()">
+                <span>←</span> Back
+            </button>
+            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; text-align: center; flex: 1;"></h2>
+            <span id="p-version" style="font-family: monospace; font-size: 16px; color: var(--accent); font-weight: 700;"></span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+            <span id="p-status-badge" class="status-badge" style="transform: scale(1.2);"></span>
+            <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px;">
+                <option value="">Change Status</option>
+                <option value="Ready To Start">Ready To Start</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Review">Review</option>
+                <option value="To Fix">To Fix</option>
+                <option value="Approved">Approved</option>
+            </select>
         </div>
     </div>
     
