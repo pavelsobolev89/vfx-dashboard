@@ -960,24 +960,23 @@
 </div>
 
 <div id="player-view" class="fade-in">
-    <div class="p-header" style="display: flex; flex-direction: column; gap: 8px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <button class="p-back-btn" onclick="closePlayer()">
-                <span>←</span> Back
-            </button>
-            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; text-align: center;"></h2>
-            <span id="p-version" style="font-family: monospace; font-size: 18px; color: var(--accent); font-weight: 700;"></span>
-        </div>
-        <div style="display: flex; justify-content: center; align-items: center;">
-            <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; min-width: 160px;">
-                <option value="">Select Status</option>
-                <option value="Ready To Start">Ready To Start</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Review">Review</option>
-                <option value="To Fix">To Fix</option>
-                <option value="Approved">Approved</option>
-            </select>
-        </div>
+    <div class="p-header">
+        <button class="p-back-btn" onclick="closePlayer()" style="margin: 0;">
+            <span>←</span> Back
+        </button>
+        <h2 id="p-title" style="margin: 0 0 0 12px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; flex: 1; text-align: center;"></h2>
+        <span id="p-version" style="font-family: monospace; font-size: 18px; color: var(--accent); font-weight: 700; margin-left: 12px;"></span>
+    </div>
+    <div style="padding: 12px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color);">
+        <span style="color: var(--text-secondary); font-size: 14px; font-weight: 600;">STATUS:</span>
+        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 8px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; flex: 1;">
+            <option value="">Select Status</option>
+            <option value="Ready To Start">Ready To Start</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Review">Review</option>
+            <option value="To Fix">To Fix</option>
+            <option value="Approved">Approved</option>
+        </select>
     </div>
     
     <div class="player-container">
