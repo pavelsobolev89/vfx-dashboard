@@ -971,8 +971,10 @@
         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></span>
+            <button class="p-btn" onclick="navigateShot(-1)" title="Previous Shot" style="padding: 4px 8px; font-size: 16px;">◀</button>
+            <button class="p-btn" onclick="navigateShot(1)" title="Next Shot" style="padding: 4px 8px; font-size: 16px;">▶</button>
         </div>
-        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 2px solid var(--warning); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
+        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
             <option value="Ready To Start">Ready To Start</option>
             <option value="In Progress">In Progress</option>
             <option value="Review">Review</option>
@@ -1095,7 +1097,7 @@ let activeRecordId = null;
             }
         } catch (e) {
             console.error("Failed to check user role:", e);
-            currentUserRole = 'artist';
+            currentUserRole = 'producer';
         }
     }
 
@@ -1469,7 +1471,25 @@ let videoUrl = getVideoUrl(r);
         loadComments(id);
         
         tg.BackButton.show();
-        tg.BackButton.onClick(closePlayer);
+tg.BackButton.onClick(closePlayer);
+    }
+
+    function navigateShot(direction) {
+        const curTitle = activeRecordShotName;
+        const filtered = records.filter(r => {
+            const name = r.fields.shot_name || '';
+            const ep = curEpFilter ? name.toLowerCase().startsWith(curEpFilter.toLowerCase()) : true;
+            const statusMatch = !curStatusFilter || (r.fields.status || '').toLowerCase().includes(curStatusFilter.toLowerCase());
+            const searchMatch = !searchQuery || name.toLowerCase().includes(searchQuery);
+            return ep && statusMatch && searchMatch;
+        });
+
+        const currentIndex = filtered.findIndex(r => r.id === activeRecordId);
+        const nextIndex = currentIndex + direction;
+
+        if (nextIndex >= 0 && nextIndex < filtered.length) {
+            openPlayer(filtered[nextIndex].id);
+        }
     }
 
 function closePlayer() {
