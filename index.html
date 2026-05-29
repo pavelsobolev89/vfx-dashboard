@@ -1345,7 +1345,6 @@ const img = r.fields.thumbnail?.[0]?.url || '';
     }
 
 async function openPlayer(id) {
-        tg.showAlert("openPlayer called: " + id);
         const r = records.find(rec => rec.id === id);
         if(!r) return;
 
@@ -1365,7 +1364,7 @@ async function openPlayer(id) {
             <span style="color: var(--accent); font-family: monospace; font-size: 13px;">${ver}</span> | 
             <span class="status-badge ${badgeClass}" id="p-status-badge" style="transform: scale(0.9);">${(r.fields.status || 'READY TO START').toUpperCase()}</span>
             <span style="color:yellow; font-size:10px;">DEBUG:${currentUserRole}</span>
-            ${currentUserRole === 'supervisor' || currentUserRole === 'producer' ? `
+            ${(currentUserRole === 'supervisor' || currentUserRole === 'producer') ? `
             <select id="p-status-select" onchange="changeShotStatus(this.value)" style="margin-left: 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px;">
                 <option value="">CHANGE STATUS</option>
                 <option value="Ready To Start">READY TO START</option>
