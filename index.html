@@ -964,15 +964,16 @@
         <button class="p-back-btn" onclick="closePlayer()">
             <span>←</span> Back
         </button>
-        <span id="p-project-name" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; text-transform: uppercase; background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; position: absolute; left: 50%; transform: translateX(-50%);"></span>
-        <div style="width: 60px;"></div>
+        <span id="p-project-name" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; text-transform: uppercase; background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></span>
+        <div style="display: flex; gap: 8px;">
+            <button class="p-btn" onclick="navigateShot(-1)" title="Previous Shot">◀</button>
+            <button class="p-btn" onclick="navigateShot(1)" title="Next Shot">▶</button>
+        </div>
     </div>
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></span>
-            <button class="p-btn" onclick="navigateShot(-1)" title="Previous Shot" style="padding: 4px 8px; font-size: 16px;">◀</button>
-            <button class="p-btn" onclick="navigateShot(1)" title="Next Shot" style="padding: 4px 8px; font-size: 16px;">▶</button>
         </div>
         <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
             <option value="Ready To Start">Ready To Start</option>
