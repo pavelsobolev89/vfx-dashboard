@@ -1454,10 +1454,10 @@ let videoUrl = getVideoUrl(r);
 // Load past comments
         loadComments(id);
         
-        // Show status control for supervisor/producer
+        // Show status control for all users
         const statusControl = document.getElementById('status-control');
         if (statusControl) {
-            statusControl.style.display = (currentUserRole === 'supervisor' || currentUserRole === 'producer') ? 'block' : 'none';
+            statusControl.style.display = 'block';
         }
         
         tg.BackButton.show();
