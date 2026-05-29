@@ -998,6 +998,7 @@
         
 <!-- Custom Controls Row -->
         <div class="p-nav">
+            <button id="loop-reverse-btn" class="p-btn" onclick="togglePlayMode()" title="Loop / Reverse" style="font-size: 16px;">🔄</button>
             <button class="p-btn" onclick="vStep(-1)" title="Step Frame Backward (1/24s)">⏮</button>
             <button class="p-btn play-pause-btn" onclick="vToggle()" title="Play / Pause">⏯</button>
             <button class="p-btn" onclick="vStep(1)" title="Step Frame Forward (1/24s)">⏭</button>
@@ -1067,8 +1068,9 @@ let activeRecordId = null;
     let activeRecordShotName = "";
     let activeRecordStatus = "";
     let activeRecordVersion = 0;
-    let currentUserRole = 'artist';
+    let currentUserRole = 'producer';
     let currentUsername = '';
+    let playMode = 'loop';
 
     let isScrubbing = false;
 
@@ -1335,16 +1337,16 @@ async function loadComments(shotId) {
             if (commentSectionHeader) commentSectionHeader.style.display = 'block';
             if (commentsTitle) commentsTitle.innerText = `Comments (${items.length})`;
 
-            commentsList.innerHTML = items.map(c => {
+commentsList.innerHTML = items.map(c => {
                 const artist = c.fields.artist || "Producer";
                 const notes = c.fields.notes || "";
                 const status = c.fields.status || "";
-                const version = c.fields.version !== undefined ? `v${String(c.fields.version).padStart(3, '0')}` : "";
+                const version = c.fields.version !== undefined && c.fields.version !== null ? `v${String(Number(c.fields.version)).padStart(3, '0')}` : "";
                 const date = new Date(c.createdTime).toLocaleString();
-                
+
                 const initial = artist.charAt(0).toUpperCase();
-                const badgeClass = statusMap[status.toLowerCase()] || 'st-ready';
-                
+                const badgeClass = status ? (statusMap[status.toLowerCase()] || 'st-ready') : '';
+
                 return `
                     <div class="comment-card">
                         <div class="comment-header">
@@ -1513,6 +1515,30 @@ render();
             document.exitFullscreen();
         } else {
             video.requestFullscreen();
+        }
+    }
+
+    function togglePlayMode() {
+        const btn = document.getElementById('loop-reverse-btn');
+        const video = document.getElementById('main-v');
+        if (playMode === 'loop') {
+            playMode = 'reverse';
+            btn.innerText = '🔁';
+            btn.title = 'Reverse';
+            if (video) {
+                video.loop = false;
+                video.playbackRate = -1;
+                video.play();
+            }
+        } else {
+            playMode = 'loop';
+            btn.innerText = '🔄';
+            btn.title = 'Loop';
+            if (video) {
+                video.playbackRate = 1;
+                video.loop = true;
+                video.play();
+            }
         }
     }
 
