@@ -1056,19 +1056,12 @@
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     async function getTelegramVideoUrl(fileId) {
-        if (tgUrlsCache[fileId]) return tgUrlsCache[fileId];
-        try {
-            const tgToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
-            const r = await fetch(`https://api.telegram.org/bot${tgToken}/getFile?file_id=${fileId}`);
-            const data = await r.json();
-            if (data.ok && data.result && data.result.file_path) {
-                const url = `https://api.telegram.org/file/bot${tgToken}/${data.result.file_path}`;
-                tgUrlsCache[fileId] = url;
-                return url;
-            }
-        } catch (e) {
-            console.error("Video URL Error:", e);
-        }
+        return null;
+    }
+    
+    function getVideoUrl(r) {
+        if (r.fields.video_url) return r.fields.video_url;
+        if (r.fields.preview_file2 && r.fields.preview_file2[0]) return r.fields.preview_file2[0].url;
         return null;
     }
 
@@ -1156,11 +1149,8 @@
         }
     }
 
-    async function preloadVideoUrls() {
-        const promises = records
-            .filter(r => r.fields.file_id && !tgUrlsCache[r.fields.file_id])
-            .map(r => getTelegramVideoUrl(r.fields.file_id));
-        await Promise.all(promises);
+async function preloadVideoUrls() {
+        // No need to preload - we get video_url directly from Airtable
     }
 
     function init() {
@@ -1225,9 +1215,8 @@
         
         grid.innerHTML = filtered.map(r => {
             const st = (r.fields.status || '').toLowerCase();
-            const img = r.fields.thumbnail?.[0]?.url || '';
-            const fileId = r.fields.file_id;
-            const videoUrl = fileId ? tgUrlsCache[fileId] : '';
+const img = r.fields.thumbnail?.[0]?.url || '';
+            const videoUrl = getVideoUrl(r);
             
             let mediaContent = `<img src="${img}" class="thumb">`;
             let hoverEvents = '';
@@ -1357,10 +1346,7 @@
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">CONNECTING TO TELEGRAM CLOUD...</div>`;
 
-        let videoUrl = r.fields.file_id ? tgUrlsCache[r.fields.file_id] : '';
-        if (!videoUrl && r.fields.preview_file2 && r.fields.preview_file2[0]) {
-            videoUrl = r.fields.preview_file2[0].url;
-        }
+let videoUrl = getVideoUrl(r);
 
         if (videoUrl) {
             container.innerHTML = `
