@@ -960,18 +960,18 @@
 </div>
 
 <div id="player-view" class="fade-in">
-    <div class="p-header" style="display: flex; align-items: center; justify-content: center;">
+    <div class="p-header" style="display: flex; align-items: center; gap: 12px;">
         <button class="p-back-btn" onclick="closePlayer()">
             <span>←</span> Back
         </button>
-        <span id="p-project-name" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; text-transform: uppercase; background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-left: 8px;"></span>
+        <span id="p-project-name" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; text-transform: uppercase; background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></span>
     </div>
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></span>
         </div>
-        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
+        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 2px solid var(--warning); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
             <option value="Ready To Start">Ready To Start</option>
             <option value="In Progress">In Progress</option>
             <option value="Review">Review</option>
@@ -1387,7 +1387,12 @@ async function openPlayer(id) {
         const versionColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
         document.getElementById('p-version').style.color = versionColor;
 const statusSelect = document.getElementById('p-status-select');
-        if (statusSelect) statusSelect.value = r.fields.status || '';
+        if (statusSelect) {
+            statusSelect.value = r.fields.status || '';
+            const st = (r.fields.status || '').toLowerCase();
+            const borderColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
+            statusSelect.style.borderColor = borderColor;
+        }
 
         const descContainer = document.getElementById('description-container');
         const descText = document.getElementById('description-text');
@@ -1717,7 +1722,12 @@ async function sendComment() {
             if (response.ok) {
                 activeRecordStatus = newStatus;
                 const statusSelect = document.getElementById('p-status-select');
-                if (statusSelect) statusSelect.value = newStatus;
+                if (statusSelect) {
+                    statusSelect.value = newStatus;
+                    const st = newStatus.toLowerCase();
+                    const borderColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
+                    statusSelect.style.borderColor = borderColor;
+                }
                 // Update version color based on new status
                 const versionEl = document.getElementById('p-version');
                 if (versionEl) {
