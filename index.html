@@ -1348,7 +1348,12 @@ commentsList.innerHTML = items.map(c => {
                 const artist = c.fields.artist || "Producer";
                 const notes = c.fields.notes || "";
                 const rawStatus = c.fields.status;
-                const status = Array.isArray(rawStatus) ? rawStatus[0] : (typeof rawStatus === 'string' ? rawStatus : "");
+                let status = "";
+                if (Array.isArray(rawStatus) && rawStatus.length > 0) {
+                    status = typeof rawStatus[0] === 'object' ? (rawStatus[0].name || rawStatus[0].value || "") : String(rawStatus[0]);
+                } else if (typeof rawStatus === 'string') {
+                    status = rawStatus;
+                }
                 const rawVersion = c.fields.version;
                 const version = rawVersion !== undefined && rawVersion !== null ? `v${String(Number(rawVersion)).padStart(3, '0')}` : "";
                 const date = new Date(c.createdTime).toLocaleString();
