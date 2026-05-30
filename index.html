@@ -1011,26 +1011,30 @@
         
 <div class="p-body">
             <!-- Description -->
-            <div class="comment-section-title description-title">
-                <span>Description</span>
-                <button id="edit-desc-btn" onclick="toggleDescriptionEdit()" style="margin-left: auto; background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">✏️ Edit</button>
-            </div>
-            <div id="description-display" style="padding: 12px; margin-top: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; line-height: 1.5; min-height: 40px;"></div>
-            <div id="description-edit-container" class="comment-composer" style="margin-top: 8px; display: none;">
-                <textarea id="description-input" class="comment-area" placeholder="Add description..."></textarea>
+            <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <div class="comment-section-title description-title">
+                    <span>Description</span>
+                    <button id="edit-desc-btn" onclick="toggleDescriptionEdit()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">✏️ Edit</button>
+                </div>
+                <div id="description-display" style="padding: 12px; margin-top: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; line-height: 1.5; min-height: 40px;"></div>
+                <div id="description-edit-container" class="comment-composer" style="margin-top: 4px; display: none;">
+                    <textarea id="description-input" class="comment-area" placeholder="Add description..."></textarea>
+                </div>
             </div>
 
             <!-- Comments Log Section -->
-            <div id="comment-section-header" class="comment-section-title" style="display: none;">
-                <span id="comments-section-title-val">Comments</span>
-            </div>
+            <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <div id="comment-section-header" class="comment-section-title" style="display: none;">
+                    <span id="comments-section-title-val">Comments</span>
+                </div>
 
-            <div id="comments-list" class="comment-history-container">
-                <!-- Loaded dynamically -->
+                <div id="comments-list" class="comment-history-container">
+                    <!-- Loaded dynamically -->
+                </div>
             </div>
 
             <!-- Composer -->
-            <div class="comment-composer">
+            <div class="comment-composer" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
                 <textarea id="comment-input" class="comment-area" placeholder="Write what needs to be fixed or approved..."></textarea>
                 <button id="comment-submit" class="submit-btn" onclick="sendComment()">SEND COMMENT</button>
             </div>
