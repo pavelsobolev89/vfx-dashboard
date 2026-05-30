@@ -1011,7 +1011,7 @@
         
 <div class="p-body">
             <!-- Description -->
-            <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <div style="padding: 0; margin-bottom: 16px;">
                 <div class="comment-section-title description-title">
                     <span>Description</span>
                     <button id="edit-desc-btn" onclick="toggleDescriptionEdit()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">✏️ Edit</button>
@@ -1023,7 +1023,7 @@
             </div>
 
             <!-- Comments Log Section -->
-            <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <div style="padding: 0; margin-bottom: 16px;">
                 <div id="comment-section-header" class="comment-section-title" style="display: none;">
                     <span id="comments-section-title-val">Comments</span>
                 </div>
@@ -1034,7 +1034,7 @@
             </div>
 
             <!-- Composer -->
-            <div class="comment-composer" style="border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
+            <div class="comment-composer">
                 <textarea id="comment-input" class="comment-area" placeholder="Write what needs to be fixed or approved..."></textarea>
                 <button id="comment-submit" class="submit-btn" onclick="sendComment()">SEND COMMENT</button>
             </div>
