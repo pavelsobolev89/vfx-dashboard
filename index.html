@@ -986,19 +986,19 @@
         </select>
     </div>
     
-    <div class="player-container">
+    <div class="player-container" style="position: relative;">
         <!-- Video Box & HUD -->
-        <div class="video-box" id="v-container" style="position: relative;">
-            <!-- Drawing Canvas Overlay -->
-            <canvas id="draw-canvas" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; cursor: crosshair;"></canvas>
-            
-            <!-- Drawing Tools -->
-            <div id="draw-tools" style="display: none; position: absolute; top: 10px; right: 10px; z-index: 101; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; display: flex; gap: 8px;">
-                <input type="color" id="draw-color" value="#ff0000" style="width: 40px; height: 40px; border: none; border-radius: 4px; cursor: pointer;">
-                <input type="range" id="draw-size" min="1" max="20" value="3" style="width: 80px;">
-                <button onclick="clearDrawing()" style="background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Clear</button>
-                <button onclick="saveDrawing()" style="background: #44ff44; color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Save</button>
-            </div>
+        <div class="video-box" id="v-container"></div>
+        
+        <!-- Drawing Canvas Overlay (outside v-container to survive A/B mode) -->
+        <canvas id="draw-canvas" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; cursor: crosshair; pointer-events: none;"></canvas>
+        
+        <!-- Drawing Tools -->
+        <div id="draw-tools" style="display: none; position: absolute; top: 10px; right: 10px; z-index: 101; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; gap: 8px;">
+            <input type="color" id="draw-color" value="#ff0000" style="width: 40px; height: 40px; border: none; border-radius: 4px; cursor: pointer;">
+            <input type="range" id="draw-size" min="1" max="20" value="3" style="width: 80px;">
+            <button onclick="clearDrawing()" style="background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Clear</button>
+            <button onclick="saveDrawing()" style="background: #44ff44; color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Save</button>
         </div>
         
         <!-- Custom Scrubber Timeline -->
@@ -1019,7 +1019,7 @@
             </div>
             <div style="display: flex; gap: 8px;">
                 <button id="ab-compare-btn" class="p-btn" onclick="toggleABCompare()" title="A/B Compare" style="width: 44px; height: 44px;">⚖️</button>
-                <button id="draw-mode-btn" class="p-btn" onclick="toggleDrawMode()" title="Draw on Frame" style="width: 44px; height: 44px;">✏️</button>
+                <button id="draw-mode-btn" class="p-btn" onclick="toggleDrawMode()" title="Draw on Frame" style="width: 44px; height: 44px;">🖌️</button>
                 <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
             </div>
         </div>
@@ -1493,29 +1493,7 @@ let videoUrl = getVideoUrl(r);
                         updateFrameDisplay();
                     });
                     
-                    function updateScrubberSmooth() {
-                        if (!isScrubbing && !v.paused && playMode === 'loop') {
-                            const scrubber = document.getElementById('timeline-scrubber');
-                            if (scrubber && v.duration) {
-                                const fps = 24;
-                                const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
-                                const totalFrames = Math.floor(duration * fps);
-                                
-                                if (scrubber.max != totalFrames) {
-                                    scrubber.max = totalFrames;
-                                }
-                                
-                                const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(v.currentTime * fps)));
-                                scrubber.value = currentFrame;
-                                
-                                const pct = totalFrames > 1 ? ((currentFrame - 1) / (totalFrames - 1)) * 100 : 0;
-                                updateScrubberBackground(pct);
-                            }
-                            updateFrameDisplay();
-                        }
-                        animationFrameId = requestAnimationFrame(updateScrubberSmooth);
-                    }
-                    animationFrameId = requestAnimationFrame(updateScrubberSmooth);
+                    startScrubberAnimation();
                     
                     v.addEventListener('timeupdate', () => {
                         if (!isScrubbing) {
@@ -1761,6 +1739,43 @@ render();
         }
     }
 
+    function updateScrubberSmooth() {
+        const v = document.getElementById('main-v');
+        if (!v) return;
+        
+        if (!isScrubbing && !v.paused && playMode === 'loop') {
+            const scrubber = document.getElementById('timeline-scrubber');
+            if (scrubber && v.duration) {
+                const fps = 24;
+                const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
+                const totalFrames = Math.floor(duration * fps);
+                
+                if (scrubber.max != totalFrames) {
+                    scrubber.max = totalFrames;
+                }
+                
+                const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(v.currentTime * fps)));
+                scrubber.value = currentFrame;
+                
+                const pct = totalFrames > 1 ? ((currentFrame - 1) / (totalFrames - 1)) * 100 : 0;
+                updateScrubberBackground(pct);
+            }
+            updateFrameDisplay();
+        }
+        animationFrameId = requestAnimationFrame(updateScrubberSmooth);
+    }
+    
+    function startScrubberAnimation() {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+        animationFrameId = requestAnimationFrame(updateScrubberSmooth);
+    }
+    
+    function restartScrubberAnimation() {
+        startScrubberAnimation();
+    }
+
     // A/B Compare Mode
     let isABCompare = false;
     let videoVersionA = null;
@@ -1823,6 +1838,9 @@ render();
                 container.innerHTML = originalContainerHTML;
                 originalContainerHTML = null;
             }
+            
+            // Restart scrubber animation
+            restartScrubberAnimation();
         }
     }
 
@@ -1842,6 +1860,8 @@ render();
         const tools = document.getElementById('draw-tools');
         const container = document.getElementById('v-container');
         
+        if (!canvas || !tools) return;
+        
         if (!isDrawMode) {
             // Enter draw mode
             isDrawMode = true;
@@ -1850,6 +1870,7 @@ render();
             
             // Setup canvas
             canvas.style.display = 'block';
+            canvas.style.pointerEvents = 'auto';
             tools.style.display = 'flex';
             canvas.width = container.offsetWidth;
             canvas.height = container.offsetHeight;
@@ -1890,6 +1911,7 @@ render();
             btn.style.color = '';
             
             canvas.style.display = 'none';
+            canvas.style.pointerEvents = 'none';
             tools.style.display = 'none';
             
             // Remove event listeners
@@ -1901,6 +1923,9 @@ render();
             if (touchStartHandler) canvas.removeEventListener('touchstart', touchStartHandler);
             if (touchMoveHandler) canvas.removeEventListener('touchmove', touchMoveHandler);
             canvas.removeEventListener('touchend', stopDrawing);
+            
+            // Restart scrubber animation
+            restartScrubberAnimation();
         }
     }
     
