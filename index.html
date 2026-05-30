@@ -974,12 +974,10 @@
             <button class="p-btn" onclick="navigateShot(1)" title="Next Shot">▶</button>
         </div>
     </div>
-    <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></h2>
-            <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px;"></span>
-        </div>
-        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px;">
+    <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
+        <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
+        <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
+        <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; margin-left: auto;">
             <option value="Ready To Start" style="color: var(--text-secondary);">Ready To Start</option>
             <option value="In Progress" style="color: var(--info);">In Progress</option>
             <option value="Review" style="color: var(--warning);">Review</option>
@@ -1015,10 +1013,11 @@
             <!-- Description -->
             <div class="comment-section-title description-title">
                 <span>Description</span>
+                <button id="edit-desc-btn" onclick="toggleDescriptionEdit()" style="margin-left: auto; background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">✏️ Edit</button>
             </div>
-            <div class="comment-composer" style="margin-top: 0;">
+            <div id="description-display" style="padding: 12px 0; color: var(--text-primary); font-size: 14px; line-height: 1.5;"></div>
+            <div id="description-edit-container" class="comment-composer" style="margin-top: 0; display: none;">
                 <textarea id="description-input" class="comment-area" placeholder="Add description..."></textarea>
-                <button id="save-desc-btn" class="submit-btn" onclick="saveDescription()">SAVE DESCRIPTION</button>
             </div>
 
             <!-- Comments Log Section -->
@@ -1413,12 +1412,19 @@ const statusSelect = document.getElementById('p-status-select');
         }
 
         const descInput = document.getElementById('description-input');
-        const saveBtn = document.getElementById('save-desc-btn');
-        if (descInput) {
-            descInput.value = r.fields.description || '';
-            // Always allow editing for producer/super
-            descInput.disabled = false;
-            saveBtn.style.display = 'block';
+        const descDisplay = document.getElementById('description-display');
+        const editContainer = document.getElementById('description-edit-container');
+        const editBtn = document.getElementById('edit-desc-btn');
+        
+        if (descInput && descDisplay && editContainer) {
+            const desc = r.fields.description || '';
+            descInput.value = desc;
+            descDisplay.innerText = desc;
+            // Start in display mode
+            isEditingDescription = false;
+            descDisplay.style.display = 'block';
+            editContainer.style.display = 'none';
+            if (editBtn) editBtn.innerText = '✏️ Edit';
         }
 
         stopReversePlayback();
@@ -1873,13 +1879,36 @@ async function sendComment() {
         }
     }
 
+    let isEditingDescription = false;
+    
+    function toggleDescriptionEdit() {
+        const editBtn = document.getElementById('edit-desc-btn');
+        const displayDiv = document.getElementById('description-display');
+        const editContainer = document.getElementById('description-edit-container');
+        const descInput = document.getElementById('description-input');
+        
+        if (!isEditingDescription) {
+            // Switch to edit mode
+            isEditingDescription = true;
+            editBtn.innerText = '💾 Save';
+            displayDiv.style.display = 'none';
+            editContainer.style.display = 'block';
+            descInput.focus();
+        } else {
+            // Save and switch to display mode
+            saveDescription();
+        }
+    }
+    
     async function saveDescription() {
         const descInput = document.getElementById('description-input');
-        const saveBtn = document.getElementById('save-desc-btn');
+        const editBtn = document.getElementById('edit-desc-btn');
+        const displayDiv = document.getElementById('description-display');
+        const editContainer = document.getElementById('description-edit-container');
         const newDesc = descInput.value.trim();
 
-        saveBtn.disabled = true;
-        saveBtn.innerText = "SAVING...";
+        editBtn.disabled = true;
+        editBtn.innerText = "Saving...";
 
         const payload = {
             operation: "description_update",
@@ -1900,14 +1929,22 @@ async function sendComment() {
                     const rec = records.find(r => r.id === activeRecordId);
                     if (rec) rec.fields.description = newDesc;
                 }
+                // Switch back to display mode
+                isEditingDescription = false;
+                editBtn.innerText = '✏️ Edit';
+                editBtn.disabled = false;
+                displayDiv.innerText = newDesc;
+                displayDiv.style.display = 'block';
+                editContainer.style.display = 'none';
             } else {
                 tg.showAlert("Failed to save description.");
+                editBtn.disabled = false;
+                editBtn.innerText = '💾 Save';
             }
         } catch (e) {
             tg.showAlert("Network error. Could not save description.");
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerText = "SAVE";
+            editBtn.disabled = false;
+            editBtn.innerText = '💾 Save';
         }
     }
 
