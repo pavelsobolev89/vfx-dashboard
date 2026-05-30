@@ -1403,8 +1403,9 @@ const statusSelect = document.getElementById('p-status-select');
         if (statusSelect) {
             statusSelect.value = r.fields.status || '';
             const st = (r.fields.status || '').toLowerCase();
-            const borderColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
-            statusSelect.style.borderColor = borderColor;
+            const bgColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
+            statusSelect.style.backgroundColor = bgColor;
+            statusSelect.style.color = '#000';
         }
 
         const descInput = document.getElementById('description-input');
@@ -1415,7 +1416,7 @@ const statusSelect = document.getElementById('p-status-select');
             saveBtn.style.display = (currentUserRole === 'super' || currentUserRole === 'producer') ? 'block' : 'none';
         }
 
-        stopReverse();
+        stopReversePlayback();
         playMode = 'loop';
         const lrBtn = document.getElementById('loop-reverse-btn');
         if (lrBtn) { lrBtn.innerText = '🔄'; lrBtn.title = 'Loop'; }
@@ -1510,7 +1511,7 @@ tg.BackButton.onClick(closePlayer);
     }
 
 function closePlayer() {
-        stopReverse();
+        stopReversePlayback();
         document.getElementById('v-container').innerHTML = "";
         document.getElementById('player-view').style.display = 'none';
         document.getElementById('grid-view').style.display = 'block';
@@ -1542,23 +1543,44 @@ render();
             btn.title = 'Reverse';
             if (video) {
                 video.loop = false;
-                video.playbackRate = -1;
-                video.play();
+                video.pause();
+                video.currentTime = video.duration;
+                startReversePlayback(video);
             }
         } else {
             playMode = 'loop';
             btn.innerText = '🔄';
             btn.title = 'Loop';
+            stopReversePlayback();
             if (video) {
-                video.playbackRate = 1;
                 video.loop = true;
                 video.play();
             }
         }
     }
 
-    function startReverse(video) {}
-    function stopReverse() {}
+    let reverseInterval = null;
+    function startReversePlayback(video) {
+        stopReversePlayback();
+        const fps = 24;
+        const step = 1 / fps;
+        reverseInterval = setInterval(() => {
+            if (video.currentTime <= 0) {
+                video.pause();
+                video.currentTime = 0;
+                stopReversePlayback();
+                return;
+            }
+            video.currentTime = Math.max(0, video.currentTime - step);
+        }, 1000 / fps);
+    }
+
+    function stopReversePlayback() {
+        if (reverseInterval) {
+            clearInterval(reverseInterval);
+            reverseInterval = null;
+        }
+    }
 
     function initScrubber() {
         const video = document.getElementById('main-v');
@@ -1758,8 +1780,9 @@ async function sendComment() {
                 if (statusSelect) {
                     statusSelect.value = newStatus;
                     const st = newStatus.toLowerCase();
-                    const borderColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
-                    statusSelect.style.borderColor = borderColor;
+                    const bgColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
+                    statusSelect.style.backgroundColor = bgColor;
+                    statusSelect.style.color = '#000';
                 }
                 // Update version color based on new status
                 const versionEl = document.getElementById('p-version');
