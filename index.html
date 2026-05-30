@@ -1001,12 +1001,27 @@
 <!-- Custom Controls Row -->
         <div class="p-nav" style="justify-content: space-between;">
             <button id="loop-reverse-btn" class="p-btn" onclick="togglePlayMode()" title="Loop / Reverse" style="font-size: 16px; width: 44px; height: 44px;">🔄</button>
-            <div style="display: flex; gap: 16px;">
+            <div style="display: flex; gap: 8px;">
                 <button class="p-btn" onclick="vStep(-1)" title="Step Frame Backward (1/24s)" style="width: 44px; height: 44px;">⏮</button>
                 <button class="p-btn play-pause-btn" onclick="vToggle()" title="Play / Pause" style="width: 44px; height: 44px;">⏯</button>
                 <button class="p-btn" onclick="vStep(1)" title="Step Frame Forward (1/24s)" style="width: 44px; height: 44px;">⏭</button>
             </div>
-            <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
+            <div style="display: flex; gap: 8px;">
+                <button id="ab-compare-btn" class="p-btn" onclick="toggleABCompare()" title="A/B Compare" style="width: 44px; height: 44px;">⚖️</button>
+                <button id="draw-mode-btn" class="p-btn" onclick="toggleDrawMode()" title="Draw on Frame" style="width: 44px; height: 44px;">✏️</button>
+                <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
+            </div>
+        </div>
+        
+        <!-- Drawing Canvas Overlay -->
+        <canvas id="draw-canvas" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; cursor: crosshair;"></canvas>
+        
+        <!-- Drawing Tools -->
+        <div id="draw-tools" style="display: none; position: absolute; top: 10px; right: 10px; z-index: 101; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; gap: 8px;">
+            <input type="color" id="draw-color" value="#ff0000" style="width: 40px; height: 40px; border: none; border-radius: 4px; cursor: pointer;">
+            <input type="range" id="draw-size" min="1" max="20" value="3" style="width: 80px;">
+            <button onclick="clearDrawing()" style="background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Clear</button>
+            <button onclick="saveDrawing()" style="background: #44ff44; color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Save</button>
         </div>
         
 <div class="p-body">
@@ -1024,7 +1039,7 @@
 
             <!-- Comments Log Section -->
             <div style="padding: 0; margin-bottom: 16px;">
-                <div id="comment-section-header" class="comment-section-title" style="display: none;">
+                <div id="comment-section-header" class="comment-section-title" style="display: none; margin-bottom: 12px;">
                     <span id="comments-section-title-val">Comments</span>
                 </div>
 
@@ -1744,6 +1759,201 @@ render();
             clearInterval(reverseInterval);
             reverseInterval = null;
         }
+    }
+
+    // A/B Compare Mode
+    let isABCompare = false;
+    let videoVersionA = null;
+    let videoVersionB = null;
+    
+    function toggleABCompare() {
+        const btn = document.getElementById('ab-compare-btn');
+        const container = document.getElementById('v-container');
+        const video = document.getElementById('main-v');
+        
+        if (!isABCompare) {
+            // Enter A/B mode
+            isABCompare = true;
+            btn.style.background = 'var(--accent)';
+            btn.style.color = '#000';
+            
+            // Get current video URL as version A
+            videoVersionA = video ? video.src : null;
+            
+            // Create split view
+            container.innerHTML = `
+                <div style="display: flex; width: 100%; height: 100%; position: relative;">
+                    <div style="flex: 1; position: relative; border-right: 2px solid var(--accent);">
+                        <video id="video-a" loop playsinline autoplay muted style="width: 100%; height: 100%; object-fit: contain;">
+                            <source src="${videoVersionA}" type="video/mp4">
+                        </video>
+                        <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">A</div>
+                    </div>
+                    <div style="flex: 1; position: relative;">
+                        <video id="video-b" loop playsinline autoplay muted style="width: 100%; height: 100%; object-fit: contain;">
+                            <source src="${videoVersionA}" type="video/mp4">
+                        </video>
+                        <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">B</div>
+                    </div>
+                </div>
+            `;
+            
+            // Sync playback
+            const videoA = document.getElementById('video-a');
+            const videoB = document.getElementById('video-b');
+            if (videoA && videoB) {
+                videoA.addEventListener('play', () => videoB.play());
+                videoA.addEventListener('pause', () => videoB.pause());
+                videoA.addEventListener('seeked', () => videoB.currentTime = videoA.currentTime);
+            }
+            
+            tg.showAlert('A/B Compare Mode: Both videos are synced. Load different version for B.');
+        } else {
+            // Exit A/B mode
+            isABCompare = false;
+            btn.style.background = '';
+            btn.style.color = '';
+            
+            // Restore single video
+            if (videoVersionA) {
+                container.innerHTML = `
+                    <div class="video-box-wrapper">
+                        <video id="main-v" loop playsinline autoplay muted onclick="vToggle()">
+                            <source src="${videoVersionA}" type="video/mp4">
+                        </video>
+                        <div id="video-hud" class="hud-indicator">
+                            <div class="hud-icon">▶</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // Draw Mode
+    let isDrawMode = false;
+    let isDrawing = false;
+    let drawContext = null;
+    let lastX = 0;
+    let lastY = 0;
+    
+    function toggleDrawMode() {
+        const btn = document.getElementById('draw-mode-btn');
+        const canvas = document.getElementById('draw-canvas');
+        const tools = document.getElementById('draw-tools');
+        const container = document.getElementById('v-container');
+        
+        if (!isDrawMode) {
+            // Enter draw mode
+            isDrawMode = true;
+            btn.style.background = 'var(--accent)';
+            btn.style.color = '#000';
+            
+            // Setup canvas
+            canvas.style.display = 'block';
+            tools.style.display = 'flex';
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+            
+            drawContext = canvas.getContext('2d');
+            drawContext.lineCap = 'round';
+            drawContext.lineJoin = 'round';
+            
+            // Add event listeners
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Touch events
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                startDrawing({clientX: touch.clientX, clientY: touch.clientY});
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                draw({clientX: touch.clientX, clientY: touch.clientY});
+            });
+            canvas.addEventListener('touchend', stopDrawing);
+            
+            // Pause video while drawing
+            const video = document.getElementById('main-v');
+            if (video) video.pause();
+        } else {
+            // Exit draw mode
+            isDrawMode = false;
+            btn.style.background = '';
+            btn.style.color = '';
+            
+            canvas.style.display = 'none';
+            tools.style.display = 'none';
+            
+            // Remove event listeners
+            canvas.removeEventListener('mousedown', startDrawing);
+            canvas.removeEventListener('mousemove', draw);
+            canvas.removeEventListener('mouseup', stopDrawing);
+            canvas.removeEventListener('mouseout', stopDrawing);
+        }
+    }
+    
+    function startDrawing(e) {
+        isDrawing = true;
+        const canvas = document.getElementById('draw-canvas');
+        const rect = canvas.getBoundingClientRect();
+        lastX = e.clientX - rect.left;
+        lastY = e.clientY - rect.top;
+    }
+    
+    function draw(e) {
+        if (!isDrawing || !drawContext) return;
+        
+        const canvas = document.getElementById('draw-canvas');
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const color = document.getElementById('draw-color').value;
+        const size = document.getElementById('draw-size').value;
+        
+        drawContext.strokeStyle = color;
+        drawContext.lineWidth = size;
+        
+        drawContext.beginPath();
+        drawContext.moveTo(lastX, lastY);
+        drawContext.lineTo(x, y);
+        drawContext.stroke();
+        
+        lastX = x;
+        lastY = y;
+    }
+    
+    function stopDrawing() {
+        isDrawing = false;
+    }
+    
+    function clearDrawing() {
+        const canvas = document.getElementById('draw-canvas');
+        if (drawContext && canvas) {
+            drawContext.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+    
+    function saveDrawing() {
+        const canvas = document.getElementById('draw-canvas');
+        if (!canvas) return;
+        
+        // Convert canvas to image
+        const dataURL = canvas.toDataURL('image/png');
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.download = `annotation_${activeRecordShotName}_${Date.now()}.png`;
+        link.href = dataURL;
+        link.click();
+        
+        tg.showAlert('Annotation saved!');
     }
 
     function initScrubber() {
