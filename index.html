@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -738,6 +738,10 @@
             background: var(--border-color);
         }
 
+        .description-title::after {
+            display: none;
+        }
+
         .comment-history-container {
             display: flex;
             flex-direction: column;
@@ -1009,7 +1013,7 @@
         
 <div class="p-body">
             <!-- Description -->
-            <div class="comment-section-title">
+            <div class="comment-section-title description-title" style="margin-bottom: 8px;">
                 <span>Description</span>
             </div>
             <div class="comment-composer">
