@@ -988,7 +988,18 @@
     
     <div class="player-container">
         <!-- Video Box & HUD -->
-        <div class="video-box" id="v-container"></div>
+        <div class="video-box" id="v-container" style="position: relative;">
+            <!-- Drawing Canvas Overlay -->
+            <canvas id="draw-canvas" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; cursor: crosshair;"></canvas>
+            
+            <!-- Drawing Tools -->
+            <div id="draw-tools" style="display: none; position: absolute; top: 10px; right: 10px; z-index: 101; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; display: flex; gap: 8px;">
+                <input type="color" id="draw-color" value="#ff0000" style="width: 40px; height: 40px; border: none; border-radius: 4px; cursor: pointer;">
+                <input type="range" id="draw-size" min="1" max="20" value="3" style="width: 80px;">
+                <button onclick="clearDrawing()" style="background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Clear</button>
+                <button onclick="saveDrawing()" style="background: #44ff44; color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Save</button>
+            </div>
+        </div>
         
         <!-- Custom Scrubber Timeline -->
         <div class="custom-timeline-container">
@@ -1011,17 +1022,6 @@
                 <button id="draw-mode-btn" class="p-btn" onclick="toggleDrawMode()" title="Draw on Frame" style="width: 44px; height: 44px;">✏️</button>
                 <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
             </div>
-        </div>
-        
-        <!-- Drawing Canvas Overlay -->
-        <canvas id="draw-canvas" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; cursor: crosshair;"></canvas>
-        
-        <!-- Drawing Tools -->
-        <div id="draw-tools" style="display: none; position: absolute; top: 10px; right: 10px; z-index: 101; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; gap: 8px;">
-            <input type="color" id="draw-color" value="#ff0000" style="width: 40px; height: 40px; border: none; border-radius: 4px; cursor: pointer;">
-            <input type="range" id="draw-size" min="1" max="20" value="3" style="width: 80px;">
-            <button onclick="clearDrawing()" style="background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Clear</button>
-            <button onclick="saveDrawing()" style="background: #44ff44; color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Save</button>
         </div>
         
 <div class="p-body">
@@ -1765,6 +1765,7 @@ render();
     let isABCompare = false;
     let videoVersionA = null;
     let videoVersionB = null;
+    let originalContainerHTML = null;
     
     function toggleABCompare() {
         const btn = document.getElementById('ab-compare-btn');
@@ -1776,6 +1777,9 @@ render();
             isABCompare = true;
             btn.style.background = 'var(--accent)';
             btn.style.color = '#000';
+            
+            // Save original container HTML
+            originalContainerHTML = container.innerHTML;
             
             // Get current video URL as version A
             videoVersionA = video ? video.src : null;
@@ -1807,25 +1811,17 @@ render();
                 videoA.addEventListener('seeked', () => videoB.currentTime = videoA.currentTime);
             }
             
-            tg.showAlert('A/B Compare Mode: Both videos are synced. Load different version for B.');
+            tg.showAlert('A/B Compare Mode: Both videos are synced.');
         } else {
             // Exit A/B mode
             isABCompare = false;
             btn.style.background = '';
             btn.style.color = '';
             
-            // Restore single video
-            if (videoVersionA) {
-                container.innerHTML = `
-                    <div class="video-box-wrapper">
-                        <video id="main-v" loop playsinline autoplay muted onclick="vToggle()">
-                            <source src="${videoVersionA}" type="video/mp4">
-                        </video>
-                        <div id="video-hud" class="hud-indicator">
-                            <div class="hud-icon">▶</div>
-                        </div>
-                    </div>
-                `;
+            // Restore original container HTML
+            if (originalContainerHTML) {
+                container.innerHTML = originalContainerHTML;
+                originalContainerHTML = null;
             }
         }
     }
@@ -1836,6 +1832,9 @@ render();
     let drawContext = null;
     let lastX = 0;
     let lastY = 0;
+    
+    let touchStartHandler = null;
+    let touchMoveHandler = null;
     
     function toggleDrawMode() {
         const btn = document.getElementById('draw-mode-btn');
@@ -1865,17 +1864,20 @@ render();
             canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseout', stopDrawing);
             
-            // Touch events
-            canvas.addEventListener('touchstart', (e) => {
+            // Touch events - save handlers for removal
+            touchStartHandler = (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
                 startDrawing({clientX: touch.clientX, clientY: touch.clientY});
-            });
-            canvas.addEventListener('touchmove', (e) => {
+            };
+            touchMoveHandler = (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
                 draw({clientX: touch.clientX, clientY: touch.clientY});
-            });
+            };
+            
+            canvas.addEventListener('touchstart', touchStartHandler);
+            canvas.addEventListener('touchmove', touchMoveHandler);
             canvas.addEventListener('touchend', stopDrawing);
             
             // Pause video while drawing
@@ -1895,6 +1897,10 @@ render();
             canvas.removeEventListener('mousemove', draw);
             canvas.removeEventListener('mouseup', stopDrawing);
             canvas.removeEventListener('mouseout', stopDrawing);
+            
+            if (touchStartHandler) canvas.removeEventListener('touchstart', touchStartHandler);
+            if (touchMoveHandler) canvas.removeEventListener('touchmove', touchMoveHandler);
+            canvas.removeEventListener('touchend', stopDrawing);
         }
     }
     
@@ -1942,7 +1948,19 @@ render();
     
     function saveDrawing() {
         const canvas = document.getElementById('draw-canvas');
-        if (!canvas) return;
+        if (!canvas || !drawContext) return;
+        
+        // Check if canvas has any drawings
+        const imageData = drawContext.getImageData(0, 0, canvas.width, canvas.height);
+        const hasDrawing = imageData.data.some((value, index) => {
+            // Check alpha channel (every 4th byte)
+            return index % 4 === 3 && value > 0;
+        });
+        
+        if (!hasDrawing) {
+            tg.showAlert('No drawing to save. Draw something first!');
+            return;
+        }
         
         // Convert canvas to image
         const dataURL = canvas.toDataURL('image/png');
