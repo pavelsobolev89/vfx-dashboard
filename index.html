@@ -1009,12 +1009,9 @@
         
 <div class="p-body">
             <!-- Description -->
-            <div id="description-container" style="padding: 12px 20px;">
-                <div class="comment-section-title">
-                    <span>Description</span>
-                </div>
+            <div class="comment-composer">
                 <textarea id="description-input" class="comment-area" placeholder="Add description..."></textarea>
-                <button id="save-desc-btn" onclick="saveDescription()" style="display: none; background: var(--accent); border: none; color: #000; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">Save</button>
+                <button id="save-desc-btn" class="submit-btn" onclick="saveDescription()">SAVE DESCRIPTION</button>
             </div>
 
             <!-- Comments Log Section -->
@@ -1418,6 +1415,10 @@ const statusSelect = document.getElementById('p-status-select');
         }
 
         stopReversePlayback();
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
         playMode = 'loop';
         const lrBtn = document.getElementById('loop-reverse-btn');
         if (lrBtn) { lrBtn.innerText = '🔄'; lrBtn.title = 'Loop'; }
@@ -1459,6 +1460,31 @@ let videoUrl = getVideoUrl(r);
                         v.currentTime = 1 / fps;
                         updateFrameDisplay();
                     });
+                    
+                    function updateScrubberSmooth() {
+                        if (!isScrubbing && !v.paused && playMode === 'loop') {
+                            const scrubber = document.getElementById('timeline-scrubber');
+                            if (scrubber && v.duration) {
+                                const fps = 24;
+                                const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
+                                const totalFrames = Math.floor(duration * fps);
+                                
+                                if (scrubber.max != totalFrames) {
+                                    scrubber.max = totalFrames;
+                                }
+                                
+                                const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(v.currentTime * fps)));
+                                scrubber.value = currentFrame;
+                                
+                                const pct = totalFrames > 1 ? ((currentFrame - 1) / (totalFrames - 1)) * 100 : 0;
+                                updateScrubberBackground(pct);
+                            }
+                            updateFrameDisplay();
+                        }
+                        animationFrameId = requestAnimationFrame(updateScrubberSmooth);
+                    }
+                    animationFrameId = requestAnimationFrame(updateScrubberSmooth);
+                    
                     v.addEventListener('timeupdate', () => {
                         if (!isScrubbing) {
                             const scrubber = document.getElementById('timeline-scrubber');
@@ -1513,6 +1539,10 @@ tg.BackButton.onClick(closePlayer);
 
 function closePlayer() {
         stopReversePlayback();
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
         document.getElementById('v-container').innerHTML = "";
         document.getElementById('player-view').style.display = 'none';
         document.getElementById('grid-view').style.display = 'block';
@@ -1592,6 +1622,7 @@ render();
     }
 
     let reverseInterval = null;
+    let animationFrameId = null;
     function startReversePlayback(video) {
         stopReversePlayback();
         const fps = 24;
