@@ -1347,8 +1347,10 @@ async function loadComments(shotId) {
 commentsList.innerHTML = items.map(c => {
                 const artist = c.fields.artist || "Producer";
                 const notes = c.fields.notes || "";
-                const status = c.fields.status || "";
-                const version = c.fields.version !== undefined && c.fields.version !== null ? `v${String(Number(c.fields.version)).padStart(3, '0')}` : "";
+                const rawStatus = c.fields.status;
+                const status = Array.isArray(rawStatus) ? rawStatus[0] : (typeof rawStatus === 'string' ? rawStatus : "");
+                const rawVersion = c.fields.version;
+                const version = rawVersion !== undefined && rawVersion !== null ? `v${String(Number(rawVersion)).padStart(3, '0')}` : "";
                 const date = new Date(c.createdTime).toLocaleString();
 
                 const initial = artist.charAt(0).toUpperCase();
