@@ -1009,6 +1009,9 @@
         
 <div class="p-body">
             <!-- Description -->
+            <div class="comment-section-title">
+                <span>Description</span>
+            </div>
             <div class="comment-composer">
                 <textarea id="description-input" class="comment-area" placeholder="Add description..."></textarea>
                 <button id="save-desc-btn" class="submit-btn" onclick="saveDescription()">SAVE DESCRIPTION</button>
@@ -1402,8 +1405,7 @@ const statusSelect = document.getElementById('p-status-select');
             statusSelect.value = r.fields.status || '';
             const st = (r.fields.status || '').toLowerCase();
             const bgColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
-            statusSelect.style.backgroundColor = bgColor;
-            statusSelect.style.color = '#000';
+            statusSelect.style.color = bgColor;
         }
 
         const descInput = document.getElementById('description-input');
@@ -1842,8 +1844,7 @@ async function sendComment() {
                     statusSelect.value = newStatus;
                     const st = newStatus.toLowerCase();
                     const bgColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
-                    statusSelect.style.backgroundColor = bgColor;
-                    statusSelect.style.color = '#000';
+                    statusSelect.style.color = bgColor;
                 }
                 // Update version color based on new status
                 const versionEl = document.getElementById('p-version');
