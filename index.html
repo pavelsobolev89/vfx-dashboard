@@ -1016,7 +1016,7 @@
             <div class="comment-section-title description-title">
                 <span>Description</span>
             </div>
-            <div class="comment-composer" style="margin-top: 4px;">
+            <div class="comment-composer" style="margin-top: 0;">
                 <textarea id="description-input" class="comment-area" placeholder="Add description..."></textarea>
                 <button id="save-desc-btn" class="submit-btn" onclick="saveDescription()">SAVE DESCRIPTION</button>
             </div>
@@ -1416,8 +1416,9 @@ const statusSelect = document.getElementById('p-status-select');
         const saveBtn = document.getElementById('save-desc-btn');
         if (descInput) {
             descInput.value = r.fields.description || '';
-            descInput.disabled = !(currentUserRole === 'super' || currentUserRole === 'producer');
-            saveBtn.style.display = (currentUserRole === 'super' || currentUserRole === 'producer') ? 'block' : 'none';
+            // Always allow editing for producer/super
+            descInput.disabled = false;
+            saveBtn.style.display = 'block';
         }
 
         stopReversePlayback();
@@ -1578,9 +1579,27 @@ render();
     function enterVideoFullscreen() {
         const video = document.getElementById('main-v');
         const container = document.getElementById('v-container');
+        const playerView = document.getElementById('player-view');
         if (!video || !container) return;
         
         isVideoFullscreen = true;
+        
+        // Hide all other content except video container
+        const pBody = document.querySelector('.p-body');
+        if (pBody) pBody.style.display = 'none';
+        
+        const pNav = document.querySelector('.p-nav');
+        if (pNav) pNav.style.display = 'none';
+        
+        const customTimeline = document.querySelector('.custom-timeline-container');
+        if (customTimeline) customTimeline.style.display = 'none';
+        
+        const pHeader = document.querySelector('.p-header');
+        if (pHeader) pHeader.style.display = 'none';
+        
+        const shotInfo = document.querySelector('[style*="padding: 12px 20px; border-bottom"]');
+        if (shotInfo) shotInfo.style.display = 'none';
+        
         container.style.position = 'fixed';
         container.style.top = '0';
         container.style.left = '0';
@@ -1600,17 +1619,18 @@ render();
         exitBtn.id = 'exit-fullscreen-btn';
         exitBtn.innerHTML = '✕';
         exitBtn.style.position = 'absolute';
-        exitBtn.style.top = '16px';
-        exitBtn.style.right = '16px';
+        exitBtn.style.top = '20px';
+        exitBtn.style.right = '20px';
         exitBtn.style.zIndex = '10000';
-        exitBtn.style.background = 'rgba(0,0,0,0.7)';
-        exitBtn.style.color = '#fff';
+        exitBtn.style.background = 'rgba(255,255,255,0.9)';
+        exitBtn.style.color = '#000';
         exitBtn.style.border = 'none';
         exitBtn.style.borderRadius = '50%';
-        exitBtn.style.width = '40px';
-        exitBtn.style.height = '40px';
-        exitBtn.style.fontSize = '20px';
+        exitBtn.style.width = '50px';
+        exitBtn.style.height = '50px';
+        exitBtn.style.fontSize = '24px';
         exitBtn.style.cursor = 'pointer';
+        exitBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
         exitBtn.onclick = exitVideoFullscreen;
         container.appendChild(exitBtn);
         
@@ -1626,6 +1646,23 @@ render();
         if (!video || !container) return;
         
         isVideoFullscreen = false;
+        
+        // Show all content again
+        const pBody = document.querySelector('.p-body');
+        if (pBody) pBody.style.display = '';
+        
+        const pNav = document.querySelector('.p-nav');
+        if (pNav) pNav.style.display = '';
+        
+        const customTimeline = document.querySelector('.custom-timeline-container');
+        if (customTimeline) customTimeline.style.display = '';
+        
+        const pHeader = document.querySelector('.p-header');
+        if (pHeader) pHeader.style.display = '';
+        
+        const shotInfo = document.querySelector('[style*="padding: 12px 20px; border-bottom"]');
+        if (shotInfo) shotInfo.style.display = '';
+        
         container.style.position = '';
         container.style.top = '';
         container.style.left = '';
