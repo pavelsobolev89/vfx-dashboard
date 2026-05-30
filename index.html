@@ -999,6 +999,7 @@
             <input type="range" id="draw-size" min="1" max="20" value="3" style="width: 80px;">
             <button onclick="clearDrawing()" style="background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Clear</button>
             <button onclick="saveDrawing()" style="background: #44ff44; color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Save</button>
+            <button onclick="toggleDrawMode()" style="background: #666; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Exit</button>
         </div>
         
         <!-- Custom Scrubber Timeline -->
@@ -1018,8 +1019,9 @@
                 <button class="p-btn" onclick="vStep(1)" title="Step Frame Forward (1/24s)" style="width: 44px; height: 44px;">⏭</button>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button id="ab-compare-btn" class="p-btn" onclick="toggleABCompare()" title="A/B Compare" style="width: 44px; height: 44px;">⚖️</button>
+                <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="width: 44px; height: 44px;">⬅️</button>
                 <button id="draw-mode-btn" class="p-btn" onclick="toggleDrawMode()" title="Draw on Frame" style="width: 44px; height: 44px;">🖌️</button>
+                <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="width: 44px; height: 44px;">➡️</button>
                 <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
             </div>
         </div>
@@ -1776,71 +1778,27 @@ render();
         startScrubberAnimation();
     }
 
-    // A/B Compare Mode
-    let isABCompare = false;
-    let videoVersionA = null;
-    let videoVersionB = null;
-    let originalContainerHTML = null;
-    
-    function toggleABCompare() {
-        const btn = document.getElementById('ab-compare-btn');
-        const container = document.getElementById('v-container');
-        const video = document.getElementById('main-v');
+    function switchVersion(direction) {
+        if (!activeRecordId) return;
         
-        if (!isABCompare) {
-            // Enter A/B mode
-            isABCompare = true;
-            btn.style.background = 'var(--accent)';
-            btn.style.color = '#000';
-            
-            // Save original container HTML
-            originalContainerHTML = container.innerHTML;
-            
-            // Get current video URL as version A
-            videoVersionA = video ? video.src : null;
-            
-            // Create split view
-            container.innerHTML = `
-                <div style="display: flex; width: 100%; height: 100%; position: relative;">
-                    <div style="flex: 1; position: relative; border-right: 2px solid var(--accent);">
-                        <video id="video-a" loop playsinline autoplay muted style="width: 100%; height: 100%; object-fit: contain;">
-                            <source src="${videoVersionA}" type="video/mp4">
-                        </video>
-                        <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">A</div>
-                    </div>
-                    <div style="flex: 1; position: relative;">
-                        <video id="video-b" loop playsinline autoplay muted style="width: 100%; height: 100%; object-fit: contain;">
-                            <source src="${videoVersionA}" type="video/mp4">
-                        </video>
-                        <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">B</div>
-                    </div>
-                </div>
-            `;
-            
-            // Sync playback
-            const videoA = document.getElementById('video-a');
-            const videoB = document.getElementById('video-b');
-            if (videoA && videoB) {
-                videoA.addEventListener('play', () => videoB.play());
-                videoA.addEventListener('pause', () => videoB.pause());
-                videoA.addEventListener('seeked', () => videoB.currentTime = videoA.currentTime);
-            }
-            
-            tg.showAlert('A/B Compare Mode: Both videos are synced.');
+        const currentRecord = records.find(r => r.id === activeRecordId);
+        if (!currentRecord) return;
+        
+        const currentVersion = parseInt(currentRecord.fields.version || 1);
+        const shotName = currentRecord.fields.shot_name;
+        
+        // Find all versions of this shot
+        const shotVersions = records.filter(r => r.fields.shot_name === shotName);
+        shotVersions.sort((a, b) => (a.fields.version || 1) - (b.fields.version || 1));
+        
+        const currentIndex = shotVersions.findIndex(r => r.id === activeRecordId);
+        const newIndex = currentIndex + direction;
+        
+        if (newIndex >= 0 && newIndex < shotVersions.length) {
+            const newRecord = shotVersions[newIndex];
+            openPlayer(newRecord.id);
         } else {
-            // Exit A/B mode
-            isABCompare = false;
-            btn.style.background = '';
-            btn.style.color = '';
-            
-            // Restore original container HTML
-            if (originalContainerHTML) {
-                container.innerHTML = originalContainerHTML;
-                originalContainerHTML = null;
-            }
-            
-            // Restart scrubber animation
-            restartScrubberAnimation();
+            tg.showAlert(direction < 0 ? 'No previous version' : 'No next version');
         }
     }
 
@@ -1868,12 +1826,20 @@ render();
             btn.style.background = 'var(--accent)';
             btn.style.color = '#000';
             
-            // Setup canvas
+            // Setup canvas - match video container size
             canvas.style.display = 'block';
             canvas.style.pointerEvents = 'auto';
             tools.style.display = 'flex';
-            canvas.width = container.offsetWidth;
-            canvas.height = container.offsetHeight;
+            
+            // Get actual video element dimensions
+            const video = document.getElementById('main-v');
+            if (video) {
+                canvas.width = video.offsetWidth;
+                canvas.height = video.offsetHeight;
+            } else {
+                canvas.width = container.offsetWidth;
+                canvas.height = container.offsetHeight;
+            }
             
             drawContext = canvas.getContext('2d');
             drawContext.lineCap = 'round';
@@ -1889,6 +1855,7 @@ render();
             touchStartHandler = (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
                 startDrawing({clientX: touch.clientX, clientY: touch.clientY});
             };
             touchMoveHandler = (e) => {
@@ -1902,7 +1869,6 @@ render();
             canvas.addEventListener('touchend', stopDrawing);
             
             // Pause video while drawing
-            const video = document.getElementById('main-v');
             if (video) video.pause();
         } else {
             // Exit draw mode
@@ -1923,6 +1889,11 @@ render();
             if (touchStartHandler) canvas.removeEventListener('touchstart', touchStartHandler);
             if (touchMoveHandler) canvas.removeEventListener('touchmove', touchMoveHandler);
             canvas.removeEventListener('touchend', stopDrawing);
+            
+            // Clear canvas
+            if (drawContext && canvas) {
+                drawContext.clearRect(0, 0, canvas.width, canvas.height);
+            }
             
             // Restart scrubber animation
             restartScrubberAnimation();
