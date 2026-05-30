@@ -1317,15 +1317,20 @@ async function loadComments(shotId) {
 
         try {
             const formula = `AND({shot_name} = '${activeRecordShotName}', {version} = ${activeRecordVersion})`;
+            console.log('Loading comments:', { shotName: activeRecordShotName, version: activeRecordVersion, formula });
             const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Comments?filterByFormula=${encodeURIComponent(formula)}`;
 
             const response = await fetch(url, {
                 headers: { Authorization: `Bearer ${K}` }
             });
 
-            if (!response.ok) throw new Error("Airtable fetch failed");
+            if (!response.ok) {
+                console.error('Airtable API error:', response.status, response.statusText);
+                throw new Error("Airtable fetch failed");
+            }
 
             const json = await response.json();
+            console.log('Comments response:', json);
             const items = json.records || [];
 
             items.sort((a, b) => new Date(b.createdTime) - new Date(a.createdTime));
@@ -1368,7 +1373,7 @@ commentsList.innerHTML = items.map(c => {
             }).join('');
         } catch (e) {
             console.error("Failed to load comments:", e);
-            commentsList.innerHTML = `<div class="comment-empty-state" style="color: var(--danger);">Failed to load comments logs</div>`;
+            commentsList.innerHTML = `<div class="comment-empty-state" style="color: var(--danger);">Failed to load comments logs: ${e.message}</div>`;
         }
     }
 
