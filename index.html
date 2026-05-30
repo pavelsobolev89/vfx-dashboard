@@ -1016,7 +1016,7 @@
             <div class="comment-section-title description-title">
                 <span>Description</span>
             </div>
-            <div class="comment-composer" style="margin-top: 8px;">
+            <div class="comment-composer" style="margin-top: 4px;">
                 <textarea id="description-input" class="comment-area" placeholder="Add description..."></textarea>
                 <button id="save-desc-btn" class="submit-btn" onclick="saveDescription()">SAVE DESCRIPTION</button>
             </div>
@@ -1561,44 +1561,94 @@ function closePlayer() {
 render();
     }
 
+    let isVideoFullscreen = false;
+    
     function toggleFullscreen() {
         const video = document.getElementById('main-v');
         const container = document.getElementById('v-container');
         if (!video) return;
         
-        const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-        
-        if (isFullscreen) {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.mozCancelFullScreen) {
-                document.mozCancelFullScreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
-            if (screen.orientation && screen.orientation.unlock) {
-                screen.orientation.unlock();
-            }
+        if (isVideoFullscreen) {
+            exitVideoFullscreen();
         } else {
-            const elem = container || video;
-            
-            if (video.webkitEnterFullscreen) {
-                video.webkitEnterFullscreen();
-            } else if (elem.requestFullscreen) {
-                elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
-            } else if (elem.mozRequestFullScreen) {
-                elem.mozRequestFullScreen();
-            } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
-            }
-            
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(() => {});
-            }
+            enterVideoFullscreen();
+        }
+    }
+    
+    function enterVideoFullscreen() {
+        const video = document.getElementById('main-v');
+        const container = document.getElementById('v-container');
+        if (!video || !container) return;
+        
+        isVideoFullscreen = true;
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.width = '100vw';
+        container.style.height = '100vh';
+        container.style.zIndex = '9999';
+        container.style.background = '#000';
+        container.style.margin = '0';
+        container.style.padding = '0';
+        
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'contain';
+        
+        // Add exit button
+        const exitBtn = document.createElement('button');
+        exitBtn.id = 'exit-fullscreen-btn';
+        exitBtn.innerHTML = '✕';
+        exitBtn.style.position = 'absolute';
+        exitBtn.style.top = '16px';
+        exitBtn.style.right = '16px';
+        exitBtn.style.zIndex = '10000';
+        exitBtn.style.background = 'rgba(0,0,0,0.7)';
+        exitBtn.style.color = '#fff';
+        exitBtn.style.border = 'none';
+        exitBtn.style.borderRadius = '50%';
+        exitBtn.style.width = '40px';
+        exitBtn.style.height = '40px';
+        exitBtn.style.fontSize = '20px';
+        exitBtn.style.cursor = 'pointer';
+        exitBtn.onclick = exitVideoFullscreen;
+        container.appendChild(exitBtn);
+        
+        // Try to lock orientation on mobile
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+        }
+    }
+    
+    function exitVideoFullscreen() {
+        const video = document.getElementById('main-v');
+        const container = document.getElementById('v-container');
+        if (!video || !container) return;
+        
+        isVideoFullscreen = false;
+        container.style.position = '';
+        container.style.top = '';
+        container.style.left = '';
+        container.style.width = '';
+        container.style.height = '';
+        container.style.zIndex = '';
+        container.style.background = '';
+        container.style.margin = '';
+        container.style.padding = '';
+        
+        video.style.width = '';
+        video.style.height = '';
+        video.style.objectFit = '';
+        
+        // Remove exit button
+        const exitBtn = document.getElementById('exit-fullscreen-btn');
+        if (exitBtn) {
+            exitBtn.remove();
+        }
+        
+        // Unlock orientation
+        if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
         }
     }
 
