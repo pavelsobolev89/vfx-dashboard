@@ -1009,11 +1009,11 @@
         
 <div class="p-body">
             <!-- Description -->
-            <div id="description-container" style="padding: 12px 20px; border-bottom: 1px solid var(--border-color);">
+            <div id="description-container" style="padding: 12px 20px;">
                 <div class="comment-section-title" style="font-size: 14px; margin-bottom: 8px;">
                     <span>Description</span>
                 </div>
-                <textarea id="description-input" style="width: 100%; min-height: 60px; background: var(--surface-2); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; resize: vertical;"></textarea>
+                <textarea id="description-input" style="width: 100%; min-height: 60px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: #fff; padding: 12px 14px; border-radius: 10px; font-size: 14px; margin-bottom: 8px; resize: vertical; font-family: inherit; outline: none;"></textarea>
                 <button id="save-desc-btn" onclick="saveDescription()" style="display: none; background: var(--accent); border: none; color: #000; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">Save</button>
             </div>
 
@@ -1027,10 +1027,6 @@
             </div>
 
             <!-- Composer -->
-            <div class="comment-section-title" style="margin-top: 10px;">
-                <span>Comments</span>
-            </div>
-            
             <div class="comment-composer">
                 <textarea id="comment-input" class="comment-area" placeholder="Write what needs to be fixed or approved..."></textarea>
                 <button id="comment-submit" class="submit-btn" onclick="sendComment()">SEND COMMENT</button>
@@ -1571,10 +1567,7 @@ render();
         const step = 1 / fps;
         reverseInterval = setInterval(() => {
             if (video.currentTime <= 0) {
-                video.pause();
-                video.currentTime = 0;
-                stopReversePlayback();
-                return;
+                video.currentTime = video.duration;
             }
             video.currentTime = Math.max(0, video.currentTime - step);
         }, 1000 / fps);
