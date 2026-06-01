@@ -1009,6 +1009,8 @@
             <div style="display: flex; gap: 8px;">
                 <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="width: 44px; height: 44px;">⬅️</button>
                 <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="width: 44px; height: 44px;">➡️</button>
+                <button class="p-btn" onclick="document.getElementById('video-upload-input').click()" title="Upload Video" style="width: 44px; height: 44px;">📎</button>
+                <input type="file" id="video-upload-input" accept="video/*" style="display: none;" onchange="uploadVideo(this)">
                 <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
             </div>
         </div>
@@ -1810,6 +1812,78 @@ render();
         } else {
             tg.showAlert(direction < 0 ? 'No previous version' : 'No next version');
         }
+    }
+
+    async function uploadVideo(input) {
+        const file = input.files[0];
+        if (!file) return;
+        
+        if (!activeRecordId) {
+            tg.showAlert('No shot selected');
+            return;
+        }
+        
+        const currentRecord = records.find(r => r.id === activeRecordId);
+        if (!currentRecord) return;
+        
+        const shotName = currentRecord.fields.shot_name;
+        const currentVersion = parseInt(currentRecord.fields.version || 0);
+        const newVersion = currentVersion + 1;
+        
+        tg.showAlert(`Uploading ${file.name} as v${String(newVersion).padStart(3, '0')}...`);
+        
+        try {
+            // Upload to Telegram
+            const botToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
+            const formData = new FormData();
+            formData.append('chat_id', tg.initDataUnsafe.user.id);
+            formData.append('video', file);
+            formData.append('caption', `${shotName} v${String(newVersion).padStart(3, '0')}`);
+            
+            const uploadResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const uploadResult = await uploadResponse.json();
+            
+            if (!uploadResult.ok) {
+                throw new Error(uploadResult.description || 'Upload failed');
+            }
+            
+            const fileId = uploadResult.result.video.file_id;
+            
+            // Send to n8n webhook
+            const webhookPayload = {
+                operation: 'publish',
+                shot_name: shotName,
+                version: newVersion,
+                artist: currentUsername || 'unknown',
+                file_id: fileId,
+                status: 'Review'
+            };
+            
+            const webhookResponse = await fetch('https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(webhookPayload)
+            });
+            
+            if (webhookResponse.ok) {
+                tg.showAlert(`✅ Uploaded v${String(newVersion).padStart(3, '0')} successfully!`);
+                // Refresh data after 2 seconds to let n8n process
+                setTimeout(() => fetchData(), 2000);
+            } else {
+                throw new Error('Webhook failed');
+            }
+            
+        } catch (error) {
+            console.error('Upload error:', error);
+            tg.showAlert(`❌ Upload failed: ${error.message}`);
+        }
+        
+        // Reset input
+        input.value = '';
     }
 
     function initScrubber() {
