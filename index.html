@@ -1197,13 +1197,11 @@ let activeRecordId = null;
             // Объединяем данные
             records = shots.map(shot => {
                 const shotVersions = versions.filter(v => v.fields.shot_name === shot.fields.shot_name);
-                const currentVersion = shot.fields.current_version;
-                const currentVersionRecord = shotVersions.find(v => v.fields.version === currentVersion);
                 
                 return {
                     ...shot,
                     versions: shotVersions,
-                    currentVersionRecord: currentVersionRecord || shotVersions[shotVersions.length - 1]
+                    currentVersionRecord: shotVersions[shotVersions.length - 1]
                 };
             });
             
