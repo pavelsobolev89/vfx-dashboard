@@ -978,8 +978,6 @@
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
-            <button class="p-btn" onclick="document.getElementById('video-upload-input').click()" title="Upload Video" style="width: 36px; height: 36px; font-size: 16px;">📎</button>
-            <input type="file" id="video-upload-input" accept="video/*" style="display: none;" onchange="uploadVideo(this)">
             <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; margin-left: auto;">
                 <option value="Ready To Start" style="color: var(--text-secondary);">Ready To Start</option>
                 <option value="In Progress" style="color: var(--info);">In Progress</option>
@@ -989,6 +987,8 @@
             </select>
         </div>
         <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button onclick="document.getElementById('video-upload-input').click()" style="background: transparent; border: 1px solid var(--border-color); color: var(--accent); padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;">📎 Upload Video</button>
+            <input type="file" id="video-upload-input" accept="video/*" style="display: none;" onchange="uploadVideo(this)">
             <button onclick="createNewShot()" style="background: transparent; border: 1px solid var(--border-color); color: var(--accent); padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;">+ New Shot</button>
         </div>
     </div>
@@ -1009,13 +1009,13 @@
         <div class="p-nav" style="justify-content: space-between;">
             <button id="loop-reverse-btn" class="p-btn" onclick="togglePlayMode()" title="Loop / Reverse" style="font-size: 16px; width: 44px; height: 44px;">🔄</button>
             <div style="display: flex; gap: 8px;">
-                <button class="p-btn" onclick="vStep(-1)" title="Frame Backward" style="width: 44px; height: 44px;">◀</button>
-                <button class="p-btn play-pause-btn" onclick="vToggle()" title="Play / Pause" style="width: 44px; height: 44px;">▶</button>
-                <button class="p-btn" onclick="vStep(1)" title="Frame Forward" style="width: 44px; height: 44px;">▶</button>
+                <button class="p-btn" onclick="vStep(-1)" title="Frame Backward" style="width: 44px; height: 44px;">⏪</button>
+                <button id="play-pause-btn" class="p-btn play-pause-btn" onclick="vToggle()" title="Play / Pause" style="width: 44px; height: 44px;">▶️</button>
+                <button class="p-btn" onclick="vStep(1)" title="Frame Forward" style="width: 44px; height: 44px;">⏩</button>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="width: 44px; height: 44px;">⬅️</button>
-                <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="width: 44px; height: 44px;">➡️</button>
+                <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="width: 44px; height: 44px;">◀</button>
+                <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="width: 44px; height: 44px;">▶</button>
                 <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
             </div>
         </div>
@@ -1550,6 +1550,15 @@ async function openPlayer(id) {
                         }
                         updateFrameDisplay();
                     });
+                    
+                    v.addEventListener('play', () => {
+                        const pb = document.getElementById('play-pause-btn');
+                        if (pb) pb.innerText = '⏸';
+                    });
+                    v.addEventListener('pause', () => {
+                        const pb = document.getElementById('play-pause-btn');
+                        if (pb) pb.innerText = '▶️';
+                    });
                 }
             }, 100);
         } else {
@@ -2051,13 +2060,16 @@ render();
 
     function vToggle() {
         const v = document.getElementById('main-v');
+        const btn = document.getElementById('play-pause-btn');
         if(v) {
             if (v.paused) {
                 v.play().catch(()=>{});
                 showHUD(true);
+                if (btn) btn.innerText = '⏸';
             } else {
                 v.pause();
                 showHUD(false);
+                if (btn) btn.innerText = '▶️';
             }
         }
     }
