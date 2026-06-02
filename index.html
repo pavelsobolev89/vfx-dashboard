@@ -1063,10 +1063,10 @@
     const N8N_SHOTS_URL = 'https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots';
     
     async function n8nPost(payload) {
-        const params = new URLSearchParams(payload);
         return fetch(N8N_SHOTS_URL, {
             method: 'POST',
-            body: params
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
     }
     
