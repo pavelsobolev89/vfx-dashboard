@@ -1170,12 +1170,34 @@ let activeRecordId = null;
         
         let r;
         try {
-            const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`;
-            r = await fetch(url, {
+            // Загружаем шоты
+            const shotsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Shots?sort[0][field]=shot_name&sort[0][direction]=asc`;
+            r = await fetch(shotsUrl, {
                 headers: { Authorization: `Bearer ${K}` }
             });
-            const json = await r.json();
-            records = json.records || [];
+            const shotsJson = await r.json();
+            const shots = shotsJson.records || [];
+            
+            // Загружаем версии
+            const versionsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Versions?sort[0][field]=shot_name&sort[0][direction]=asc&sort[1][field]=version&sort[1][direction]=asc`;
+            const versionsR = await fetch(versionsUrl, {
+                headers: { Authorization: `Bearer ${K}` }
+            });
+            const versionsJson = await versionsR.json();
+            const versions = versionsJson.records || [];
+            
+            // Объединяем данные
+            records = shots.map(shot => {
+                const shotVersions = versions.filter(v => v.fields.shot_name === shot.fields.shot_name);
+                const currentVersion = shot.fields.current_version;
+                const currentVersionRecord = shotVersions.find(v => v.fields.version === currentVersion);
+                
+                return {
+                    ...shot,
+                    versions: shotVersions,
+                    currentVersionRecord: currentVersionRecord || shotVersions[shotVersions.length - 1]
+                };
+            });
             
             if (records.length > 0) {
                 const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
@@ -1265,7 +1287,13 @@ function init() {
         
         let filtered = records;
         if (curEpFilter) filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curEpFilter));
-        if (curStatusFilter) filtered = filtered.filter(r => (r.fields.status || '') === curStatusFilter);
+        if (curStatusFilter) {
+            filtered = filtered.filter(r => {
+                const versionRecord = r.currentVersionRecord;
+                const status = versionRecord ? versionRecord.fields.status : r.fields.status;
+                return (status || '') === curStatusFilter;
+            });
+        }
         if (searchQuery) filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().includes(searchQuery));
         
         if (filtered.length === 0) {
@@ -1274,9 +1302,10 @@ function init() {
         }
         
         grid.innerHTML = filtered.map(r => {
-            const st = (r.fields.status || '').toLowerCase();
-const img = r.fields.thumbnail?.[0]?.url || '';
-            const videoUrl = getVideoUrl(r);
+            const versionRecord = r.currentVersionRecord;
+            const st = (versionRecord ? versionRecord.fields.status : r.fields.status || '').toLowerCase();
+            const img = r.fields.thumbnail?.[0]?.url || '';
+            const videoUrl = versionRecord ? getVideoUrl(versionRecord) : getVideoUrl(r);
             
             let mediaContent = `<img src="${img}" class="thumb">`;
             let hoverEvents = '';
@@ -1291,14 +1320,16 @@ const img = r.fields.thumbnail?.[0]?.url || '';
             }
 
             const badgeClass = statusMap[st] || 'st-ready';
+            const statusText = versionRecord ? versionRecord.fields.status : r.fields.status;
+            const versionText = versionRecord ? versionRecord.fields.version : '';
 
             if (isList) {
                 return `
                     <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
                         <div class="thumb-wrapper">${mediaContent}</div>
-                        <div class="info-name">${r.fields.shot_name}</div>
+                        <div class="info-name">${r.fields.shot_name} ${versionText ? `<span style="color: var(--text-secondary); font-size: 0.9em;">(v${versionText})</span>` : ''}</div>
                         <div class="info-status">
-                            <span class="status-badge ${badgeClass}">${(r.fields.status||'READY TO START').toUpperCase()}</span>
+                            <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
                         </div>
                     </div>`;
             } else {
@@ -1307,8 +1338,9 @@ const img = r.fields.thumbnail?.[0]?.url || '';
                         <div class="thumb-wrapper">${mediaContent}</div>
                         <div class="info">
                             <div class="info-name-title">${r.fields.shot_name}</div>
-                            <div style="margin-top: 6px;">
-                                <span class="status-badge ${badgeClass}">${r.fields.status||'READY TO START'}</span>
+                            <div style="margin-top: 6px; display: flex; gap: 8px; align-items: center;">
+                                <span class="status-badge ${badgeClass}">${statusText||'READY TO START'}</span>
+                                ${versionText ? `<span style="color: var(--text-secondary); font-size: 0.85em;">v${versionText}</span>` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -1397,10 +1429,12 @@ async function openPlayer(id) {
         const r = records.find(rec => rec.id === id);
         if(!r) return;
 
+        const versionRecord = r.currentVersionRecord;
+        
         activeRecordId = id; 
         activeRecordShotName = r.fields.shot_name || "";
-        activeRecordStatus = r.fields.status || "";
-        activeRecordVersion = r.fields.version ? Number(r.fields.version) : 0;
+        activeRecordStatus = versionRecord ? versionRecord.fields.status : r.fields.status || "";
+        activeRecordVersion = versionRecord ? Number(versionRecord.fields.version) : 0;
         
         document.getElementById('comment-input').value = ""; 
         document.getElementById('grid-view').style.display = 'none';
@@ -1408,15 +1442,16 @@ async function openPlayer(id) {
         
         document.getElementById('p-title').innerText = r.fields.shot_name;
         document.getElementById('p-project-name').innerText = PROJECT_TITLE;
-        const ver = `v${String(r.fields.version || 0).padStart(3, '0')}`;
+        const ver = versionRecord ? `v${versionRecord.fields.version}` : 'v000';
         document.getElementById('p-version').innerText = ver;
-        const st = (r.fields.status || '').toLowerCase();
+        const st = (versionRecord ? versionRecord.fields.status : r.fields.status || '').toLowerCase();
         const versionColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
         document.getElementById('p-version').style.color = versionColor;
-const statusSelect = document.getElementById('p-status-select');
+        
+        const statusSelect = document.getElementById('p-status-select');
         if (statusSelect) {
-            statusSelect.value = r.fields.status || '';
-            const st = (r.fields.status || '').toLowerCase();
+            statusSelect.value = versionRecord ? versionRecord.fields.status : r.fields.status || '';
+            const st = (versionRecord ? versionRecord.fields.status : r.fields.status || '').toLowerCase();
             const bgColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
             statusSelect.style.color = bgColor;
         }
@@ -1449,7 +1484,7 @@ const statusSelect = document.getElementById('p-status-select');
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">CONNECTING TO TELEGRAM CLOUD...</div>`;
 
-let videoUrl = getVideoUrl(r);
+        let videoUrl = versionRecord ? getVideoUrl(versionRecord) : getVideoUrl(r);
 
         if (videoUrl) {
             container.innerHTML = `
@@ -1796,19 +1831,20 @@ render();
         const currentRecord = records.find(r => r.id === activeRecordId);
         if (!currentRecord) return;
         
-        const currentVersion = parseInt(currentRecord.fields.version || 1);
-        const shotName = currentRecord.fields.shot_name;
+        const versions = currentRecord.versions || [];
+        if (versions.length === 0) {
+            tg.showAlert('No versions available');
+            return;
+        }
         
-        // Find all versions of this shot
-        const shotVersions = records.filter(r => r.fields.shot_name === shotName);
-        shotVersions.sort((a, b) => (a.fields.version || 1) - (b.fields.version || 1));
-        
-        const currentIndex = shotVersions.findIndex(r => r.id === activeRecordId);
+        const currentVersionRecord = currentRecord.currentVersionRecord;
+        const currentIndex = versions.findIndex(v => v.id === currentVersionRecord?.id);
         const newIndex = currentIndex + direction;
         
-        if (newIndex >= 0 && newIndex < shotVersions.length) {
-            const newRecord = shotVersions[newIndex];
-            openPlayer(newRecord.id);
+        if (newIndex >= 0 && newIndex < versions.length) {
+            const newVersionRecord = versions[newIndex];
+            currentRecord.currentVersionRecord = newVersionRecord;
+            openPlayer(activeRecordId);
         } else {
             tg.showAlert(direction < 0 ? 'No previous version' : 'No next version');
         }
@@ -1827,7 +1863,8 @@ render();
         if (!currentRecord) return;
         
         const shotName = currentRecord.fields.shot_name;
-        const currentVersion = parseInt(currentRecord.fields.version || 0);
+        const versions = currentRecord.versions || [];
+        const currentVersion = versions.length > 0 ? parseInt(versions[versions.length - 1].fields.version || 0) : 0;
         const newVersion = currentVersion + 1;
         
         tg.showAlert(`Uploading ${file.name} as v${String(newVersion).padStart(3, '0')}...`);
@@ -1857,7 +1894,7 @@ render();
             const webhookPayload = {
                 operation: 'publish',
                 shot_name: shotName,
-                version: newVersion,
+                version: String(newVersion).padStart(3, '0'),
                 artist: currentUsername || 'unknown',
                 file_id: fileId,
                 status: 'Review'
@@ -2128,7 +2165,9 @@ async function sendComment() {
                 // Update local record so grid shows new status without reload
                 if (activeRecordId) {
                     const rec = records.find(r => r.id === activeRecordId);
-                    if (rec) rec.fields.status = newStatus;
+                    if (rec && rec.currentVersionRecord) {
+                        rec.currentVersionRecord.fields.status = newStatus;
+                    }
                 }
             } else {
                 tg.showAlert("Failed to update status.");
