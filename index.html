@@ -977,6 +977,8 @@
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
         <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
         <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
+        <button class="p-btn" onclick="document.getElementById('video-upload-input').click()" title="Upload Video" style="width: 36px; height: 36px; font-size: 16px;">📎</button>
+        <input type="file" id="video-upload-input" accept="video/*" style="display: none;" onchange="uploadVideo(this)">
         <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; margin-left: auto;">
             <option value="Ready To Start" style="color: var(--text-secondary);">Ready To Start</option>
             <option value="In Progress" style="color: var(--info);">In Progress</option>
@@ -1002,15 +1004,8 @@
         <div class="p-nav" style="justify-content: space-between;">
             <button id="loop-reverse-btn" class="p-btn" onclick="togglePlayMode()" title="Loop / Reverse" style="font-size: 16px; width: 44px; height: 44px;">🔄</button>
             <div style="display: flex; gap: 8px;">
-                <button class="p-btn" onclick="vStep(-1)" title="Step Frame Backward (1/24s)" style="width: 44px; height: 44px;">⏮</button>
-                <button class="p-btn play-pause-btn" onclick="vToggle()" title="Play / Pause" style="width: 44px; height: 44px;">⏯</button>
-                <button class="p-btn" onclick="vStep(1)" title="Step Frame Forward (1/24s)" style="width: 44px; height: 44px;">⏭</button>
-            </div>
-            <div style="display: flex; gap: 8px;">
                 <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="width: 44px; height: 44px;">⬅️</button>
                 <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="width: 44px; height: 44px;">➡️</button>
-                <button class="p-btn" onclick="document.getElementById('video-upload-input').click()" title="Upload Video" style="width: 44px; height: 44px;">📎</button>
-                <input type="file" id="video-upload-input" accept="video/*" style="display: none;" onchange="uploadVideo(this)">
                 <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
             </div>
         </div>
@@ -1021,8 +1016,11 @@
                 <div class="comment-section-title description-title">
                     <span>Description</span>
                     <button id="edit-desc-btn" onclick="toggleDescriptionEdit()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">✏️ Edit</button>
+                    <button onclick="document.getElementById('screenshot-upload-input').click()" title="Upload Screenshot" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">📷 Upload</button>
+                    <input type="file" id="screenshot-upload-input" accept="image/*" style="display: none;" onchange="uploadScreenshot(this)">
                 </div>
                 <div id="description-display" style="padding: 12px; margin-top: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; line-height: 1.5; min-height: 40px;"></div>
+                <div id="screenshot-display" style="margin-top: 8px;"></div>
                 <div id="description-edit-container" class="comment-composer" style="margin-top: 4px; display: none;">
                     <textarea id="description-input" class="comment-area" placeholder="Add description..."></textarea>
                 </div>
@@ -1920,6 +1918,67 @@ render();
         }
         
         // Reset input
+        input.value = '';
+    }
+
+    async function uploadScreenshot(input) {
+        const file = input.files[0];
+        if (!file) return;
+        
+        if (!activeRecordId) {
+            tg.showAlert('No shot selected');
+            return;
+        }
+        
+        const currentRecord = records.find(r => r.id === activeRecordId);
+        if (!currentRecord) return;
+        
+        const shotName = currentRecord.fields.shot_name;
+        
+        tg.showAlert(`Uploading screenshot...`);
+        
+        try {
+            const botToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
+            const formData = new FormData();
+            formData.append('chat_id', tg.initDataUnsafe.user.id);
+            formData.append('photo', file);
+            formData.append('caption', `${shotName} screenshot`);
+            
+            const uploadResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const uploadResult = await uploadResponse.json();
+            
+            if (!uploadResult.ok) {
+                throw new Error(uploadResult.description || 'Upload failed');
+            }
+            
+            const fileId = uploadResult.result.photo.slice(-1)[0].file_id;
+            
+            // Get file URL from Telegram
+            const fileResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+            const fileResult = await fileResponse.json();
+            const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileResult.result.file_path}`;
+            
+            // Display screenshot
+            const displayDiv = document.getElementById('screenshot-display');
+            const img = document.createElement('img');
+            img.src = fileUrl;
+            img.style.maxWidth = '100%';
+            img.style.borderRadius = '8px';
+            img.style.border = '1px solid var(--border-color)';
+            displayDiv.innerHTML = '';
+            displayDiv.appendChild(img);
+            
+            tg.showAlert('✅ Screenshot uploaded!');
+            
+        } catch (error) {
+            console.error('Screenshot upload error:', error);
+            tg.showAlert(`❌ Upload failed: ${error.message}`);
+        }
+        
         input.value = '';
     }
 
