@@ -1900,7 +1900,7 @@ render();
             
             const webhookResponse = await fetch('https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(webhookPayload)
             });
             
@@ -2099,7 +2099,7 @@ async function sendComment() {
         try {
             const response = await fetch('https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
 
@@ -2160,7 +2160,7 @@ async function sendComment() {
         try {
             const response = await fetch('https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
 
@@ -2201,7 +2201,7 @@ async function sendComment() {
         try {
             const response = await fetch('https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
 
