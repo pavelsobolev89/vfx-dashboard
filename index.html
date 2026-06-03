@@ -990,15 +990,14 @@
     </div>
     
     <div class="filter-bar">
-        <!-- Live Search Field -->
-        <div class="search-wrapper">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="search-input" class="search-input" placeholder="Search shots by name..." oninput="handleSearch(this.value)">
-        </div>
-        <div class="filter-controls-row">
-            <div id="tabs" style="margin-bottom: 4px;"></div>
-            <div class="status-filter-box" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span style="font-size:14px; font-weight:600;">Status</span>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:nowrap; white-space:nowrap;">
+            <div class="search-wrapper" style="flex-shrink:0; width:auto;">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search-input" class="search-input" placeholder="Search shots by name..." oninput="handleSearch(this.value)">
+            </div>
+            <div id="tabs" style="display:flex; gap:4px;"></div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:14px; font-weight:600; color:#fff;">Status</span>
                 <span style="color:var(--text-muted);">|</span>
                 <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
                     <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
@@ -1009,7 +1008,7 @@
                     <option value="Approved" style="background:#2a2a2a;color:#fff;">APPROVED</option>
                 </select>
                 <span style="color:var(--text-muted);">|</span>
-                <span style="font-size:14px; font-weight:600;">Team</span>
+                <span style="font-size:14px; font-weight:600; color:#fff;">Team</span>
                 <span style="color:var(--text-muted);">|</span>
                 <select id="team-select" class="status-select" onchange="setTeamFilter(this.value)">
                     <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
