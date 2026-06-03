@@ -400,7 +400,12 @@
             color: var(--text-primary);
             display: flex;
             align-items: center;
-            word-break: break-all;
+            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .list-mode .info-name > span {
+            flex-shrink: 0;
         }
 
         .list-mode .info-status {
@@ -1357,7 +1362,11 @@ function init() {
                 return `
                     <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
                         <div class="thumb-wrapper">${mediaContent}</div>
-                        <div class="info-name">${r.fields.shot_name} ${versionText ? `<span style="font-family: Outfit, sans-serif; font-weight: 800; color: ${verColor};">v${versionText}</span>` : ''} ${dep ? `<span style="color: var(--text-muted); font-size: 0.8em; border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 4px;">${dep.toUpperCase()}</span>` : ''}</div>
+                        <div class="info-name">
+                            <span>${r.fields.shot_name}</span>
+                            ${versionText ? `<span style="font-family: Outfit, sans-serif; font-weight: 800; color: ${verColor};">v${versionText}</span>` : ''}
+                            ${dep ? `<span style="color: var(--text-muted); font-size: 0.75em; border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 4px;">${dep.toUpperCase()}</span>` : ''}
+                        </div>
                         <div class="info-status">
                             <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
                         </div>
