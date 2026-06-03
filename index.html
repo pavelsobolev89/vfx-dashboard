@@ -996,8 +996,10 @@
             <input type="text" id="search-input" class="search-input" placeholder="Search shots by name..." oninput="handleSearch(this.value)">
         </div>
         <div class="filter-controls-row">
-            <div class="status-filter-box" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">Status</span>
+            <div id="tabs" style="margin-bottom: 4px;"></div>
+            <div id="dept-tabs" style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; -webkit-overflow-scrolling: touch; scrollbar-width: none;"></div>
+            <div class="status-filter-box">
+                <span>Status:</span>
                 <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
                     <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
                     <option value="Review" style="background:#2a2a2a;color:#fff;">REVIEW</option>
@@ -1005,15 +1007,6 @@
                     <option value="To Fix" style="background:#2a2a2a;color:#fff;">TO FIX</option>
                     <option value="Ready to start" style="background:#2a2a2a;color:#fff;">READY TO START</option>
                     <option value="Approved" style="background:#2a2a2a;color:#fff;">APPROVED</option>
-                </select>
-                <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">Team</span>
-                <select id="team-select" class="status-select" onchange="setTeamFilter(this.value)">
-                    <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
-                    <option value="comp" style="background:#2a2a2a;color:#fff;">COMP</option>
-                    <option value="render" style="background:#2a2a2a;color:#fff;">RENDER</option>
-                    <option value="animation" style="background:#2a2a2a;color:#fff;">ANIM</option>
-                    <option value="layout" style="background:#2a2a2a;color:#fff;">LAYOUT</option>
-                    <option value="edit" style="background:#2a2a2a;color:#fff;">EDIT</option>
                 </select>
             </div>
         </div>
@@ -1375,6 +1368,18 @@ let activeRecordId = null;
             });
             
             if (records.length > 0) {
+                const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
+                if (eps.length > 0) {
+                    if (!curEpFilter || !eps.includes(curEpFilter)) curEpFilter = eps[0];
+                    document.getElementById('tabs').innerHTML = eps.map(ep => `
+                        <div class="tab ${ep===curEpFilter?'active':''}" onclick="setEpFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
+                }
+                
+                // Department tabs
+                const depts = [...new Set(records.map(r => r.fields.department || '').filter(Boolean))].sort();
+                document.getElementById('dept-tabs').innerHTML = (curDeptFilter ? `<div class="tab" onclick="setDeptFilter('', this)">ALL</div>` : '') + depts.map(d => `
+                    <div class="tab ${d===curDeptFilter?'active':''}" onclick="setDeptFilter('${d}', this)">${d.toUpperCase()}</div>`).join('');
+                
                 await preloadVideoUrls();
                 render();
             } else {
@@ -1415,11 +1420,18 @@ function init() {
         }, 15 * 60 * 1000);
     }
 
-    function setTeamFilter(val) {
-        curDeptFilter = val;
+    function setEpFilter(f, el) {
+        curEpFilter = f;
+        document.querySelectorAll('#tabs .tab').forEach(t => t.classList.remove('active'));
+        if (el) el.classList.add('active');
         render();
     }
-
+    function setDeptFilter(d, el) {
+        curDeptFilter = d;
+        document.querySelectorAll('#dept-tabs .tab').forEach(t => t.classList.remove('active'));
+        if (el) el.classList.add('active');
+        render();
+    }
     function setStatusFilter(status) {
         curStatusFilter = status;
         render();
