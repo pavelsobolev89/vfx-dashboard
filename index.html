@@ -996,10 +996,8 @@
             <input type="text" id="search-input" class="search-input" placeholder="Search shots by name..." oninput="handleSearch(this.value)">
         </div>
         <div class="filter-controls-row">
-            <div id="tabs" style="margin-bottom: 4px;"></div>
-            <div id="dept-tabs" style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; -webkit-overflow-scrolling: touch; scrollbar-width: none;"></div>
-            <div class="status-filter-box">
-                <span>Status:</span>
+            <div class="status-filter-box" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">Status</span>
                 <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
                     <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
                     <option value="Review" style="background:#2a2a2a;color:#fff;">REVIEW</option>
@@ -1007,6 +1005,19 @@
                     <option value="To Fix" style="background:#2a2a2a;color:#fff;">TO FIX</option>
                     <option value="Ready to start" style="background:#2a2a2a;color:#fff;">READY TO START</option>
                     <option value="Approved" style="background:#2a2a2a;color:#fff;">APPROVED</option>
+                </select>
+                <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">Team</span>
+                <select id="team-select" class="status-select" onchange="setTeamFilter(this.value)">
+                    <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
+                </select>
+                <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">Dept</span>
+                <select id="dept-filter-select" class="status-select" onchange="setDeptFilter(this.value)">
+                    <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
+                    <option value="comp" style="background:#2a2a2a;color:#fff;">COMP</option>
+                    <option value="render" style="background:#2a2a2a;color:#fff;">RENDER</option>
+                    <option value="animation" style="background:#2a2a2a;color:#fff;">ANIM</option>
+                    <option value="layout" style="background:#2a2a2a;color:#fff;">LAYOUT</option>
+                    <option value="edit" style="background:#2a2a2a;color:#fff;">EDIT</option>
                 </select>
             </div>
         </div>
@@ -1042,30 +1053,24 @@
                 <option value="To Fix" style="color: var(--orange);">To Fix</option>
                 <option value="Approved" style="color: var(--success);">Approved</option>
             </select>
-            <span style="color:var(--text-muted); font-weight:700; font-size:16px;">@</span>
-            <span id="p-artist-display" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16px; color:var(--accent); cursor:pointer;" onclick="editArtist()"></span>
+            <span style="color:var(--text-muted); font-weight:700; font-size:16px; flex-shrink:0;">@</span>
+            <select id="p-artist-select" onchange="changeShotArtist(this.value)" style="flex:1; min-width:80px; max-width:160px; background:#2a2a2a; border:1px solid var(--border-color); color:var(--accent); padding:6px 8px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
+                <option value="latic">latic</option>
+                <option value="fireframes">fireframes</option>
+            </select>
         </div>
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
-            <button onclick="document.getElementById('video-upload-input').click()" style="margin-left:auto; background:var(--accent); border:none; color:#fff; padding:8px 20px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">📎 Upload</button>
+        </div>
+        <div>
+            <button onclick="document.getElementById('video-upload-input').click()" style="background:var(--accent); border:none; color:#fff; padding:8px 20px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">📎 Upload</button>
             <input type="file" id="video-upload-input" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
         </div>
     </div>
     
-    <!-- Artist Edit Modal -->
-    <div id="artist-edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;" onclick="if(event.target===this)closeArtistModal()">
-        <div style="width:320px; max-width:90%; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:24px;">
-            <h3 style="margin:0 0 16px; font-family:Outfit,sans-serif; font-weight:700; font-size:18px; color:var(--text-primary);">Assign Artist</h3>
-            <select id="p-artist-select" style="width:100%; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:10px 12px; border-radius:8px; font-size:14px; box-sizing:border-box;">
-                <option value="">— Select artist —</option>
-            </select>
-            <div style="display:flex; gap:8px; margin-top:16px;">
-                <button onclick="saveArtist()" style="flex:1; background:var(--accent); border:none; color:#fff; padding:10px; border-radius:8px; font-weight:700; cursor:pointer;">Save</button>
-                <button onclick="closeArtistModal()" style="flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-primary); padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">Cancel</button>
-            </div>
-        </div>
-    </div>
+    <!-- Artist Edit Modal (for admin use, kept for backward compat) -->
+    <div id="artist-edit-modal" style="display:none;">
     
     <div class="player-container" style="position: relative;">
         <!-- Video Box & HUD -->
@@ -1219,6 +1224,7 @@
     const K = atob('cGF0QnNDZzZvZm9hbEVkWUQuYTQ4NjRlNTAzZTQzNDdiZmUzZDE5YjZjODg0Y2ZmNWVlMDBkMjJjMDQ5ZGZkNzlhYTU4ODNmMTQ5MGVjNDhlMg==');
     const AIRTABLE_BASE_ID = 'appgiNHAoONgW8Ha6';
     const N8N_SHOTS_URL = 'https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots';
+    const TG_CHANNEL_ID = '@vfx_shots_channel'; // CHANGE THIS to actual channel
     
     async function n8nPost(payload) {
         return fetch(N8N_SHOTS_URL, {
@@ -1373,17 +1379,14 @@ let activeRecordId = null;
             });
             
             if (records.length > 0) {
+                // Populate team/episode select
                 const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
-                if (eps.length > 0) {
-                    if (!curEpFilter || !eps.includes(curEpFilter)) curEpFilter = eps[0];
-                    document.getElementById('tabs').innerHTML = eps.map(ep => `
-                        <div class="tab ${ep===curEpFilter?'active':''}" onclick="setEpFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
+                const teamSelect = document.getElementById('team-select');
+                if (teamSelect) {
+                    teamSelect.innerHTML = '<option value="" style="background:#2a2a2a;color:#fff;">ALL</option>' +
+                        eps.map(ep => `<option value="${ep}" style="background:#2a2a2a;color:#fff;">${ep.toUpperCase()}</option>`).join('');
+                    if (curEpFilter && eps.includes(curEpFilter)) teamSelect.value = curEpFilter;
                 }
-                
-                // Department tabs
-                const depts = [...new Set(records.map(r => r.fields.department || '').filter(Boolean))].sort();
-                document.getElementById('dept-tabs').innerHTML = (curDeptFilter ? `<div class="tab" onclick="setDeptFilter('', this)">ALL</div>` : '') + depts.map(d => `
-                    <div class="tab ${d===curDeptFilter?'active':''}" onclick="setDeptFilter('${d}', this)">${d.toUpperCase()}</div>`).join('');
                 
                 await preloadVideoUrls();
                 render();
@@ -1425,12 +1428,14 @@ function init() {
         }, 15 * 60 * 1000);
     }
 
-    function setEpFilter(f, el) {
-        curEpFilter = f;
-        if(el) { 
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); 
-            el.classList.add('active'); 
-        }
+    function setTeamFilter(val) {
+        curEpFilter = val;
+        render();
+    }
+    function setDeptFilter(val) {
+        curDeptFilter = val;
+        render();
+    }
         render();
     }
 
@@ -1673,17 +1678,25 @@ async function openPlayer(id) {
             if (editBtn) editBtn.innerText = '✏️ Edit';
         }
 
-        // Set artist display
-        const artistEl = document.getElementById('p-artist-display');
-        if (artistEl) {
+        // Set artist select
+        const artistSelect = document.getElementById('p-artist-select');
+        if (artistSelect) {
+            // Populate with artists from same department + defaults
+            const curDept = document.getElementById('p-dept-select')?.value || '';
+            const deptArtists = [...new Set(records
+                .filter(r => (r.fields.department||'').toLowerCase() === curDept)
+                .map(r => r.fields.artist || '')
+                .filter(Boolean)
+            )].sort();
+            const allArtists = [...new Set([...deptArtists, 'latic', 'fireframes'])];
+            artistSelect.innerHTML = allArtists.map(a =>
+                `<option value="${a}" style="background:#2a2a2a;color:var(--accent);">${a}</option>`
+            ).join('');
             let artist = r.fields.artist || '';
-            if (!artist) {
-                artist = 'latic';
-                r.fields.artist = 'latic';
+            if (!artist) { artist = 'latic'; r.fields.artist = 'latic'; }
+            if ([...artistSelect.options].some(o => o.value === artist)) {
+                artistSelect.value = artist;
             }
-            artistEl.textContent = artist;
-            artistEl.style.color = artist ? 'var(--accent)' : 'var(--text-muted)';
-            artistEl.style.cursor = (currentUserRole === 'producer' || currentUserRole === 'supervisor') ? 'pointer' : 'default';
         }
         // Reset upload file input
         const uploadInput = document.getElementById('video-upload-input');
@@ -2111,7 +2124,7 @@ render();
             // Upload to Telegram
             const botToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
             const formData = new FormData();
-            formData.append('chat_id', tg.initDataUnsafe.user.id);
+            formData.append('chat_id', TG_CHANNEL_ID);
             formData.append('video', file);
             formData.append('caption', `${shotName} v${String(newVersion).padStart(3, '0')}`);
             
@@ -2177,7 +2190,7 @@ render();
         try {
             const botToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
             const formData = new FormData();
-            formData.append('chat_id', tg.initDataUnsafe.user.id);
+            formData.append('chat_id', TG_CHANNEL_ID);
             formData.append('photo', file);
             formData.append('caption', `${shotName} screenshot`);
             
@@ -2487,6 +2500,18 @@ async function sendComment() {
         };
         const response = await n8nPost(payload);
         if (!response.ok) tg.showAlert("Failed to update department.");
+    }
+
+    function changeShotArtist(newArtist) {
+        if (!newArtist || !activeRecordId) return;
+        const r = records.find(rec => rec.id === activeRecordId);
+        if (r) r.fields.artist = newArtist;
+        const payload = {
+            operation: "description_update",
+            shot_name: activeRecordShotName,
+            artist: newArtist
+        };
+        n8nPost(payload);
     }
 
     /* ─── Artist Edit ─── */
