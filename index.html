@@ -996,6 +996,7 @@
             <input type="text" id="search-input" class="search-input" placeholder="Search shots by name..." oninput="handleSearch(this.value)">
         </div>
         <div class="filter-controls-row">
+            <div id="tabs" style="margin-bottom: 4px;"></div>
             <div class="status-filter-box" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span>Status</span>
                 <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
@@ -1034,10 +1035,9 @@
         </div>
     </div>
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-        <div>
-            <button onclick="document.getElementById('video-upload-input').click()" style="background:var(--accent); border:none; color:#fff; padding:8px 20px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">📎 Upload</button>
-            <input type="file" id="video-upload-input" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
-        </div>
+        <button onclick="document.getElementById('video-upload-input').click()" style="width:100%; background:var(--accent); border:none; color:#fff; padding:10px; border-radius:10px; font-size:20px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center;">+</button>
+        <input type="file" id="video-upload-input" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
+        <div style="border-top:1px solid var(--border-color);"></div>
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;">
             <select id="p-dept-select" onchange="changeShotDept(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; min-width: 100px; width: auto; cursor: pointer; color: var(--text-primary);">
                 <option value="comp">COMP</option>
@@ -1046,12 +1046,13 @@
                 <option value="layout">LAYOUT</option>
                 <option value="edit">EDIT</option>
             </select>
-            <span style="color:var(--text-muted); font-weight:700; font-size:16px; flex-shrink:0;">@</span>
+            <span style="font-size:14px; font-weight:600; color:var(--text-secondary); flex-shrink:0;">Artist</span>
             <select id="p-artist-select" onchange="changeShotArtist(this.value)" style="flex:1; min-width:80px; max-width:160px; background:#2a2a2a; border:1px solid var(--border-color); color:var(--accent); padding:6px 8px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
                 <option value="latic">latic</option>
                 <option value="fireframes">fireframes</option>
             </select>
         </div>
+        <div style="border-top:1px solid var(--border-color);"></div>
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
@@ -1372,6 +1373,12 @@ let activeRecordId = null;
             });
             
             if (records.length > 0) {
+                const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
+                if (eps.length > 0) {
+                    if (!curEpFilter || !eps.includes(curEpFilter)) curEpFilter = eps[0];
+                    document.getElementById('tabs').innerHTML = eps.map(ep => `
+                        <div class="tab ${ep===curEpFilter?'active':''}" onclick="setEpFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
+                }
                 await preloadVideoUrls();
                 render();
             } else {
@@ -1412,6 +1419,12 @@ function init() {
         }, 15 * 60 * 1000);
     }
 
+    function setEpFilter(f, el) {
+        curEpFilter = f;
+        document.querySelectorAll('#tabs .tab').forEach(t => t.classList.remove('active'));
+        if (el) el.classList.add('active');
+        render();
+    }
     function setTeamFilter(val) {
         curDeptFilter = val;
         render();
