@@ -400,28 +400,30 @@
             color: var(--text-primary);
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
             overflow: hidden;
         }
-        .list-mode .info-name .top-row {
+        .list-mode .info-name .name-row {
             display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
+            align-items: center;
             gap: 8px;
         }
-        .list-mode .info-name .top-row .shot-label {
+        .list-mode .info-name .name-row .shot-label {
             font-weight: 700;
             color: var(--text-primary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .list-mode .info-name .top-row .badge-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            align-items: flex-end;
+        .list-mode .info-name .name-row .version-label {
+            font-family: Outfit, sans-serif;
+            font-weight: 800;
             flex-shrink: 0;
+        }
+        .list-mode .info-name .badge-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .list-mode .info-name .version-line {
             font-family: Outfit, sans-serif;
@@ -1415,14 +1417,14 @@ function init() {
                     <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
                         <div class="thumb-wrapper">${mediaContent}</div>
                         <div class="info-name">
-                            <div class="top-row">
+                            <div class="name-row">
                                 <span class="shot-label">${r.fields.shot_name}</span>
-                                <div class="badge-stack">
-                                    <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
-                                    ${dep ? `<span class="status-badge" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); color: var(--text-muted); font-size: 10px; padding: 2px 10px;">${dep.toUpperCase()}</span>` : ''}
-                                </div>
+                                ${versionText ? `<span class="version-label" style="color: ${verColor};">v${versionText}</span>` : ''}
                             </div>
-                            ${versionText ? `<span class="version-line" style="color: ${verColor};">v${versionText}</span>` : ''}
+                            <div class="badge-row">
+                                <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
+                                ${dep ? `<span class="status-badge" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); color: var(--text-muted); font-size: 10px; padding: 2px 10px;">${dep.toUpperCase()}</span>` : ''}
+                            </div>
                         </div>
                     </div>`;
             } else {
