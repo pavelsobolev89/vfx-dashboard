@@ -1026,8 +1026,8 @@
             <button class="p-btn" onclick="navigateShot(1)" title="Next Shot">▶</button>
         </div>
     </div>
-    <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
-        <div style="display: flex; align-items: center;">
+    <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;">
             <select id="p-dept-select" onchange="changeShotDept(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; min-width: 100px; width: auto; cursor: pointer; color: var(--text-primary);">
                 <option value="comp">COMP</option>
                 <option value="render">RENDER</option>
@@ -1035,10 +1035,12 @@
                 <option value="layout">LAYOUT</option>
                 <option value="edit">EDIT</option>
             </select>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
+            <span style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; color: var(--text-muted);">Artist:</span>
+            <span id="p-artist-display" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; color:var(--accent); cursor:pointer;" onclick="editArtist()"></span>
             <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; margin-left: auto;">
                 <option value="Ready To Start" style="color: var(--text-secondary);">Ready To Start</option>
                 <option value="In Progress" style="color: var(--info);">In Progress</option>
@@ -1047,23 +1049,9 @@
                 <option value="Approved" style="color: var(--success);">Approved</option>
             </select>
         </div>
-        <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
-            <span style="color:var(--text-muted); font-size:13px; font-weight:600;">Artist:</span>
-            <span id="p-artist-display" style="font-size:14px; font-weight:600; color:var(--accent); cursor:pointer;" onclick="editArtist()"></span>
-            <div style="flex:1; min-width:200px; display:flex; gap:6px; align-items:center;">
-                <span style="color:var(--text-muted); font-size:12px;">v</span>
-                <input id="upload-version-input" type="text" placeholder="+1" style="width:60px; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:6px 8px; border-radius:6px; font-size:13px; text-align:center;">
-                <select id="upload-dept-select" style="background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:6px 8px; border-radius:6px; font-size:12px;">
-                    <option value="">Dept</option>
-                    <option value="comp">COMP</option>
-                    <option value="render">RENDER</option>
-                    <option value="animation">ANIM</option>
-                    <option value="layout">LAYOUT</option>
-                    <option value="edit">EDIT</option>
-                </select>
-                <button onclick="document.getElementById('video-upload-input').click()" style="background:var(--accent); border:none; color:#fff; padding:6px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">📎 Upload</button>
-                <input type="file" id="video-upload-input" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
-            </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button onclick="document.getElementById('video-upload-input').click()" style="background:var(--accent); border:none; color:#fff; padding:8px 20px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">📎 Upload</button>
+            <input type="file" id="video-upload-input" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
         </div>
     </div>
     
@@ -1699,16 +1687,9 @@ async function openPlayer(id) {
             artistEl.style.color = artist ? 'var(--accent)' : 'var(--text-muted)';
             artistEl.style.cursor = (currentUserRole === 'producer' || currentUserRole === 'supervisor') ? 'pointer' : 'default';
         }
-        // Set upload version default
-        const uploadVer = document.getElementById('upload-version-input');
-        if (uploadVer && versionRecord) {
-            uploadVer.value = '+1';
-        }
-        // Set upload dept default
-        const uploadDept = document.getElementById('upload-dept-select');
-        if (uploadDept && r.fields.department) {
-            uploadDept.value = r.fields.department.toLowerCase();
-        }
+        // Reset upload file input
+        const uploadInput = document.getElementById('video-upload-input');
+        if (uploadInput) uploadInput.value = '';
 
         stopReversePlayback();
         if (animationFrameId) {
@@ -2123,18 +2104,8 @@ render();
         const versions = currentRecord.versions || [];
         const currentVersion = versions.length > 0 ? parseInt(versions[versions.length - 1].fields.version || 0) : 0;
         
-        // Get custom version from form
-        const verInput = document.getElementById('upload-version-input');
-        let newVersion = currentVersion + 1;
-        if (verInput && verInput.value.trim() && verInput.value.trim() !== '+1') {
-            const parsed = parseInt(verInput.value.trim().replace(/^v/, ''));
-            if (!isNaN(parsed)) newVersion = parsed;
-        }
-        
-        // Get department from upload form (fall back to shot dept)
-        const uploadDept = document.getElementById('upload-dept-select');
-        let department = uploadDept ? uploadDept.value : '';
-        if (!department) department = currentRecord.fields.department || '';
+        // Get department from shot record
+        let department = currentRecord.fields.department || '';
         
         tg.showAlert(`Uploading ${file.name} as v${String(newVersion).padStart(3, '0')}...`);
         
@@ -2167,8 +2138,7 @@ render();
                 artist: currentUsername || 'unknown',
                 file_id: fileId,
                 status: 'Review',
-                department: department || '',
-                custom_version: verInput && verInput.value.trim() && verInput.value.trim() !== '+1' ? String(newVersion).padStart(3, '0') : ''
+                department: department || ''
             };
             
             const webhookResponse = await n8nPost(webhookPayload);
