@@ -1047,9 +1047,37 @@
                 <option value="Approved" style="color: var(--success);">Approved</option>
             </select>
         </div>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button onclick="document.getElementById('video-upload-input').click()" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); color: var(--accent); padding: 8px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">📎 Add Version</button>
-            <input type="file" id="video-upload-input" accept="video/*" style="display: none;" onchange="uploadVideo(this)">
+        <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="color:var(--text-muted); font-size:13px; font-weight:600;">Artist:</span>
+            <span id="p-artist-display" style="font-size:14px; font-weight:600; color:var(--accent); cursor:pointer;" onclick="editArtist()"></span>
+            <div style="flex:1; min-width:200px; display:flex; gap:6px; align-items:center;">
+                <span style="color:var(--text-muted); font-size:12px;">v</span>
+                <input id="upload-version-input" type="text" placeholder="+1" style="width:60px; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:6px 8px; border-radius:6px; font-size:13px; text-align:center;">
+                <select id="upload-dept-select" style="background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:6px 8px; border-radius:6px; font-size:12px;">
+                    <option value="">Dept</option>
+                    <option value="comp">COMP</option>
+                    <option value="render">RENDER</option>
+                    <option value="animation">ANIM</option>
+                    <option value="layout">LAYOUT</option>
+                    <option value="edit">EDIT</option>
+                </select>
+                <button onclick="document.getElementById('video-upload-input').click()" style="background:var(--accent); border:none; color:#fff; padding:6px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">📎 Upload</button>
+                <input type="file" id="video-upload-input" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Artist Edit Modal -->
+    <div id="artist-edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;" onclick="if(event.target===this)closeArtistModal()">
+        <div style="width:320px; max-width:90%; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:24px;">
+            <h3 style="margin:0 0 16px; font-family:Outfit,sans-serif; font-weight:700; font-size:18px; color:var(--text-primary);">Assign Artist</h3>
+            <select id="p-artist-select" style="width:100%; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:10px 12px; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                <option value="">— Select artist —</option>
+            </select>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button onclick="saveArtist()" style="flex:1; background:var(--accent); border:none; color:#fff; padding:10px; border-radius:8px; font-weight:700; cursor:pointer;">Save</button>
+                <button onclick="closeArtistModal()" style="flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-primary); padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">Cancel</button>
+            </div>
         </div>
     </div>
     
@@ -1137,19 +1165,15 @@
                 <button onclick="showAddShotModal()" style="flex:1; background:var(--success); border:none; color:#fff; padding:12px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer;">＋ Add</button>
                 <button onclick="showDeleteShotModal()" style="flex:1; background:var(--orange); border:none; color:#fff; padding:12px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer;">✕ Delete</button>
             </div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <input id="cp-assign-artist-shot" type="text" placeholder="Shot name" style="flex:2; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <input id="cp-assign-artist-user" type="text" placeholder="@username" style="flex:2; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <button onclick="assignArtist()" style="background:var(--accent); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Assign</button>
-            </div>
         </div>
 
         <!-- Artists -->
         <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid var(--border-color);">
             <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px; color:var(--text-primary);">Artists</h3>
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
-                <input id="cp-artist-user" type="text" placeholder="@username" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <select id="cp-artist-dept" style="background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px; border-radius:8px; font-size:14px;">
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                <span style="color:var(--text-muted); font-size:13px; white-space:nowrap;">@</span>
+                <input id="cp-artist-user" type="text" placeholder="username" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 10px; border-radius:8px; font-size:14px; max-width:160px;">
+                <select id="cp-artist-dept" style="background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px; border-radius:8px; font-size:13px;">
                     <option value="">Dept</option>
                     <option value="comp">COMP</option>
                     <option value="render">RENDER</option>
@@ -1157,11 +1181,14 @@
                     <option value="layout">LAYOUT</option>
                     <option value="edit">EDIT</option>
                 </select>
-                <button onclick="addArtist()" style="background:var(--success); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Add</button>
+                <button onclick="addArtist()" style="background:var(--success); border:none; color:#fff; padding:8px 14px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer;">Add</button>
             </div>
-            <div style="display:flex; gap:8px;">
-                <input id="cp-remove-artist" type="text" placeholder="@username to remove" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <button onclick="removeArtist()" style="background:var(--orange); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Remove</button>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <span style="color:var(--text-muted); font-size:13px; white-space:nowrap;">@</span>
+                <select id="cp-remove-artist" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px; border-radius:8px; font-size:13px; max-width:200px;">
+                    <option value="">— Remove —</option>
+                </select>
+                <button onclick="removeArtist()" style="background:var(--orange); border:none; color:#fff; padding:8px 14px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer;">Remove</button>
             </div>
         </div>
 
@@ -1660,6 +1687,29 @@ async function openPlayer(id) {
             if (editBtn) editBtn.innerText = '✏️ Edit';
         }
 
+        // Set artist display
+        const artistEl = document.getElementById('p-artist-display');
+        if (artistEl) {
+            let artist = r.fields.artist || '';
+            if (!artist) {
+                artist = 'latic';
+                r.fields.artist = 'latic';
+            }
+            artistEl.textContent = artist;
+            artistEl.style.color = artist ? 'var(--accent)' : 'var(--text-muted)';
+            artistEl.style.cursor = (currentUserRole === 'producer' || currentUserRole === 'supervisor') ? 'pointer' : 'default';
+        }
+        // Set upload version default
+        const uploadVer = document.getElementById('upload-version-input');
+        if (uploadVer && versionRecord) {
+            uploadVer.value = '+1';
+        }
+        // Set upload dept default
+        const uploadDept = document.getElementById('upload-dept-select');
+        if (uploadDept && r.fields.department) {
+            uploadDept.value = r.fields.department.toLowerCase();
+        }
+
         stopReversePlayback();
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
@@ -2072,7 +2122,19 @@ render();
         const shotName = currentRecord.fields.shot_name;
         const versions = currentRecord.versions || [];
         const currentVersion = versions.length > 0 ? parseInt(versions[versions.length - 1].fields.version || 0) : 0;
-        const newVersion = currentVersion + 1;
+        
+        // Get custom version from form
+        const verInput = document.getElementById('upload-version-input');
+        let newVersion = currentVersion + 1;
+        if (verInput && verInput.value.trim() && verInput.value.trim() !== '+1') {
+            const parsed = parseInt(verInput.value.trim().replace(/^v/, ''));
+            if (!isNaN(parsed)) newVersion = parsed;
+        }
+        
+        // Get department from upload form (fall back to shot dept)
+        const uploadDept = document.getElementById('upload-dept-select');
+        let department = uploadDept ? uploadDept.value : '';
+        if (!department) department = currentRecord.fields.department || '';
         
         tg.showAlert(`Uploading ${file.name} as v${String(newVersion).padStart(3, '0')}...`);
         
@@ -2105,7 +2167,8 @@ render();
                 artist: currentUsername || 'unknown',
                 file_id: fileId,
                 status: 'Review',
-                department: currentRecord.fields.department || ''
+                department: department || '',
+                custom_version: verInput && verInput.value.trim() && verInput.value.trim() !== '+1' ? String(newVersion).padStart(3, '0') : ''
             };
             
             const webhookResponse = await n8nPost(webhookPayload);
@@ -2458,6 +2521,51 @@ async function sendComment() {
         if (!response.ok) tg.showAlert("Failed to update department.");
     }
 
+    /* ─── Artist Edit ─── */
+    function editArtist() {
+        if (currentUserRole !== 'producer' && currentUserRole !== 'supervisor') return;
+        const sel = document.getElementById('p-artist-select');
+        if (!sel) return;
+        // Populate from current artist display
+        const current = document.getElementById('p-artist-display').textContent;
+        sel.innerHTML = '<option value="">— Select artist —</option>';
+        // Try to get artists from records
+        const artists = [...new Set(records.map(r => (r.fields.artist || '')).filter(Boolean))].sort();
+        artists.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a;
+            opt.textContent = a;
+            if (a === current) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        // Add manual input option
+        const manual = document.createElement('option');
+        manual.value = '__manual__';
+        manual.textContent = '✏️ Type manually...';
+        sel.appendChild(manual);
+        document.getElementById('artist-edit-modal').style.display = 'flex';
+    }
+    function closeArtistModal() {
+        document.getElementById('artist-edit-modal').style.display = 'none';
+    }
+    async function saveArtist() {
+        const sel = document.getElementById('p-artist-select');
+        let artist = sel.value;
+        if (artist === '__manual__') {
+            artist = prompt('Enter artist Telegram username:');
+            if (!artist) return;
+        }
+        if (!artist || !activeRecordId) return;
+        const r = records.find(rec => rec.id === activeRecordId);
+        if (r) r.fields.artist = artist;
+        document.getElementById('p-artist-display').textContent = artist;
+        document.getElementById('p-artist-display').style.color = 'var(--accent)';
+        closeArtistModal();
+        const payload = { operation: "description_update", shot_name: activeRecordShotName, artist: artist };
+        const response = await n8nPost(payload);
+        if (!response.ok) tg.showAlert("Failed to update artist.");
+    }
+
     /* ─── Control Panel Functions ─── */
     function toggleControlPanel() {
         const panel = document.getElementById('control-panel-overlay');
@@ -2541,15 +2649,6 @@ async function sendComment() {
         const r = await n8nPost(payload);
         if (r.ok) { tg.showAlert('Shot deleted!'); closeDeleteShotModal(); fetchData(); } else tg.showAlert('Failed to delete shot.');
     }
-    async function assignArtist() {
-        const shot = document.getElementById('cp-assign-artist-shot').value.trim();
-        const user = document.getElementById('cp-assign-artist-user').value.trim();
-        if (!shot || !user) { tg.showAlert('Enter shot and @username'); return; }
-        cpLog(`Assign artist ${user} to ${shot}`);
-        const payload = { operation: "assign_artist", shot_name: shot, artist: user, project: CURRENT_BASE };
-        const r = await n8nPost(payload);
-        if (r.ok) { tg.showAlert('Artist assigned!'); fetchData(); } else tg.showAlert('Failed.');
-    }
     async function addArtist() {
         const user = document.getElementById('cp-artist-user').value.trim();
         const dept = document.getElementById('cp-artist-dept').value;
@@ -2560,8 +2659,8 @@ async function sendComment() {
         if (r.ok) { tg.showAlert('Artist added!'); } else tg.showAlert('Failed.');
     }
     async function removeArtist() {
-        const user = document.getElementById('cp-remove-artist').value.trim();
-        if (!user) { tg.showAlert('Enter @username'); return; }
+        const user = document.getElementById('cp-remove-artist').value;
+        if (!user) { tg.showAlert('Select an artist'); return; }
         cpLog(`Remove artist ${user}`);
         const payload = { operation: "remove_artist", artist: user, project: CURRENT_BASE };
         const r = await n8nPost(payload);
