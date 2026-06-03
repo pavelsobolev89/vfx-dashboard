@@ -635,20 +635,20 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 16px;
-            padding: 16px 20px;
+            gap: 12px;
+            padding: 12px 16px;
             background: rgba(18, 18, 24, 0.5);
             border-bottom: 1px solid var(--border-color);
         }
 
         .p-btn {
-            background: rgba(255, 255, 255, 0.04);
+            background: rgba(255, 255, 255, 0.06);
             border: 1px solid var(--border-color);
             color: #fff;
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            font-size: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            font-size: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -671,8 +671,8 @@
         }
 
         .p-btn.play-pause-btn {
-            width: 56px;
-            height: 56px;
+            width: 52px;
+            height: 52px;
             border-radius: 16px;
         }
 
@@ -981,8 +981,7 @@
         </div>
     </div>
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column;">
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
-            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;">
             <select id="p-dept-select" onchange="changeShotDept(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-muted); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; min-width: 80px; cursor: pointer;">
                 <option value="comp">COMP</option>
                 <option value="render">RENDER</option>
@@ -990,6 +989,7 @@
                 <option value="layout">LAYOUT</option>
                 <option value="edit">EDIT</option>
             </select>
+            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
             <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; margin-left: auto;">
                 <option value="Ready To Start" style="color: var(--text-secondary);">Ready To Start</option>
@@ -1018,7 +1018,7 @@
         </div>
         
 <!-- Custom Controls Row -->
-        <div class="p-nav" style="justify-content: space-between;">
+        <div class="p-nav">
             <button id="loop-reverse-btn" class="p-btn" onclick="togglePlayMode()" title="Loop / Reverse" style="font-size: 16px;">🔄</button>
             <div style="display: flex; gap: 8px;">
                 <button class="p-btn" onclick="vStep(-1)" title="Frame Backward">⏪</button>
@@ -1492,6 +1492,7 @@ async function openPlayer(id) {
         if (deptSelect && r.fields.department) {
             deptSelect.value = r.fields.department.toLowerCase();
         }
+        if (deptSelect) deptSelect.style.color = versionColor;
         const ver = versionRecord ? `v${versionRecord.fields.version}` : 'v000';
         document.getElementById('p-version').innerText = ver;
         const st = (versionRecord ? versionRecord.fields.status : r.fields.status || '').toLowerCase();
@@ -2285,6 +2286,11 @@ async function sendComment() {
                     const st = newStatus.toLowerCase();
                     const color = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
                     versionEl.style.color = color;
+                }
+                const deptSelect = document.getElementById('p-dept-select');
+                if (deptSelect) {
+                    const st = newStatus.toLowerCase();
+                    deptSelect.style.color = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
                 }
                 // Update local record so grid shows new status without reload
                 if (activeRecordId) {
