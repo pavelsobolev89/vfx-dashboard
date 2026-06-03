@@ -1035,22 +1035,20 @@
                 <option value="layout">LAYOUT</option>
                 <option value="edit">EDIT</option>
             </select>
-            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
-            <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
-            <span style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; color: var(--text-muted);">Artist:</span>
-            <span id="p-artist-display" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; color:var(--accent); cursor:pointer;" onclick="editArtist()"></span>
-            <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; margin-left: auto;">
+            <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; cursor: pointer;">
                 <option value="Ready To Start" style="color: var(--text-secondary);">Ready To Start</option>
                 <option value="In Progress" style="color: var(--info);">In Progress</option>
                 <option value="Review" style="color: var(--warning);">Review</option>
                 <option value="To Fix" style="color: var(--orange);">To Fix</option>
                 <option value="Approved" style="color: var(--success);">Approved</option>
             </select>
+            <span style="color:var(--text-muted); font-weight:700; font-size:16px;">@</span>
+            <span id="p-artist-display" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16px; color:var(--accent); cursor:pointer;" onclick="editArtist()"></span>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-            <button onclick="document.getElementById('video-upload-input').click()" style="background:var(--accent); border:none; color:#fff; padding:8px 20px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">📎 Upload</button>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
+            <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
+            <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
+            <button onclick="document.getElementById('video-upload-input').click()" style="margin-left:auto; background:var(--accent); border:none; color:#fff; padding:8px 20px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">📎 Upload</button>
             <input type="file" id="video-upload-input" accept="video/*" style="display:none;" onchange="uploadVideo(this)">
         </div>
     </div>
@@ -1158,10 +1156,10 @@
         <!-- Artists -->
         <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid var(--border-color);">
             <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px; color:var(--text-primary);">Artists</h3>
-            <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
-                <span style="color:var(--text-muted); font-size:13px; white-space:nowrap;">@</span>
-                <input id="cp-artist-user" type="text" placeholder="username" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 10px; border-radius:8px; font-size:14px; max-width:160px;">
-                <select id="cp-artist-dept" style="background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px; border-radius:8px; font-size:13px;">
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; flex-wrap:nowrap;">
+                <span style="color:var(--text-muted); font-size:12px; flex-shrink:0;">@</span>
+                <input id="cp-artist-user" type="text" placeholder="username" style="flex:1; min-width:0; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:6px 8px; border-radius:6px; font-size:13px; width:100px;">
+                <select id="cp-artist-dept" style="flex-shrink:0; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:6px 6px; border-radius:6px; font-size:12px; width:80px;">
                     <option value="">Dept</option>
                     <option value="comp">COMP</option>
                     <option value="render">RENDER</option>
@@ -1169,14 +1167,14 @@
                     <option value="layout">LAYOUT</option>
                     <option value="edit">EDIT</option>
                 </select>
-                <button onclick="addArtist()" style="background:var(--success); border:none; color:#fff; padding:8px 14px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer;">Add</button>
+                <button onclick="addArtist()" style="flex-shrink:0; background:var(--success); border:none; color:#fff; padding:6px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer;">Add</button>
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <span style="color:var(--text-muted); font-size:13px; white-space:nowrap;">@</span>
-                <select id="cp-remove-artist" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px; border-radius:8px; font-size:13px; max-width:200px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap;">
+                <span style="color:var(--text-muted); font-size:12px; flex-shrink:0;">@</span>
+                <select id="cp-remove-artist" style="flex:1; min-width:0; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:6px 6px; border-radius:6px; font-size:12px;">
                     <option value="">— Remove —</option>
                 </select>
-                <button onclick="removeArtist()" style="background:var(--orange); border:none; color:#fff; padding:8px 14px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer;">Remove</button>
+                <button onclick="removeArtist()" style="flex-shrink:0; background:var(--orange); border:none; color:#fff; padding:6px 12px; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer;">Remove</button>
             </div>
         </div>
 
@@ -2496,11 +2494,15 @@ async function sendComment() {
         if (currentUserRole !== 'producer' && currentUserRole !== 'supervisor') return;
         const sel = document.getElementById('p-artist-select');
         if (!sel) return;
-        // Populate from current artist display
         const current = document.getElementById('p-artist-display').textContent;
+        // Get artists from same department
+        const curDept = document.getElementById('p-dept-select')?.value || '';
+        const artists = [...new Set(records
+            .filter(r => !curDept || (r.fields.department||'').toLowerCase() === curDept)
+            .map(r => (r.fields.artist || ''))
+            .filter(Boolean)
+        )].sort();
         sel.innerHTML = '<option value="">— Select artist —</option>';
-        // Try to get artists from records
-        const artists = [...new Set(records.map(r => (r.fields.artist || '')).filter(Boolean))].sort();
         artists.forEach(a => {
             const opt = document.createElement('option');
             opt.value = a;
@@ -2508,23 +2510,20 @@ async function sendComment() {
             if (a === current) opt.selected = true;
             sel.appendChild(opt);
         });
-        // Add manual input option
-        const manual = document.createElement('option');
-        manual.value = '__manual__';
-        manual.textContent = '✏️ Type manually...';
-        sel.appendChild(manual);
+        if (artists.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = current;
+            opt.textContent = current || 'latic';
+            opt.selected = true;
+            sel.appendChild(opt);
+        }
         document.getElementById('artist-edit-modal').style.display = 'flex';
     }
     function closeArtistModal() {
         document.getElementById('artist-edit-modal').style.display = 'none';
     }
     async function saveArtist() {
-        const sel = document.getElementById('p-artist-select');
-        let artist = sel.value;
-        if (artist === '__manual__') {
-            artist = prompt('Enter artist Telegram username:');
-            if (!artist) return;
-        }
+        const artist = document.getElementById('p-artist-select').value;
         if (!artist || !activeRecordId) return;
         const r = records.find(rec => rec.id === activeRecordId);
         if (r) r.fields.artist = artist;
