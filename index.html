@@ -268,7 +268,7 @@
         }
 
         .status-select {
-            background: rgba(255, 255, 255, 0.04);
+            background: #2a2a2a;
             border: 1px solid var(--border-color);
             color: #fff;
             padding: 8px 12px;
@@ -1117,61 +1117,36 @@
 </div>
 
 <!-- Control Panel Overlay -->
-<div id="control-panel-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:flex-end;" onclick="if(event.target===this)closeControlPanel()">
-    <div style="width:420px; max-width:90%; height:100%; background:var(--bg-card); border-left:1px solid var(--border-color); overflow-y:auto; padding:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 style="margin:0; font-family:Outfit,sans-serif; font-weight:800; font-size:20px;">Control Panel</h2>
-            <button onclick="closeControlPanel()" style="background:transparent; border:none; color:var(--text-muted); font-size:24px; cursor:pointer;">✕</button>
+<div id="control-panel-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-card); z-index:9999; overflow-y:auto;" onclick="if(event.target===this)closeControlPanel()">
+    <div style="max-width:500px; margin:0 auto; padding:24px 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <h2 style="margin:0; font-family:Outfit,sans-serif; font-weight:800; font-size:22px; color:var(--text-primary);">Control Panel</h2>
+            <button onclick="closeControlPanel()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-primary); width:40px; height:40px; border-radius:10px; font-size:20px; cursor:pointer;">✕</button>
         </div>
 
         <!-- Dashboard Stats -->
-        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid var(--border-color);">
-            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px;">Dashboard</h3>
+        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid var(--border-color);">
+            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px; color:var(--text-primary);">Dashboard</h3>
             <div id="cp-dashboard-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
         </div>
 
-        <!-- Projects -->
-        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid var(--border-color);">
-            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px;">Projects</h3>
-            <div style="display:flex; gap:8px;">
-                <input id="cp-project-input" type="text" placeholder="BaseID_TITLE" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <button onclick="switchProject()" style="background:var(--accent); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Switch</button>
-            </div>
-        </div>
-
         <!-- Shots -->
-        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid var(--border-color);">
-            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px;">Shots</h3>
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
-                <input id="cp-bulk-shots" type="text" placeholder="SH010-SH060 or comma-separated" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <button onclick="bulkAddShots()" style="background:var(--success); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Add</button>
-            </div>
+        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid var(--border-color);">
+            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px; color:var(--text-primary);">Shots</h3>
             <div style="display:flex; gap:8px;">
-                <input id="cp-del-shot" type="text" placeholder="Shot name to delete" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <button onclick="deleteShot()" style="background:var(--orange); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Delete</button>
+                <button onclick="showAddShotModal()" style="flex:1; background:var(--success); border:none; color:#fff; padding:12px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer;">＋ Add</button>
+                <button onclick="showDeleteShotModal()" style="flex:1; background:var(--orange); border:none; color:#fff; padding:12px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer;">✕ Delete</button>
             </div>
             <div style="display:flex; gap:8px; margin-top:8px;">
-                <select id="cp-bulk-dept" style="background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px; border-radius:8px; font-size:14px; flex:1;">
-                    <option value="">Assign department...</option>
-                    <option value="comp">COMP</option>
-                    <option value="render">RENDER</option>
-                    <option value="animation">ANIM</option>
-                    <option value="layout">LAYOUT</option>
-                    <option value="edit">EDIT</option>
-                </select>
-                <input id="cp-assign-shot" type="text" placeholder="Shot name" style="flex:2; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <button onclick="assignDept()" style="background:var(--info); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Set</button>
-            </div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <input id="cp-assign-artist-shot" type="text" placeholder="Shot name" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <input id="cp-assign-artist-user" type="text" placeholder="@username" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
-                <button onclick="assignArtist()" style="background:var(--accent); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Set</button>
+                <input id="cp-assign-artist-shot" type="text" placeholder="Shot name" style="flex:2; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
+                <input id="cp-assign-artist-user" type="text" placeholder="@username" style="flex:2; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
+                <button onclick="assignArtist()" style="background:var(--accent); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Assign</button>
             </div>
         </div>
 
         <!-- Artists -->
-        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid var(--border-color);">
-            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px;">Artists</h3>
+        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid var(--border-color);">
+            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px; color:var(--text-primary);">Artists</h3>
             <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <input id="cp-artist-user" type="text" placeholder="@username" style="flex:1; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px 12px; border-radius:8px; font-size:14px;">
                 <select id="cp-artist-dept" style="background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:8px; border-radius:8px; font-size:14px;">
@@ -1190,10 +1165,38 @@
             </div>
         </div>
 
-        <!-- History Log -->
-        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid var(--border-color);">
-            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px;">Activity Log</h3>
+        <!-- Activity Log -->
+        <div style="margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid var(--border-color);">
+            <h3 style="margin:0 0 12px; font-family:Outfit,sans-serif; font-weight:700; font-size:16px; color:var(--text-primary);">Activity Log</h3>
             <div id="cp-log" style="max-height:200px; overflow-y:auto; font-size:12px; color:var(--text-muted);"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Shot Modal -->
+<div id="add-shot-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;" onclick="if(event.target===this)closeAddShotModal()">
+    <div style="width:380px; max-width:90%; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:24px;">
+        <h3 style="margin:0 0 16px; font-family:Outfit,sans-serif; font-weight:700; font-size:18px; color:var(--text-primary);">Add Shots</h3>
+        <p style="margin:0 0 8px; font-size:13px; color:var(--text-muted);">Enter a range (e.g. <b>SH010-SH060</b>) or comma-separated names:</p>
+        <input id="cp-bulk-shots" type="text" placeholder="SH010-SH060 or SH010,SH011,SH012" style="width:100%; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:10px 12px; border-radius:8px; font-size:14px; box-sizing:border-box;">
+        <div style="display:flex; gap:8px; margin-top:16px;">
+            <button onclick="bulkAddShots()" style="flex:1; background:var(--success); border:none; color:#fff; padding:10px; border-radius:8px; font-weight:700; cursor:pointer;">Add</button>
+            <button onclick="closeAddShotModal()" style="flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-primary); padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Shot Modal -->
+<div id="delete-shot-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;" onclick="if(event.target===this)closeDeleteShotModal()">
+    <div style="width:380px; max-width:90%; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:24px;">
+        <h3 style="margin:0 0 16px; font-family:Outfit,sans-serif; font-weight:700; font-size:18px; color:var(--text-primary);">Delete Shot</h3>
+        <p style="margin:0 0 8px; font-size:13px; color:var(--text-muted);">Select a shot to delete:</p>
+        <select id="cp-del-shot-select" style="width:100%; background:#2a2a2a; border:1px solid var(--border-color); color:#fff; padding:10px 12px; border-radius:8px; font-size:14px; box-sizing:border-box;">
+            <option value="">— Choose shot —</option>
+        </select>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+            <button onclick="deleteShot()" style="flex:1; background:var(--orange); border:none; color:#fff; padding:10px; border-radius:8px; font-weight:700; cursor:pointer;">Delete</button>
+            <button onclick="closeDeleteShotModal()" style="flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-primary); padding:10px; border-radius:8px; font-weight:600; cursor:pointer;">Cancel</button>
         </div>
     </div>
 </div>
@@ -2456,12 +2459,34 @@ async function sendComment() {
     /* ─── Control Panel Functions ─── */
     function toggleControlPanel() {
         const panel = document.getElementById('control-panel-overlay');
-        const shown = panel.style.display === 'flex';
-        panel.style.display = shown ? 'none' : 'flex';
-        if (!shown) updateDashboardStats();
+        const shown = panel.style.display === 'block';
+        panel.style.display = shown ? 'none' : 'block';
+        if (!shown) {
+            updateDashboardStats();
+            populateShotSelect();
+        }
     }
     function closeControlPanel() {
         document.getElementById('control-panel-overlay').style.display = 'none';
+    }
+    function showAddShotModal() {
+        document.getElementById('add-shot-modal').style.display = 'flex';
+    }
+    function closeAddShotModal() {
+        document.getElementById('add-shot-modal').style.display = 'none';
+    }
+    function showDeleteShotModal() {
+        populateShotSelect();
+        document.getElementById('delete-shot-modal').style.display = 'flex';
+    }
+    function closeDeleteShotModal() {
+        document.getElementById('delete-shot-modal').style.display = 'none';
+    }
+    function populateShotSelect() {
+        const sel = document.getElementById('cp-del-shot-select');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— Choose shot —</option>' +
+            records.map(r => `<option value="${r.fields.shot_name}">${r.fields.shot_name}</option>`).join('');
     }
     function cpLog(msg) {
         const log = document.getElementById('cp-log');
@@ -2498,38 +2523,21 @@ async function sendComment() {
             </div>
         `;
     }
-    async function switchProject() {
-        const val = document.getElementById('cp-project-input').value.trim();
-        if (!val) { tg.showAlert('Enter BaseID_TITLE'); return; }
-        localStorage.setItem('project_' + tg.initDataUnsafe?.user?.id, val);
-        cpLog('Switched project to ' + val);
-        tg.showAlert('Project switched! Reloading...');
-        setTimeout(() => location.reload(), 1000);
-    }
     async function bulkAddShots() {
         const val = document.getElementById('cp-bulk-shots').value.trim();
         if (!val) { tg.showAlert('Enter shot names/range'); return; }
         cpLog('Adding shots: ' + val);
         const payload = { operation: "bulk_add_shots", shots: val, project: CURRENT_BASE };
         const r = await n8nPost(payload);
-        if (r.ok) { tg.showAlert('Shots added!'); fetchData(); } else tg.showAlert('Failed to add shots.');
+        if (r.ok) { tg.showAlert('Shots added!'); closeAddShotModal(); fetchData(); } else tg.showAlert('Failed to add shots.');
     }
     async function deleteShot() {
-        const name = document.getElementById('cp-del-shot').value.trim();
-        if (!name) { tg.showAlert('Enter shot name'); return; }
+        const name = document.getElementById('cp-del-shot-select').value;
+        if (!name) { tg.showAlert('Select a shot'); return; }
         cpLog('Deleting shot: ' + name);
         const payload = { operation: "delete_shot", shot_name: name, project: CURRENT_BASE };
         const r = await n8nPost(payload);
-        if (r.ok) { tg.showAlert('Shot deleted!'); fetchData(); } else tg.showAlert('Failed to delete shot.');
-    }
-    async function assignDept() {
-        const dept = document.getElementById('cp-bulk-dept').value;
-        const shot = document.getElementById('cp-assign-shot').value.trim();
-        if (!dept || !shot) { tg.showAlert('Select dept and enter shot'); return; }
-        cpLog(`Assign ${dept} to ${shot}`);
-        const payload = { operation: "description_update", shot_name: shot, department: dept };
-        const r = await n8nPost(payload);
-        if (r.ok) { tg.showAlert('Dept assigned!'); fetchData(); } else tg.showAlert('Failed.');
+        if (r.ok) { tg.showAlert('Shot deleted!'); closeDeleteShotModal(); fetchData(); } else tg.showAlert('Failed to delete shot.');
     }
     async function assignArtist() {
         const shot = document.getElementById('cp-assign-artist-shot').value.trim();
