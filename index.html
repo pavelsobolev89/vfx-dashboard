@@ -366,12 +366,12 @@
 
         .list-mode .card {
             display: grid !important;
-            grid-template-columns: 100px 1fr 120px;
+            grid-template-columns: 100px 1fr;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 12px !important;
             min-height: 64px;
-            align-items: center;
+            align-items: start;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -399,13 +399,36 @@
             font-weight: 700;
             color: var(--text-primary);
             display: flex;
-            align-items: center;
-            gap: 8px;
-            white-space: nowrap;
+            flex-direction: column;
+            gap: 4px;
             overflow: hidden;
         }
-        .list-mode .info-name > span {
-            flex-shrink: 0;
+        .list-mode .info-name .top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .list-mode .info-name .top-row .shot-label {
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .list-mode .info-name .version-line {
+            font-family: Outfit, sans-serif;
+            font-weight: 800;
+            font-size: 13px;
+        }
+        .list-mode .info-name .dept-line {
+            color: var(--text-muted);
+            font-size: 0.75em;
+            border: 1px solid var(--border-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            width: fit-content;
         }
 
         .list-mode .info-status {
@@ -934,19 +957,10 @@
                 padding: 8px;
             }
             .list-mode .info-name {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 2px;
                 padding: 8px 12px;
-                white-space: normal;
-            }
-            .list-mode .info-status {
-                grid-column: 1 / -1;
-                padding: 4px 12px 8px;
-                justify-content: flex-start;
             }
             .list-mode .thumb-wrapper {
-                grid-row: 1 / 3;
+                grid-row: 1;
             }
         }
     </style>
@@ -1394,12 +1408,12 @@ function init() {
                     <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
                         <div class="thumb-wrapper">${mediaContent}</div>
                         <div class="info-name">
-                            <span>${r.fields.shot_name}</span>
-                            ${versionText ? `<span style="font-family: Outfit, sans-serif; font-weight: 800; color: ${verColor};">v${versionText}</span>` : ''}
-                            ${dep ? `<span style="color: var(--text-muted); font-size: 0.75em; border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 4px;">${dep.toUpperCase()}</span>` : ''}
-                        </div>
-                        <div class="info-status">
-                            <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
+                            <div class="top-row">
+                                <span class="shot-label">${r.fields.shot_name}</span>
+                                <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
+                            </div>
+                            ${versionText ? `<span class="version-line" style="color: ${verColor};">v${versionText}</span>` : ''}
+                            ${dep ? `<span class="dept-line">${dep.toUpperCase()}</span>` : ''}
                         </div>
                     </div>`;
             } else {
