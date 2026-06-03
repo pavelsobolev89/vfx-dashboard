@@ -1009,10 +1009,6 @@
                 <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">Team</span>
                 <select id="team-select" class="status-select" onchange="setTeamFilter(this.value)">
                     <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
-                </select>
-                <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">Dept</span>
-                <select id="dept-filter-select" class="status-select" onchange="setDeptFilter(this.value)">
-                    <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
                     <option value="comp" style="background:#2a2a2a;color:#fff;">COMP</option>
                     <option value="render" style="background:#2a2a2a;color:#fff;">RENDER</option>
                     <option value="animation" style="background:#2a2a2a;color:#fff;">ANIM</option>
@@ -1224,7 +1220,7 @@
     const K = atob('cGF0QnNDZzZvZm9hbEVkWUQuYTQ4NjRlNTAzZTQzNDdiZmUzZDE5YjZjODg0Y2ZmNWVlMDBkMjJjMDQ5ZGZkNzlhYTU4ODNmMTQ5MGVjNDhlMg==');
     const AIRTABLE_BASE_ID = 'appgiNHAoONgW8Ha6';
     const N8N_SHOTS_URL = 'https://viscous-hangup-unhook.ngrok-free.dev/webhook/sync-shots';
-    const TG_CHANNEL_ID = '@vfx_shots_channel'; // CHANGE THIS to actual channel
+    const TG_CHANNEL_ID = '@VFX_Storage_Internal_bot'; // TODO: replace with channel/group chat_id where Nuke posts
     
     async function n8nPost(payload) {
         return fetch(N8N_SHOTS_URL, {
@@ -1379,15 +1375,6 @@ let activeRecordId = null;
             });
             
             if (records.length > 0) {
-                // Populate team/episode select
-                const eps = [...new Set(records.map(r => (r.fields.shot_name||"").split('_')[0].toLowerCase()))].filter(e=>e.startsWith('ep')).sort();
-                const teamSelect = document.getElementById('team-select');
-                if (teamSelect) {
-                    teamSelect.innerHTML = '<option value="" style="background:#2a2a2a;color:#fff;">ALL</option>' +
-                        eps.map(ep => `<option value="${ep}" style="background:#2a2a2a;color:#fff;">${ep.toUpperCase()}</option>`).join('');
-                    if (curEpFilter && eps.includes(curEpFilter)) teamSelect.value = curEpFilter;
-                }
-                
                 await preloadVideoUrls();
                 render();
             } else {
@@ -1429,10 +1416,6 @@ function init() {
     }
 
     function setTeamFilter(val) {
-        curEpFilter = val;
-        render();
-    }
-    function setDeptFilter(val) {
         curDeptFilter = val;
         render();
     }
