@@ -995,7 +995,7 @@
             <input type="text" id="search-input" class="search-input" placeholder="Search shots by name..." oninput="handleSearch(this.value)">
         </div>
         <div id="tabs" style="display:flex; gap:4px;"></div>
-        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
             <span style="font-size:14px; font-weight:600; color:#fff;">Status</span>
             <span style="color:var(--text-muted);">|</span>
             <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
