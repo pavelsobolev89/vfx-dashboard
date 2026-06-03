@@ -983,6 +983,13 @@
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column;">
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
+            <select id="p-dept-select" onchange="changeShotDept(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-muted); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; min-width: 80px; cursor: pointer;">
+                <option value="comp">COMP</option>
+                <option value="render">RENDER</option>
+                <option value="animation">ANIM</option>
+                <option value="layout">LAYOUT</option>
+                <option value="edit">EDIT</option>
+            </select>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
             <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; margin-left: auto;">
                 <option value="Ready To Start" style="color: var(--text-secondary);">Ready To Start</option>
@@ -1012,16 +1019,16 @@
         
 <!-- Custom Controls Row -->
         <div class="p-nav" style="justify-content: space-between;">
-            <button id="loop-reverse-btn" class="p-btn" onclick="togglePlayMode()" title="Loop / Reverse" style="font-size: 16px; width: 44px; height: 44px;">🔄</button>
+            <button id="loop-reverse-btn" class="p-btn" onclick="togglePlayMode()" title="Loop / Reverse" style="font-size: 16px;">🔄</button>
             <div style="display: flex; gap: 8px;">
-                <button class="p-btn" onclick="vStep(-1)" title="Frame Backward" style="width: 44px; height: 44px;">⏪</button>
-                <button id="play-pause-btn" class="p-btn play-pause-btn" onclick="vToggle()" title="Play / Pause" style="width: 44px; height: 44px;">▶️</button>
-                <button class="p-btn" onclick="vStep(1)" title="Frame Forward" style="width: 44px; height: 44px;">⏩</button>
+                <button class="p-btn" onclick="vStep(-1)" title="Frame Backward">⏪</button>
+                <button id="play-pause-btn" class="p-btn play-pause-btn" onclick="vToggle()" title="Play / Pause">▶️</button>
+                <button class="p-btn" onclick="vStep(1)" title="Frame Forward">⏩</button>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="width: 44px; height: 44px; font-size: 14px;">⬅️</button>
-                <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="width: 44px; height: 44px; font-size: 14px;">➡️</button>
-                <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
+                <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="font-size: 14px;">⬅️</button>
+                <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="font-size: 14px;">➡️</button>
+                <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
             </div>
         </div>
         
@@ -1481,6 +1488,10 @@ async function openPlayer(id) {
         
         document.getElementById('p-title').innerText = r.fields.shot_name;
         document.getElementById('p-project-name').innerText = PROJECT_TITLE;
+        const deptSelect = document.getElementById('p-dept-select');
+        if (deptSelect && r.fields.department) {
+            deptSelect.value = r.fields.department.toLowerCase();
+        }
         const ver = versionRecord ? `v${versionRecord.fields.version}` : 'v000';
         document.getElementById('p-version').innerText = ver;
         const st = (versionRecord ? versionRecord.fields.status : r.fields.status || '').toLowerCase();
@@ -1794,46 +1805,54 @@ render();
 
     let reverseAnimationId = null;
     let animationFrameId = null;
+    let reversePaused = false;
     function startReversePlayback(video) {
         stopReversePlayback();
+        reversePaused = false;
         const fps = 24;
         const step = 1 / fps;
-        const delay = 1000 / fps;
+        let lastTime = performance.now();
         
-        function reverseFrame() {
-            if (video.currentTime <= step) {
-                video.currentTime = video.duration - step;
-            } else {
-                video.currentTime = Math.max(0, video.currentTime - step);
+        function reverseFrame(now) {
+            if (reversePaused) {
+                reverseAnimationId = requestAnimationFrame(reverseFrame);
+                return;
             }
-            
-            // Update scrubber
-            const scrubber = document.getElementById('timeline-scrubber');
-            if (scrubber && video.duration) {
-                const duration = video.seekable.length > 0 ? video.seekable.end(0) : video.duration;
-                const totalFrames = Math.floor(duration * fps);
-                
-                if (scrubber.max != totalFrames) {
-                    scrubber.max = totalFrames;
+            const elapsed = now - lastTime;
+            if (elapsed >= 1000 / fps) {
+                lastTime = now;
+                if (video.currentTime <= step) {
+                    video.currentTime = video.duration - step;
+                } else {
+                    video.currentTime = Math.max(0, video.currentTime - step);
                 }
                 
-                const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(video.currentTime * fps)));
-                scrubber.value = currentFrame;
-                
-                const pct = totalFrames > 1 ? ((currentFrame - 1) / (totalFrames - 1)) * 100 : 0;
-                updateScrubberBackground(pct);
+                const scrubber = document.getElementById('timeline-scrubber');
+                if (scrubber && video.duration) {
+                    const duration = video.seekable.length > 0 ? video.seekable.end(0) : video.duration;
+                    const totalFrames = Math.floor(duration * fps);
+                    
+                    if (scrubber.max != totalFrames) {
+                        scrubber.max = totalFrames;
+                    }
+                    
+                    const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(video.currentTime * fps)));
+                    scrubber.value = currentFrame;
+                    
+                    const pct = totalFrames > 1 ? ((currentFrame - 1) / (totalFrames - 1)) * 100 : 0;
+                    updateScrubberBackground(pct);
+                }
+                updateFrameDisplay();
             }
-            updateFrameDisplay();
-            
-            reverseAnimationId = setTimeout(reverseFrame, delay);
+            reverseAnimationId = requestAnimationFrame(reverseFrame);
         }
         
-        reverseAnimationId = setTimeout(reverseFrame, delay);
+        reverseAnimationId = requestAnimationFrame(reverseFrame);
     }
 
     function stopReversePlayback() {
         if (reverseAnimationId) {
-            clearTimeout(reverseAnimationId);
+            cancelAnimationFrame(reverseAnimationId);
             reverseAnimationId = null;
         }
     }
@@ -2091,16 +2110,22 @@ render();
     function vToggle() {
         const v = document.getElementById('main-v');
         const btn = document.getElementById('play-pause-btn');
-        if(v) {
-            if (v.paused) {
-                v.play().catch(()=>{});
-                showHUD(true);
-                if (btn) btn.innerText = '⏸';
-            } else {
-                v.pause();
-                showHUD(false);
-                if (btn) btn.innerText = '▶️';
-            }
+        if (!v) return;
+        
+        if (playMode === 'reverse') {
+            reversePaused = !reversePaused;
+            if (btn) btn.innerText = reversePaused ? '▶️' : '⏸';
+            return;
+        }
+        
+        if (v.paused) {
+            v.play().catch(()=>{});
+            showHUD(true);
+            if (btn) btn.innerText = '⏸';
+        } else {
+            v.pause();
+            showHUD(false);
+            if (btn) btn.innerText = '▶️';
         }
     }
 
@@ -2275,6 +2300,19 @@ async function sendComment() {
             console.error("Status update error:", e);
             tg.showAlert("Network error. Could not update status.");
         }
+    }
+
+    async function changeShotDept(newDept) {
+        if (!newDept || !activeRecordId) return;
+        const r = records.find(rec => rec.id === activeRecordId);
+        if (r) r.fields.department = newDept;
+        const payload = {
+            operation: "description_update",
+            shot_name: activeRecordShotName,
+            department: newDept
+        };
+        const response = await n8nPost(payload);
+        if (!response.ok) tg.showAlert("Failed to update department.");
     }
     
     // Keyboard frame-by-frame navigation & play-pause shortcut
