@@ -633,12 +633,14 @@
 
         .p-nav {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
             gap: 12px;
             padding: 12px 16px;
             background: rgba(18, 18, 24, 0.5);
             border-bottom: 1px solid var(--border-color);
+            max-width: 500px;
+            margin: 0 auto;
         }
 
         .p-btn {
@@ -980,15 +982,17 @@
             <button class="p-btn" onclick="navigateShot(1)" title="Next Shot">▶</button>
         </div>
     </div>
-    <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column;">
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;">
-            <select id="p-dept-select" onchange="changeShotDept(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-muted); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; min-width: 80px; cursor: pointer;">
+    <div style="padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center;">
+            <select id="p-dept-select" onchange="changeShotDept(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; min-width: 80px; width: auto; cursor: pointer;">
                 <option value="comp">COMP</option>
                 <option value="render">RENDER</option>
                 <option value="animation">ANIM</option>
                 <option value="layout">LAYOUT</option>
                 <option value="edit">EDIT</option>
             </select>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
             <h2 id="p-title" style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></h2>
             <span id="p-version" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; white-space: nowrap;"></span>
             <select id="p-status-select" onchange="changeShotStatus(this.value)" style="background: #2a2a2a; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; min-width: 140px; margin-left: auto;">
