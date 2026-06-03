@@ -1001,12 +1001,12 @@
             <div class="status-filter-box">
                 <span>Status:</span>
                 <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
-                    <option value="">ALL</option>
-                    <option value="Review">REVIEW</option>
-                    <option value="In Progress">IN PROGRESS</option>
-                    <option value="To Fix">TO FIX</option>
-                    <option value="Ready to start">READY TO START</option>
-                    <option value="Approved">APPROVED</option>
+                    <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
+                    <option value="Review" style="background:#2a2a2a;color:#fff;">REVIEW</option>
+                    <option value="In Progress" style="background:#2a2a2a;color:#fff;">IN PROGRESS</option>
+                    <option value="To Fix" style="background:#2a2a2a;color:#fff;">TO FIX</option>
+                    <option value="Ready to start" style="background:#2a2a2a;color:#fff;">READY TO START</option>
+                    <option value="Approved" style="background:#2a2a2a;color:#fff;">APPROVED</option>
                 </select>
             </div>
         </div>
@@ -1117,7 +1117,7 @@
 </div>
 
 <!-- Control Panel Overlay -->
-<div id="control-panel-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-card); z-index:9999; overflow-y:auto;" onclick="if(event.target===this)closeControlPanel()">
+<div id="control-panel-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#0c0c10; z-index:9999; overflow-y:auto;" onclick="if(event.target===this)closeControlPanel()">
     <div style="max-width:500px; margin:0 auto; padding:24px 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
             <h2 style="margin:0; font-family:Outfit,sans-serif; font-weight:800; font-size:22px; color:var(--text-primary);">Control Panel</h2>
@@ -1497,6 +1497,7 @@ function init() {
             const versionText = versionRecord ? versionRecord.fields.version : '';
             const verColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
             const dep = r.fields.department || '';
+            console.log('DEPT:', dep, 'for', r.fields.shot_name, 'fields:', Object.keys(r.fields));
 
             if (isList) {
                 return `
@@ -1509,7 +1510,7 @@ function init() {
                             </div>
                             <div class="badge-row">
                                 <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
-                                ${dep ? `<span class="status-badge" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); color: var(--text-muted); font-size: 10px; padding: 2px 10px;">${dep.toUpperCase()}</span>` : ''}
+                                ${dep ? `<span class="status-badge" style="background:#2a2a2a; border:1px solid var(--border-color); color:var(--text-muted); font-size:10px; font-weight:600; padding:2px 10px;">${dep.toUpperCase()}</span>` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -1523,6 +1524,7 @@ function init() {
                                 <span class="status-badge ${badgeClass}">${statusText||'READY TO START'}</span>
                                 ${versionText ? `<span style="font-family: Outfit, sans-serif; font-weight: 800; color: ${verColor};">v${versionText}</span>` : ''}
                             </div>
+                            ${dep ? `<div style="margin-top:4px;"><span style="background:#2a2a2a; border:1px solid var(--border-color); color:var(--text-muted); font-size:10px; font-weight:600; padding:2px 8px; border-radius:4px;">${dep.toUpperCase()}</span></div>` : ''}
                         </div>
                     </div>`;
             }
