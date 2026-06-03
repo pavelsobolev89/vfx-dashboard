@@ -1938,7 +1938,8 @@ render();
                 version: String(newVersion).padStart(3, '0'),
                 artist: currentUsername || 'unknown',
                 file_id: fileId,
-                status: 'Review'
+                status: 'Review',
+                department: currentRecord.fields.department || ''
             };
             
             const webhookResponse = await n8nPost(webhookPayload);
