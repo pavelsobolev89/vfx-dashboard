@@ -997,9 +997,10 @@
         </div>
         <div class="filter-controls-row">
             <div id="tabs" style="margin-bottom: 4px;"></div>
-            <div class="status-filter-box" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div class="status-filter-box" style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
                 <span>Status</span>
-                <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
+                <span style="color:var(--text-muted);">|</span>
+                <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)" style="background:none; border:none; color:var(--accent); font-size:14px; font-weight:600; cursor:pointer; outline:none; padding:2px 0;">
                     <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
                     <option value="Review" style="background:#2a2a2a;color:#fff;">REVIEW</option>
                     <option value="In Progress" style="background:#2a2a2a;color:#fff;">IN PROGRESS</option>
@@ -1007,8 +1008,10 @@
                     <option value="Ready to start" style="background:#2a2a2a;color:#fff;">READY TO START</option>
                     <option value="Approved" style="background:#2a2a2a;color:#fff;">APPROVED</option>
                 </select>
+                <span style="color:var(--text-muted);">|</span>
                 <span>Team</span>
-                <select id="team-select" class="status-select" onchange="setTeamFilter(this.value)">
+                <span style="color:var(--text-muted);">|</span>
+                <select id="team-select" class="status-select" onchange="setTeamFilter(this.value)" style="background:none; border:none; color:var(--accent); font-size:14px; font-weight:600; cursor:pointer; outline:none; padding:2px 0;">
                     <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
                     <option value="comp" style="background:#2a2a2a;color:#fff;">COMP</option>
                     <option value="render" style="background:#2a2a2a;color:#fff;">RENDER</option>
@@ -1046,11 +1049,13 @@
                 <option value="layout">LAYOUT</option>
                 <option value="edit">EDIT</option>
             </select>
-            <span style="font-size:14px; font-weight:600; color:var(--text-secondary); flex-shrink:0;">Artist</span>
-            <select id="p-artist-select" onchange="changeShotArtist(this.value)" style="flex:1; min-width:80px; max-width:160px; background:#2a2a2a; border:1px solid var(--border-color); color:var(--accent); padding:6px 8px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
-                <option value="latic">latic</option>
-                <option value="fireframes">fireframes</option>
-            </select>
+            <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+                <span style="font-size:14px; font-weight:600; color:var(--text-secondary); flex-shrink:0;">Artist</span>
+                <select id="p-artist-select" onchange="changeShotArtist(this.value)" style="min-width:80px; max-width:160px; background:#2a2a2a; border:1px solid var(--border-color); color:var(--accent); padding:6px 8px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;">
+                    <option value="latic">latic</option>
+                    <option value="fireframes">fireframes</option>
+                </select>
+            </div>
         </div>
         <div style="border-top:1px solid var(--border-color);"></div>
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
@@ -1497,8 +1502,7 @@ function init() {
             const statusText = versionRecord ? versionRecord.fields.status : r.fields.status;
             const versionText = versionRecord ? versionRecord.fields.version : '';
             const verColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
-            const dep = r.fields.department || '';
-            console.log('DEPT:', dep, 'for', r.fields.shot_name, 'fields:', Object.keys(r.fields));
+            const dep = (versionRecord && versionRecord.fields.department) || r.fields.department || '';
 
             if (isList) {
                 return `
@@ -1632,8 +1636,9 @@ async function openPlayer(id) {
         const versionColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
         document.getElementById('p-version').style.color = versionColor;
         const deptSelect = document.getElementById('p-dept-select');
-        if (deptSelect && r.fields.department) {
-            deptSelect.value = r.fields.department.toLowerCase();
+        const deptFromVersion = (versionRecord && versionRecord.fields.department) || r.fields.department || '';
+        if (deptSelect && deptFromVersion) {
+            deptSelect.value = deptFromVersion.toLowerCase();
             deptSelect.style.color = versionColor;
         }
         
@@ -1664,18 +1669,24 @@ async function openPlayer(id) {
         // Set artist select
         const artistSelect = document.getElementById('p-artist-select');
         if (artistSelect) {
-            // Populate with artists from same department + defaults
             const curDept = document.getElementById('p-dept-select')?.value || '';
             const deptArtists = [...new Set(records
-                .filter(r => (r.fields.department||'').toLowerCase() === curDept)
-                .map(r => r.fields.artist || '')
+                .filter(r => {
+                    const rv = r.currentVersionRecord;
+                    const rd = (rv && rv.fields.department) || r.fields.department || '';
+                    return rd.toLowerCase() === curDept;
+                })
+                .map(r => {
+                    const rv = r.currentVersionRecord;
+                    return (rv && rv.fields.artist) || r.fields.artist || '';
+                })
                 .filter(Boolean)
             )].sort();
             const allArtists = [...new Set([...deptArtists, 'latic', 'fireframes'])];
             artistSelect.innerHTML = allArtists.map(a =>
                 `<option value="${a}" style="background:#2a2a2a;color:var(--accent);">${a}</option>`
             ).join('');
-            let artist = r.fields.artist || '';
+            let artist = (versionRecord && versionRecord.fields.artist) || r.fields.artist || '';
             if (!artist) { artist = 'latic'; r.fields.artist = 'latic'; }
             if ([...artistSelect.options].some(o => o.value === artist)) {
                 artistSelect.value = artist;
