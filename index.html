@@ -1492,16 +1492,16 @@ async function openPlayer(id) {
         
         document.getElementById('p-title').innerText = r.fields.shot_name;
         document.getElementById('p-project-name').innerText = PROJECT_TITLE;
-        const deptSelect = document.getElementById('p-dept-select');
-        if (deptSelect && r.fields.department) {
-            deptSelect.value = r.fields.department.toLowerCase();
-        }
-        if (deptSelect) deptSelect.style.color = versionColor;
         const ver = versionRecord ? `v${versionRecord.fields.version}` : 'v000';
         document.getElementById('p-version').innerText = ver;
         const st = (versionRecord ? versionRecord.fields.status : r.fields.status || '').toLowerCase();
         const versionColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
         document.getElementById('p-version').style.color = versionColor;
+        const deptSelect = document.getElementById('p-dept-select');
+        if (deptSelect && r.fields.department) {
+            deptSelect.value = r.fields.department.toLowerCase();
+            deptSelect.style.color = versionColor;
+        }
         
         const statusSelect = document.getElementById('p-status-select');
         if (statusSelect) {
