@@ -995,9 +995,8 @@
             <input type="text" id="search-input" class="search-input" placeholder="Search shots by name..." oninput="handleSearch(this.value)">
         </div>
         <div id="tabs" style="display:flex; gap:4px;"></div>
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
             <span style="font-size:14px; font-weight:600; color:#fff;">Status</span>
-            <span style="color:var(--text-muted);">|</span>
             <select id="status-select" class="status-select" onchange="setStatusFilter(this.value)">
                 <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
                 <option value="Review" style="background:#2a2a2a;color:#fff;">REVIEW</option>
@@ -1006,9 +1005,7 @@
                 <option value="Ready to start" style="background:#2a2a2a;color:#fff;">READY TO START</option>
                 <option value="Approved" style="background:#2a2a2a;color:#fff;">APPROVED</option>
             </select>
-            <span style="color:var(--text-muted);">|</span>
             <span style="font-size:14px; font-weight:600; color:#fff;">Team</span>
-            <span style="color:var(--text-muted);">|</span>
             <select id="team-select" class="status-select" onchange="setTeamFilter(this.value)">
                 <option value="" style="background:#2a2a2a;color:#fff;">ALL</option>
                 <option value="comp" style="background:#2a2a2a;color:#fff;">COMP</option>
