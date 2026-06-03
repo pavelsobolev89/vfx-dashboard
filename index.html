@@ -1419,15 +1419,6 @@ function init() {
         curDeptFilter = val;
         render();
     }
-        render();
-    }
-
-    function setDeptFilter(d, el) {
-        curDeptFilter = d;
-        document.querySelectorAll('#dept-tabs .tab').forEach(t => t.classList.remove('active'));
-        if (el) el.classList.add('active');
-        render();
-    }
 
     function setStatusFilter(status) {
         curStatusFilter = status;
