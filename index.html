@@ -987,9 +987,8 @@
             </select>
         </div>
         <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button onclick="document.getElementById('video-upload-input').click()" style="background: transparent; border: 1px solid var(--border-color); color: var(--accent); padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;">📎 Upload Video</button>
+            <button onclick="document.getElementById('video-upload-input').click()" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); color: var(--accent); padding: 8px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">📎 Upload Video</button>
             <input type="file" id="video-upload-input" accept="video/*" style="display: none;" onchange="uploadVideo(this)">
-            <button onclick="createNewShot()" style="background: transparent; border: 1px solid var(--border-color); color: var(--accent); padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;">+ New Shot</button>
         </div>
     </div>
     
@@ -1014,8 +1013,8 @@
                 <button class="p-btn" onclick="vStep(1)" title="Frame Forward" style="width: 44px; height: 44px;">⏩</button>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="width: 44px; height: 44px;">◀</button>
-                <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="width: 44px; height: 44px;">▶</button>
+                <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="width: 44px; height: 44px; font-size: 14px;">⬅️</button>
+                <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="width: 44px; height: 44px; font-size: 14px;">➡️</button>
                 <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen" style="width: 44px; height: 44px;">⛶</button>
             </div>
         </div>
