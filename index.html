@@ -1750,6 +1750,15 @@ async function openPlayer(id) {
                 initScrubber();
                 const v = document.getElementById('main-v');
                 if (v) {
+                    v.addEventListener('error', async () => {
+                        const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
+                        if (fileId) {
+                            container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
+                            const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
+                            if (newUrl) { setupVideo(newUrl); return; }
+                        }
+                        container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO LOAD ERROR<br><span style="font-size:11px;color:var(--text-muted);">Check console for details</span></div>`;
+                    });
                     v.addEventListener('loadedmetadata', () => {
                         const fps = 24;
                         const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
@@ -1807,22 +1816,16 @@ async function openPlayer(id) {
         (async () => {
             const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
             if (videoUrl) {
-                try {
-                    const head = await fetch(videoUrl, { method: 'HEAD' });
-                    if (head.ok) { setupVideo(videoUrl); return; }
-                    container.innerHTML = `<div class="video-loading" style="color: var(--danger);">URL DEAD (${head.status})<br><span style="font-size:11px;color:var(--text-muted);">${videoUrl.slice(0,80)}...</span></div>`;
-                } catch(e) {
-                    container.innerHTML = `<div class="video-loading" style="color: var(--danger);">URL CHECK FAILED<br><span style="font-size:11px;color:var(--text-muted);">${e.message}</span></div>`;
-                }
+                setupVideo(videoUrl);
+                return;
             }
             if (fileId) {
                 container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
                 const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
                 if (newUrl) setupVideo(newUrl);
-                else container.innerHTML = `<div class="video-loading" style="color: var(--danger);">REFRESH FAILED<br><span style="font-size:11px;color:var(--text-muted);">Telegram API returned no URL for file_id: ${fileId.slice(0,20)}...</span></div>`;
+                else container.innerHTML = `<div class="video-loading" style="color: var(--danger);">REFRESH FAILED<br><span style="font-size:11px;color:var(--text-muted);">Telegram API returned no URL for file_id</span></div>`;
             } else {
-                const missing = videoUrl ? 'NO FILE_ID IN RECORD' : 'NO VIDEO_URL AND NO FILE_ID';
-                container.innerHTML = `<div class="video-loading" style="color: var(--danger);">${missing}</div>`;
+                container.innerHTML = `<div class="video-loading" style="color: var(--danger);">NO VIDEO URL AND NO FILE_ID</div>`;
             }
         })();
         
