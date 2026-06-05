@@ -1744,15 +1744,6 @@ async function openPlayer(id) {
                 initScrubber();
                 const v = document.getElementById('main-v');
                 if (v) {
-                    v.addEventListener('error', async () => {
-                        const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
-                        if (fileId) {
-                            container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
-                            const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
-                            if (newUrl) { setupVideo(newUrl); return; }
-                        }
-                        container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
-                    });
                     v.addEventListener('loadedmetadata', () => {
                         const fps = 24;
                         const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
@@ -1807,21 +1798,23 @@ async function openPlayer(id) {
             }, 100);
         };
 
-        if (videoUrl) {
-            setupVideo(videoUrl);
-        } else {
+        (async () => {
             const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
+            if (videoUrl) {
+                try {
+                    const head = await fetch(videoUrl, { method: 'HEAD' });
+                    if (head.ok) { setupVideo(videoUrl); return; }
+                } catch(e) {}
+            }
             if (fileId) {
                 container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
-                (async () => {
-                    const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
-                    if (newUrl) setupVideo(newUrl);
-                    else container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
-                })();
+                const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
+                if (newUrl) setupVideo(newUrl);
+                else container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
             } else {
                 container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
             }
-        }
+        })();
         
 // Load past comments
         loadComments(id);
