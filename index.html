@@ -979,10 +979,10 @@
 <div id="grid-view" class="fade-in">
     <div class="header">
         <div class="header-left">
-            <div id="project-name">LOADING...</div>
             <button class="refresh-btn" onclick="fetchData()" title="Refresh records">🔄</button>
             <button class="refresh-btn" onclick="toggleControlPanel()" title="Control Panel" style="margin-left: 4px;">⚙️</button>
         </div>
+        <div id="project-name" style="font-family:'Outfit',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.02em;text-transform:uppercase;background:linear-gradient(135deg,#ffffff 0%,#a1a1aa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex:1;text-align:center;">LOADING...</div>
         <div class="view-toggle">
             <button class="v-btn active" onclick="setView('grid', this)">田</button>
             <button class="v-btn" onclick="setView('list', this)">≡</button>
@@ -1554,7 +1554,7 @@ function init() {
                     <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")'>
                         <div class="thumb-wrapper">${mediaContent}</div>
                         <div class="info">
-                            <div class="info-name-title">${r.fields.shot_name} ${dep ? `<span style="color: var(--text-muted); font-size: 0.75em; border: 1px solid var(--border-color); padding: 1px 6px; border-radius: 4px;">${dep.toUpperCase()}</span>` : ''}</div>
+                            <div class="info-name-title">${r.fields.shot_name}</div>
                             <div style="margin-top: 6px; display: flex; gap: 8px; align-items: center;">
                                 <span class="status-badge ${badgeClass}">${statusText||'READY TO START'}</span>
                                 ${versionText ? `<span style="font-family: Outfit, sans-serif; font-weight: 800; color: ${verColor};">v${versionText}</span>` : ''}
