@@ -1727,33 +1727,32 @@ async function openPlayer(id) {
         const container = document.getElementById('v-container');
         container.innerHTML = `<div class="video-loading">CONNECTING TO TELEGRAM CLOUD...</div>`;
 
-        (async () => {
-            let videoUrl = versionRecord ? getVideoUrl(versionRecord) : getVideoUrl(r);
-            if (!videoUrl) {
-                const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
-                if (fileId) {
-                    container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
-                    const recordId = versionRecord ? versionRecord.id : null;
-                    videoUrl = await refreshVideoUrl(recordId, fileId);
-                }
-            }
-            if (videoUrl) {
-                container.innerHTML = `
-                    <div class="video-box-wrapper">
-                        <video id="main-v" loop playsinline autoplay muted onclick="vToggle()">
-                            <source src="${videoUrl}" type="video/mp4">
-                        </video>
-                        <div id="video-hud" class="hud-indicator">
-                            <div class="hud-icon">▶</div>
-                        </div>
+        let videoUrl = versionRecord ? getVideoUrl(versionRecord) : getVideoUrl(r);
+        
+        const setupVideo = (url) => {
+            container.innerHTML = `
+                <div class="video-box-wrapper">
+                    <video id="main-v" loop playsinline autoplay muted onclick="vToggle()">
+                        <source src="${url}" type="video/mp4">
+                    </video>
+                    <div id="video-hud" class="hud-indicator">
+                        <div class="hud-icon">▶</div>
                     </div>
-                `;
-            
-            // Setup Scrubber & Frame counter listeners
+                </div>
+            `;
             setTimeout(() => {
                 initScrubber();
                 const v = document.getElementById('main-v');
                 if (v) {
+                    v.addEventListener('error', async () => {
+                        const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
+                        if (fileId) {
+                            container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
+                            const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
+                            if (newUrl) { setupVideo(newUrl); return; }
+                        }
+                        container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
+                    });
                     v.addEventListener('loadedmetadata', () => {
                         const fps = 24;
                         const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
@@ -1806,10 +1805,23 @@ async function openPlayer(id) {
                     container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
                 }
             }, 100);
+        };
+
+        if (videoUrl) {
+            setupVideo(videoUrl);
         } else {
-            container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
+            const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
+            if (fileId) {
+                container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
+                (async () => {
+                    const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
+                    if (newUrl) setupVideo(newUrl);
+                    else container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
+                })();
+            } else {
+                container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
+            }
         }
-        })();
         
 // Load past comments
         loadComments(id);
