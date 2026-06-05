@@ -2156,9 +2156,11 @@ render();
         const shotName = currentRecord.fields.shot_name;
         const versions = currentRecord.versions || [];
         const currentVersion = versions.length > 0 ? parseInt(versions[versions.length - 1].fields.version || 0) : 0;
+        const newVersion = currentVersion + 1;
         
-        // Get department from shot record
-        let department = currentRecord.fields.department || '';
+        // Get department from player select
+        const deptSelect = document.getElementById('p-dept-select');
+        let department = deptSelect ? deptSelect.value : (currentRecord.fields.department || '');
         
         tg.showAlert(`Uploading ${file.name} as v${String(newVersion).padStart(3, '0')}...`);
         
