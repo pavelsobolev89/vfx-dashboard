@@ -1248,6 +1248,11 @@
     let curDeptFilter = '';
     let curStatusFilter = '';
     let searchQuery = '';
+
+    function getDepartment(record, versionRecord) {
+        const raw = (versionRecord && versionRecord.fields.department) || (record && record.fields.department) || '';
+        return Array.isArray(raw) ? (raw[0] || '') : raw;
+    }
     
 let activeRecordId = null;
     let activeRecordShotName = "";
@@ -1490,7 +1495,7 @@ function init() {
         
         let filtered = records;
         if (curEpFilter) filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curEpFilter));
-        if (curDeptFilter) filtered = filtered.filter(r => (r.fields.department||'') === curDeptFilter);
+        if (curDeptFilter) filtered = filtered.filter(r => getDepartment(r) === curDeptFilter);
         if (curStatusFilter) {
             filtered = filtered.filter(r => {
                 const versionRecord = r.currentVersionRecord;
@@ -1527,7 +1532,7 @@ function init() {
             const statusText = versionRecord ? versionRecord.fields.status : r.fields.status;
             const versionText = versionRecord ? versionRecord.fields.version : '';
             const verColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
-            const dep = (versionRecord && versionRecord.fields.department) || r.fields.department || '';
+            const dep = getDepartment(r, versionRecord);
 
             if (isList) {
                 return `
@@ -1661,7 +1666,7 @@ async function openPlayer(id) {
         const versionColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
         document.getElementById('p-version').style.color = versionColor;
         const deptSelect = document.getElementById('p-dept-select');
-        const deptFromVersion = (versionRecord && versionRecord.fields.department) || r.fields.department || '';
+        const deptFromVersion = getDepartment(r, versionRecord);
         if (deptSelect && deptFromVersion) {
             deptSelect.value = deptFromVersion.toLowerCase();
             deptSelect.style.color = versionColor;
@@ -1696,11 +1701,7 @@ async function openPlayer(id) {
         if (artistSelect) {
             const curDept = document.getElementById('p-dept-select')?.value || '';
             const deptArtists = [...new Set(records
-                .filter(r => {
-                    const rv = r.currentVersionRecord;
-                    const rd = (rv && rv.fields.department) || r.fields.department || '';
-                    return rd.toLowerCase() === curDept;
-                })
+                .filter(r => getDepartment(r, r.currentVersionRecord).toLowerCase() === curDept)
                 .map(r => {
                     const rv = r.currentVersionRecord;
                     return (rv && rv.fields.artist) || r.fields.artist || '';
@@ -1841,7 +1842,7 @@ tg.BackButton.onClick(closePlayer);
         const filtered = records.filter(r => {
             const name = r.fields.shot_name || '';
             const ep = curEpFilter ? name.toLowerCase().startsWith(curEpFilter.toLowerCase()) : true;
-            const deptMatch = !curDeptFilter || (r.fields.department||'') === curDeptFilter;
+            const deptMatch = !curDeptFilter || getDepartment(r) === curDeptFilter;
             const statusMatch = !curStatusFilter || (r.fields.status || '').toLowerCase().includes(curStatusFilter.toLowerCase());
             const searchMatch = !searchQuery || name.toLowerCase().includes(searchQuery);
             return ep && deptMatch && statusMatch && searchMatch;
@@ -2160,7 +2161,7 @@ render();
         
         // Get department from player select
         const deptSelect = document.getElementById('p-dept-select');
-        let department = deptSelect ? deptSelect.value : (currentRecord.fields.department || '');
+        let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
         
         tg.showAlert(`Uploading ${file.name} as v${String(newVersion).padStart(3, '0')}...`);
         
