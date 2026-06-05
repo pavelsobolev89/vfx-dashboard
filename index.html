@@ -2202,7 +2202,7 @@ render();
                 artist: currentUsername || 'unknown',
                 file_id: fileId,
                 status: 'Review',
-                department: department || ''
+                department: department ? [department] : []
             };
             
             const webhookResponse = await n8nPost(webhookPayload);
@@ -2549,7 +2549,7 @@ async function sendComment() {
         const payload = {
             operation: "description_update",
             shot_name: activeRecordShotName,
-            department: newDept
+            department: [newDept]
         };
         const response = await n8nPost(payload);
         if (!response.ok) tg.showAlert("Failed to update department.");
