@@ -2203,7 +2203,8 @@ render();
         const deptSelect = document.getElementById('p-dept-select');
         let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
         
-        tg.showAlert(`Uploading ${file.name} as v${String(newVersion).padStart(3, '0')}...`);
+        const uploadBtn = document.querySelector('#player-view .video-box-wrapper + button, #player-view [onclick*="upload"]') || document.querySelector('button[onclick*="video-upload-input"]');
+        if (uploadBtn) uploadBtn.textContent = '⏳';
         
         try {
             // Upload to Telegram
@@ -2239,8 +2240,14 @@ render();
             
             const webhookResponse = await n8nPost(webhookPayload);
             
+            if (uploadBtn) uploadBtn.textContent = '+';
+            
             if (webhookResponse.ok) {
-                tg.showAlert(`✅ Uploaded v${String(newVersion).padStart(3, '0')} successfully!`);
+                tg.showPopup({
+                    title: '✅ Upload Complete',
+                    message: `Version v${String(newVersion).padStart(3, '0')} for ${shotName} uploaded successfully!\nDepartment: ${department || 'N/A'}`,
+                    buttons: [{ type: 'ok', id: 'ok' }]
+                });
                 // Refresh data after 2 seconds to let n8n process
                 setTimeout(() => fetchData(), 2000);
             } else {
@@ -2249,6 +2256,7 @@ render();
             
         } catch (error) {
             console.error('Upload error:', error);
+            if (uploadBtn) uploadBtn.textContent = '+';
             tg.showAlert(`❌ Upload failed: ${error.message}`);
         }
         
