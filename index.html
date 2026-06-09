@@ -1747,20 +1747,23 @@ async function openPlayer(id) {
                     </div>
                 </div>
             `;
+            const v = document.getElementById('main-v');
+            if (v) {
+                v.addEventListener('error', async function onVideoError() {
+                    const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
+                    if (fileId) {
+                        container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
+                        const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
+                        if (newUrl) { setupVideo(newUrl); return; }
+                    }
+                    container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO LOAD ERROR<br><span style="font-size:11px;color:var(--text-muted);">Check console for details</span></div>`;
+                });
+            }
             setTimeout(() => {
                 initScrubber();
-                const v = document.getElementById('main-v');
-                if (v) {
-                    v.addEventListener('error', async () => {
-                        const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
-                        if (fileId) {
-                            container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
-                            const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
-                            if (newUrl) { setupVideo(newUrl); return; }
-                        }
-                        container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO LOAD ERROR<br><span style="font-size:11px;color:var(--text-muted);">Check console for details</span></div>`;
-                    });
-                    v.addEventListener('loadedmetadata', () => {
+                const v2 = document.getElementById('main-v');
+                if (v2) {
+                    v2.addEventListener('loadedmetadata', () => {
                         const fps = 24;
                         const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
                         const totalFrames = Math.floor(duration * fps);
