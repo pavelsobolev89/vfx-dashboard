@@ -2203,7 +2203,7 @@ render();
         const deptSelect = document.getElementById('p-dept-select');
         let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
         
-        const uploadBtn = document.querySelector('#player-view .video-box-wrapper + button, #player-view [onclick*="upload"]') || document.querySelector('button[onclick*="video-upload-input"]');
+        const uploadBtn = document.querySelector('button[onclick*="video-upload-input"]');
         if (uploadBtn) uploadBtn.textContent = '⏳';
         
         try {
