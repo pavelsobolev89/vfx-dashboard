@@ -2205,7 +2205,7 @@ render();
                 artist: currentUsername || 'unknown',
                 file_id: fileId,
                 status: 'Review',
-                department: department || ''
+                department: department ? [department] : []
             };
             
             const webhookResponse = await n8nPost(webhookPayload);
