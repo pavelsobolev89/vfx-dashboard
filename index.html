@@ -1414,6 +1414,31 @@ let activeRecordId = null;
                     document.getElementById('tabs').innerHTML = eps.map(ep => `
                         <div class="tab ${ep===curEpFilter?'active':''}" onclick="setEpFilter('${ep}', this)">${ep.toUpperCase()}</div>`).join('');
                 }
+                // Batch refresh missing video URLs
+                (async () => {
+                    const toRefresh = [];
+                    for (const shot of records) {
+                        for (const v of (shot.versions || [])) {
+                            if (!v.fields.video_url && v.fields.file_id) {
+                                toRefresh.push({ id: v.id, fileId: v.fields.file_id });
+                            }
+                        }
+                    }
+                    await Promise.all(toRefresh.map(r => refreshVideoUrl(r.id, r.fileId)));
+                    if (toRefresh.length > 0) {
+                        // Re-fetch version records to get updated URLs
+                        const versionsR2 = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Versions?sort[0][field]=shot_name&sort[0][direction]=asc&sort[1][field]=version&sort[1][direction]=asc`, {
+                            headers: { Authorization: `Bearer ${K}` }
+                        });
+                        const versionsJson2 = await versionsR2.json();
+                        const updatedVersions = versionsJson2.records || [];
+                        // Merge updated versions back into records
+                        for (const shot of records) {
+                            shot.versions = updatedVersions.filter(v => v.fields.shot_name === shot.fields.shot_name);
+                            shot.currentVersionRecord = shot.versions[shot.versions.length - 1];
+                        }
+                    }
+                })();
                 await preloadVideoUrls();
                 render();
             } else {
