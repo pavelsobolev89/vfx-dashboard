@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1253,6 +1253,12 @@
         const raw = (versionRecord && versionRecord.fields.department) || (record && record.fields.department) || '';
         return Array.isArray(raw) ? (raw[0] || '') : raw;
     }
+
+    function getDisplayVersion(shot, dept) {
+        if (!dept) return shot.currentVersionRecord;
+        const deptVersions = (shot.versions || []).filter(v => getDepartment(v) === dept);
+        return deptVersions.length > 0 ? deptVersions[deptVersions.length - 1] : null;
+    }
     
 let activeRecordId = null;
     let activeRecordShotName = "";
@@ -1524,10 +1530,10 @@ function init() {
         
         let filtered = records;
         if (curEpFilter) filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().startsWith(curEpFilter));
-        if (curDeptFilter) filtered = filtered.filter(r => getDepartment(r) === curDeptFilter);
+        if (curDeptFilter) filtered = filtered.filter(r => (r.versions || []).some(v => getDepartment(v) === curDeptFilter));
         if (curStatusFilter) {
             filtered = filtered.filter(r => {
-                const versionRecord = r.currentVersionRecord;
+                const versionRecord = getDisplayVersion(r, curDeptFilter);
                 const status = versionRecord ? versionRecord.fields.status : r.fields.status;
                 return (status || '') === curStatusFilter;
             });
@@ -1540,7 +1546,7 @@ function init() {
         }
         
         grid.innerHTML = filtered.map(r => {
-            const versionRecord = r.currentVersionRecord;
+            const versionRecord = getDisplayVersion(r, curDeptFilter);
             const st = (versionRecord ? versionRecord.fields.status : r.fields.status || '').toLowerCase();
             const img = r.fields.thumbnail?.[0]?.url || '';
             const videoUrl = versionRecord ? getVideoUrl(versionRecord) : getVideoUrl(r);
@@ -1676,7 +1682,7 @@ async function openPlayer(id) {
         const r = records.find(rec => rec.id === id);
         if(!r) return;
 
-        const versionRecord = r.currentVersionRecord;
+        const versionRecord = getDisplayVersion(r, curDeptFilter);
         
         activeRecordId = id; 
         activeRecordShotName = r.fields.shot_name || "";
@@ -1698,7 +1704,6 @@ async function openPlayer(id) {
         const deptFromVersion = getDepartment(r, versionRecord);
         if (deptSelect && deptFromVersion) {
             deptSelect.value = deptFromVersion.toLowerCase();
-            deptSelect.style.color = versionColor;
         }
         
         const statusSelect = document.getElementById('p-status-select');
@@ -2195,13 +2200,13 @@ render();
         const nameMatch = fileName.match(/[vV](\d+)/);
         const nameVersion = nameMatch ? parseInt(nameMatch[1]) : 0;
         const defaultVersion = Math.max(nameVersion, currentVersion + 1);
-        const userInput = prompt(`Enter version number for "${shotName}":`, String(defaultVersion).padStart(3, '0'));
-        if (!userInput) return; // cancelled
-        const newVersion = parseInt(userInput) || defaultVersion;
-        
         // Get department from player select
         const deptSelect = document.getElementById('p-dept-select');
         let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
+        
+        const userInput = prompt(`Enter version number for "${shotName}" (${department}):`, String(defaultVersion).padStart(3, '0'));
+        if (!userInput) return; // cancelled
+        const newVersion = parseInt(userInput) || defaultVersion;
         
         const uploadBtn = document.querySelector('button[onclick*="video-upload-input"]');
         if (uploadBtn) uploadBtn.textContent = '⏳';
