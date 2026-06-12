@@ -61,6 +61,29 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 99999;
+            opacity: 0;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         .st-review { color: var(--warning) !important; background: var(--warning-bg); border: 1px solid rgba(234, 179, 8, 0.2); }
         .st-ready { color: var(--text-secondary) !important; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); }
         .st-approved { color: var(--success) !important; background: var(--success-bg); border: 1px solid rgba(16, 185, 129, 0.2); }
@@ -2253,13 +2276,30 @@ render();
             if (uploadBtn) uploadBtn.textContent = '+';
             
             if (webhookResponse.ok) {
+                // Wait for n8n to create the version record
+                await new Promise(r => setTimeout(r, 2000));
+                await fetchData();
+                // Ensure file_id is saved directly to Airtable
+                const uploadedRecord = records.find(r => r.id === activeRecordId);
+                if (uploadedRecord) {
+                    const verStr = String(newVersion).padStart(3, '0');
+                    const versionRec = uploadedRecord.versions.find(v =>
+                        v.fields.shot_name === shotName && String(v.fields.version) === verStr
+                    );
+                    if (versionRec && !versionRec.fields.file_id) {
+                        await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Versions/${versionRec.id}`, {
+                            method: 'PATCH',
+                            headers: { Authorization: `Bearer ${K}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ fields: { file_id: fileId } })
+                        });
+                        await refreshVideoUrl(versionRec.id, fileId);
+                    }
+                }
                 tg.showPopup({
                     title: '✅ Upload Complete',
                     message: `Version v${String(newVersion).padStart(3, '0')} for ${shotName} uploaded successfully!\nDepartment: ${department || 'N/A'}`,
                     buttons: [{ type: 'ok', id: 'ok' }]
                 });
-                // Refresh data after 2 seconds to let n8n process
-                setTimeout(() => fetchData(), 2000);
             } else {
                 throw new Error('Webhook failed');
             }
@@ -2463,7 +2503,7 @@ async function sendComment() {
 
             if (response.ok) {
                 inputEl.value = "";
-                tg.showAlert("Comment successfully added!");
+                showToast("Comment successfully added!");
                 loadComments(activeRecordId);
             } else {
                 tg.showAlert("Failed to send comment. Check n8n workflow.");
@@ -2765,8 +2805,17 @@ async function sendComment() {
         }
     });
 
+    function showToast(msg) {
+        const t = document.getElementById('toast-el');
+        if (!t) return;
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(t._hide);
+        t._hide = setTimeout(() => t.classList.remove('show'), 2200);
+    }
     init();
 </script>
+<div id="toast-el" class="toast"></div>
 </body>
 </html>
 
