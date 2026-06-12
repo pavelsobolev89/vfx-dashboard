@@ -103,6 +103,10 @@
             white-space: nowrap;
         }
 
+        .card.drag-over { outline: 3px solid var(--accent); outline-offset: -3px; background: rgba(0,122,255,0.08); }
+        .new-badge { position: absolute; top: 8px; right: 8px; color: var(--accent); font-size: 18px; line-height: 1; z-index: 2; filter: drop-shadow(0 0 6px var(--accent-glow)); }
+        .frame-tag { display:inline-block; background:var(--accent); color:#fff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:6px; vertical-align:middle; }
+
         .header {
             display: flex;
             justify-content: space-between;
@@ -1007,6 +1011,7 @@
         <div class="header-left">
             <button class="refresh-btn" onclick="fetchData()" title="Refresh records">🔄</button>
             <button class="refresh-btn" onclick="toggleControlPanel()" title="Control Panel" style="margin-left: 4px;">⚙️</button>
+            <button id="sort-date-btn" class="refresh-btn" onclick="toggleSortByDate()" title="Sort by latest version" style="margin-left:4px;font-size:14px;opacity:0.4;">📅</button>
         </div>
         <div id="project-name" style="font-family:'Outfit',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.02em;text-transform:uppercase;background:linear-gradient(135deg,#ffffff 0%,#a1a1aa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex:1;text-align:center;">LOADING...</div>
         <div class="view-toggle">
@@ -1274,6 +1279,7 @@
     let curDeptFilter = '';
     let curStatusFilter = '';
     let searchQuery = '';
+    let sortByDate = false;
 
     function getDepartment(record, versionRecord) {
         const raw = (versionRecord && versionRecord.fields.department) || (record && record.fields.department) || '';
@@ -1543,6 +1549,22 @@ function init() {
         render();
     }
 
+    function toggleSortByDate() {
+        sortByDate = !sortByDate;
+        const btn = document.getElementById('sort-date-btn');
+        if (btn) btn.style.opacity = sortByDate ? '1' : '0.4';
+        render();
+    }
+
+    function getLastViewed(id) {
+        try { return JSON.parse(localStorage.getItem('lastViewed') || '{}')[id] || 0; } catch { return 0; }
+    }
+    function setLastViewed(id) {
+        const store = JSON.parse(localStorage.getItem('lastViewed') || '{}');
+        store[id] = Date.now();
+        localStorage.setItem('lastViewed', JSON.stringify(store));
+    }
+
     function setView(mode, el) {
         document.getElementById('main-grid').className = mode === 'list' ? 'list-mode' : '';
         document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
@@ -1572,6 +1594,86 @@ function init() {
                 return (status || '') === curStatusFilter;
             });
         }
+        if (searchQuery) filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().includes(searchQuery));
+
+        if (sortByDate) {
+            filtered = [...filtered].sort((a, b) => {
+                const av = a.versions?.[a.versions.length - 1];
+                const bv = b.versions?.[b.versions.length - 1];
+                const at = av?.createdTime || a.fields.created_at || 0;
+                const bt = bv?.createdTime || b.fields.created_at || 0;
+                return new Date(bt) - new Date(at);
+            });
+        }
+        
+        if (filtered.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 40px 0;">No shots found</div>`;
+            return;
+        }
+        
+        grid.innerHTML = filtered.map(r => {
+            const versionRecord = getDisplayVersion(r, curDeptFilter);
+            const st = (versionRecord ? versionRecord.fields.status : r.fields.status || '').toLowerCase();
+            const img = r.fields.thumbnail?.[0]?.url || '';
+            const videoUrl = versionRecord ? getVideoUrl(versionRecord) : getVideoUrl(r);
+            const lastViewed = getLastViewed(r.id);
+            const latestVer = r.versions?.[r.versions.length - 1];
+            const isNew = latestVer && (new Date(latestVer.createdTime || 0).getTime() > lastViewed);
+            
+            let mediaContent = `<img src="${img}" class="thumb">`;
+            let hoverEvents = '';
+
+            if (videoUrl) {
+                if (isMobile) {
+                    mediaContent = `<video class="mini-preview-video" loop muted playsinline autoplay><source src="${videoUrl}" type="video/mp4"></video>`;
+                } else {
+                    mediaContent = `<video class="mini-preview-video" loop muted playsinline><source src="${videoUrl}" type="video/mp4"></video>`;
+                    hoverEvents = `onmouseenter="hoverPlay(this.querySelector('video'))" onmouseleave="hoverPause(this.querySelector('video'))"`;
+                }
+            }
+
+            const badgeClass = statusMap[st] || 'st-ready';
+            const statusText = versionRecord ? versionRecord.fields.status : r.fields.status;
+            const versionText = versionRecord ? versionRecord.fields.version : '';
+            const verColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
+            const dep = getDepartment(r, versionRecord);
+
+            const dragAttrs = `ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault();this.classList.remove('drag-over');dragUpload(event, '${r.id}')"`;
+            const newBadge = isNew ? `<span class="new-badge">●</span>` : '';
+
+            if (isList) {
+                return `
+                    <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")' ${dragAttrs}>
+                        ${newBadge}
+                        <div class="thumb-wrapper">${mediaContent}</div>
+                        <div class="info-name">
+                            <div class="name-row">
+                                <span class="shot-label">${r.fields.shot_name}</span>
+                                ${versionText ? `<span class="version-label" style="color: ${verColor};">v${versionText}</span>` : ''}
+                            </div>
+                            <div class="badge-row">
+                                <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
+                                ${dep ? `<span class="status-badge" style="background:#2a2a2a; border:1px solid var(--border-color); color:var(--text-muted); font-size:10px; font-weight:600; padding:2px 10px;">${dep.toUpperCase()}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>`;
+            } else {
+                return `
+                    <div class="card" ${hoverEvents} onclick='openPlayer("${r.id}")' ${dragAttrs}>
+                        ${newBadge}
+                        <div class="thumb-wrapper">${mediaContent}</div>
+                        <div class="info">
+                            <div class="info-name-title">${r.fields.shot_name}</div>
+                            <div style="margin-top: 6px; display: flex; gap: 8px; align-items: center;">
+                                <span class="status-badge ${badgeClass}">${statusText||'READY TO START'}</span>
+                                ${versionText ? `<span style="font-family: Outfit, sans-serif; font-weight: 800; color: ${verColor};">v${versionText}</span>` : ''}
+                            </div>
+                            ${dep ? `<div style="margin-top:4px;"><span style="background:#2a2a2a; border:1px solid var(--border-color); color:var(--text-muted); font-size:10px; font-weight:600; padding:2px 8px; border-radius:4px;">${dep.toUpperCase()}</span></div>` : ''}
+                        </div>
+                    </div>`;
+            }
+        }).join('');
+    }
         if (searchQuery) filtered = filtered.filter(r => (r.fields.shot_name||"").toLowerCase().includes(searchQuery));
         
         if (filtered.length === 0) {
@@ -1684,10 +1786,12 @@ commentsList.innerHTML = items.map(c => {
                 }
                 const rawVersion = c.fields.version;
                 const version = rawVersion !== undefined && rawVersion !== null ? `v${String(Number(rawVersion)).padStart(3, '0')}` : "";
+                const frameNum = c.fields.frame_number;
                 const date = new Date(c.createdTime).toLocaleString();
 
                 const initial = artist.charAt(0).toUpperCase();
                 const badgeClass = status ? (statusMap[status.toLowerCase()] || 'st-ready') : '';
+                const frameTag = frameNum ? `<span class="frame-tag">#${frameNum}</span>` : '';
 
                 return `
                     <div class="comment-card">
@@ -1695,6 +1799,7 @@ commentsList.innerHTML = items.map(c => {
                             <div class="comment-user-box">
                                 <div class="comment-avatar">${initial}</div>
                                 <span class="comment-author">${artist}</span>
+                                ${frameTag}
                             </div>
                             <div class="comment-meta">
                                 <span style="color: var(--text-muted); font-size: 11px;">${date}</span>
@@ -1719,7 +1824,8 @@ async function openPlayer(id) {
         const cardDept = (document.getElementById('p-dept-select')?.value) || curDeptFilter;
         const versionRecord = getDisplayVersion(r, cardDept);
         
-        activeRecordId = id; 
+        activeRecordId = id;
+        setLastViewed(id);
         activeRecordShotName = r.fields.shot_name || "";
         activeRecordStatus = versionRecord ? versionRecord.fields.status : r.fields.status || "";
         activeRecordVersion = versionRecord ? Number(versionRecord.fields.version) : 0;
@@ -1833,6 +1939,7 @@ async function openPlayer(id) {
                 const v2 = document.getElementById('main-v');
                 if (v2) {
                     v2.addEventListener('loadedmetadata', () => {
+                        setTimeout(() => makeThumbnail(), 500);
                         const fps = 24;
                         const duration = v.seekable.length > 0 ? v.seekable.end(0) : v.duration;
                         const totalFrames = Math.floor(duration * fps);
@@ -2181,14 +2288,19 @@ render();
         }
     }
 
-    async function uploadVideo(input) {
-        const file = input.files[0];
-        if (!file) return;
-        
-        if (!activeRecordId) {
-            tg.showAlert('No shot selected');
-            return;
-        }
+    async function dragUpload(event, recordId) {
+        event.preventDefault();
+        const file = event.dataTransfer?.files?.[0];
+        if (!file || !file.type?.startsWith('video/')) { tg.showAlert('Drop a video file'); return; }
+        // Open the shot first, then upload
+        openPlayer(recordId);
+        setTimeout(async () => {
+            await uploadFile(file);
+        }, 600);
+    }
+
+    async function uploadFile(file) {
+        if (!file || !activeRecordId) return;
         
         const currentRecord = records.find(r => r.id === activeRecordId);
         if (!currentRecord) return;
@@ -2197,29 +2309,27 @@ render();
         const versions = currentRecord.versions || [];
         const currentVersion = versions.length > 0 ? parseInt(versions[versions.length - 1].fields.version || 0) : 0;
         
-        // Try to extract version from filename (v001, v012, etc.)
         const fileName = file.name;
         const nameMatch = fileName.match(/[vV](\d+)/);
         const nameVersion = nameMatch ? parseInt(nameMatch[1]) : 0;
         const defaultVersion = Math.max(nameVersion, currentVersion + 1);
-        // Get department from player select
         const deptSelect = document.getElementById('p-dept-select');
         let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
         
         const userInput = prompt(`Enter version number for "${shotName}" (${department}):`, String(defaultVersion).padStart(3, '0'));
-        if (!userInput) return; // cancelled
+        if (!userInput) return;
         const newVersion = parseInt(userInput) || defaultVersion;
+        const verStr = String(newVersion).padStart(3, '0');
         
         const uploadBtn = document.querySelector('button[onclick*="video-upload-input"]');
         if (uploadBtn) uploadBtn.textContent = '⏳';
         
         try {
-            // Upload to Telegram
             const botToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
             const formData = new FormData();
             formData.append('chat_id', TG_CHANNEL_ID);
             formData.append('video', file);
-            formData.append('caption', `${shotName} v${String(newVersion).padStart(3, '0')}`);
+            formData.append('caption', `${shotName} v${verStr}`);
             
             const uploadResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
                 method: 'POST',
@@ -2227,18 +2337,14 @@ render();
             });
             
             const uploadResult = await uploadResponse.json();
-            
-            if (!uploadResult.ok) {
-                throw new Error(uploadResult.description || 'Upload failed');
-            }
+            if (!uploadResult.ok) throw new Error(uploadResult.description || 'Upload failed');
             
             const fileId = uploadResult.result.video.file_id;
             
-            // Send to n8n webhook
             const webhookPayload = {
                 operation: 'publish',
                 shot_name: shotName,
-                version: String(newVersion).padStart(3, '0'),
+                version: verStr,
                 artist: currentUsername || 'unknown',
                 file_id: fileId,
                 status: 'Review',
@@ -2246,17 +2352,13 @@ render();
             };
             
             const webhookResponse = await n8nPost(webhookPayload);
-            
             if (uploadBtn) uploadBtn.textContent = '+';
             
             if (webhookResponse.ok) {
-                // Wait for n8n to create the version record
                 await new Promise(r => setTimeout(r, 2000));
                 await fetchData();
-                // Ensure file_id is saved directly to Airtable
                 const uploadedRecord = records.find(r => r.id === activeRecordId);
                 if (uploadedRecord) {
-                    const verStr = String(newVersion).padStart(3, '0');
                     const versionRec = uploadedRecord.versions.find(v =>
                         v.fields.shot_name === shotName && String(v.fields.version) === verStr
                     );
@@ -2271,20 +2373,55 @@ render();
                 }
                 tg.showPopup({
                     title: '✅ Upload Complete',
-                    message: `Version v${String(newVersion).padStart(3, '0')} for ${shotName} uploaded successfully!\nDepartment: ${department || 'N/A'}`,
+                    message: `Version v${verStr} for ${shotName} uploaded!\nDepartment: ${department || 'N/A'}`,
                     buttons: [{ type: 'ok', id: 'ok' }]
                 });
             } else {
                 throw new Error('Webhook failed');
             }
-            
         } catch (error) {
             console.error('Upload error:', error);
             if (uploadBtn) uploadBtn.textContent = '+';
             tg.showAlert(`❌ Upload failed: ${error.message}`);
         }
-        
-        // Reset input
+    }
+
+    async function makeThumbnail() {
+        const v = document.getElementById('main-v');
+        if (!v || !v.videoWidth) return;
+        const shot = records.find(r => r.id === activeRecordId);
+        if (!shot || shot.fields.thumbnail?.[0]?.url) return;
+        try {
+            await new Promise(r => { v.onseeked = r; v.currentTime = 0; });
+            const c = document.createElement('canvas');
+            c.width = v.videoWidth; c.height = v.videoHeight;
+            c.getContext('2d').drawImage(v, 0, 0);
+            const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.6));
+            if (!blob) return;
+            const fd = new FormData();
+            fd.append('chat_id', TG_CHANNEL_ID);
+            fd.append('photo', blob, `thumb_${shot.id}.jpg`);
+            const res = await fetch(`https://api.telegram.org/bot8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ/sendPhoto`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!data.ok) return;
+            const pFileId = data.result.photo[data.result.photo.length - 1].file_id;
+            const getRes = await fetch(`https://api.telegram.org/bot8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ/getFile?file_id=${pFileId}`);
+            const getData = await getRes.json();
+            if (!getData.ok) return;
+            const thumbUrl = `https://api.telegram.org/file/bot8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ/${getData.result.file_path}`;
+            await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Shots/${shot.id}`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${K}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fields: { thumbnail: [{ url: thumbUrl }] } })
+            });
+            console.log('Thumbnail saved for', shot.fields.shot_name);
+        } catch(e) { console.error('makeThumbnail error:', e); }
+    }
+
+    async function uploadVideo(input) {
+        const file = input.files[0];
+        if (!file) return;
+        await uploadFile(file);
         input.value = '';
     }
 
@@ -2448,9 +2585,17 @@ render();
 async function sendComment() {
         const inputEl = document.getElementById('comment-input');
         const submitBtn = document.getElementById('comment-submit');
-        const text = inputEl.value.trim();
+        let text = inputEl.value.trim();
         
         if (!text || !activeRecordId) return;
+
+        // Extract @frame N from text
+        let frameNum = null;
+        const frameMatch = text.match(/@frame\s+(\d+)/i);
+        if (frameMatch) {
+            frameNum = parseInt(frameMatch[1]);
+            text = text.replace(frameMatch[0], '').trim();
+        }
 
         submitBtn.disabled = true;
         submitBtn.innerText = "SENDING...";
@@ -2465,6 +2610,7 @@ async function sendComment() {
             notes: text,
             status: activeRecordStatus
         };
+        if (frameNum) payload.frame_number = frameNum;
 
         try {
             const response = await n8nPost(payload);
