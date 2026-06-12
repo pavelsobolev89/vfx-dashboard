@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1688,7 +1688,8 @@ async function openPlayer(id) {
         const r = records.find(rec => rec.id === id);
         if(!r) return;
 
-        const versionRecord = getDisplayVersion(r, curDeptFilter);
+        const cardDept = (document.getElementById('p-dept-select')?.value) || curDeptFilter;
+        const versionRecord = getDisplayVersion(r, cardDept);
         
         activeRecordId = id; 
         activeRecordShotName = r.fields.shot_name || "";
@@ -2601,7 +2602,11 @@ async function sendComment() {
             department: newDept
         };
         const response = await n8nPost(payload);
-        if (!response.ok) tg.showAlert("Failed to update department.");
+        if (!response.ok) {
+            tg.showAlert("Failed to update department.");
+        } else {
+            openPlayer(activeRecordId);
+        }
     }
 
     function changeShotArtist(newArtist) {
