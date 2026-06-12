@@ -1879,6 +1879,10 @@ async function openPlayer(id) {
                     v.addEventListener('pause', () => {
                         const pb = document.getElementById('play-pause-btn');
                         if (pb) pb.innerText = '▶️';
+                        if (playMode === 'reverse' && v.currentTime <= 0.04) {
+                            v.currentTime = v.duration - 0.04;
+                            v.play().catch(()=>{});
+                        }
                     });
                 } else {
                     container.innerHTML = `<div class="video-loading" style="color: var(--danger);">VIDEO NOT FOUND</div>`;
@@ -2081,73 +2085,32 @@ render();
             btn.title = 'Reverse';
             if (video) {
                 video.loop = false;
-                video.pause();
+                video.playbackRate = -1.0;
                 video.currentTime = video.duration;
-                startReversePlayback(video);
+                video.play().catch(()=>{});
             }
         } else {
             playMode = 'loop';
             btn.innerText = '🔄';
             btn.title = 'Loop';
-            stopReversePlayback();
             if (video) {
+                video.playbackRate = 1.0;
                 video.loop = true;
-                video.play();
+                video.play().catch(()=>{});
             }
         }
     }
 
-    let reverseAnimationId = null;
+    let reverseLoopRaf = null;
     let animationFrameId = null;
-    let reversePaused = false;
     function startReversePlayback(video) {
-        stopReversePlayback();
-        reversePaused = false;
-        const fps = 24;
-        const step = 1 / fps;
-        let lastTime = performance.now();
-        
-        function reverseFrame(now) {
-            if (reversePaused) {
-                reverseAnimationId = requestAnimationFrame(reverseFrame);
-                return;
-            }
-            const elapsed = now - lastTime;
-            if (elapsed >= 1000 / fps) {
-                lastTime = now;
-                if (video.currentTime <= step) {
-                    video.currentTime = video.duration - step;
-                } else {
-                    video.currentTime = Math.max(0, video.currentTime - step);
-                }
-                
-                const scrubber = document.getElementById('timeline-scrubber');
-                if (scrubber && video.duration) {
-                    const duration = video.seekable.length > 0 ? video.seekable.end(0) : video.duration;
-                    const totalFrames = Math.floor(duration * fps);
-                    
-                    if (scrubber.max != totalFrames) {
-                        scrubber.max = totalFrames;
-                    }
-                    
-                    const currentFrame = Math.max(1, Math.min(totalFrames, Math.round(video.currentTime * fps)));
-                    scrubber.value = currentFrame;
-                    
-                    const pct = totalFrames > 1 ? ((currentFrame - 1) / (totalFrames - 1)) * 100 : 0;
-                    updateScrubberBackground(pct);
-                }
-                updateFrameDisplay();
-            }
-            reverseAnimationId = requestAnimationFrame(reverseFrame);
-        }
-        
-        reverseAnimationId = requestAnimationFrame(reverseFrame);
+        // Not used — native playbackRate handles reverse
     }
 
     function stopReversePlayback() {
-        if (reverseAnimationId) {
-            cancelAnimationFrame(reverseAnimationId);
-            reverseAnimationId = null;
+        if (reverseLoopRaf) {
+            cancelAnimationFrame(reverseLoopRaf);
+            reverseLoopRaf = null;
         }
     }
 
@@ -2447,12 +2410,6 @@ render();
         const v = document.getElementById('main-v');
         const btn = document.getElementById('play-pause-btn');
         if (!v) return;
-        
-        if (playMode === 'reverse') {
-            reversePaused = !reversePaused;
-            if (btn) btn.innerText = reversePaused ? '▶️' : '⏸';
-            return;
-        }
         
         if (v.paused) {
             v.play().catch(()=>{});
