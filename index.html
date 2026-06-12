@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>VFX Review</title>
     <!-- Modern Typography from Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1301,12 +1304,15 @@ let activeRecordId = null;
     }
 
     async function getTelegramVideoUrl(fileId) {
+        if (tgUrlsCache[fileId]) return tgUrlsCache[fileId];
         try {
             const botToken = '8573514570:AAFCUw5zcHANDYQofa21rLyqWEONat0t9hQ';
             const res = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
             const data = await res.json();
             if (data.ok) {
-                return `https://api.telegram.org/file/bot${botToken}/${data.result.file_path}`;
+                const url = `https://api.telegram.org/file/bot${botToken}/${data.result.file_path}`;
+                tgUrlsCache[fileId] = url;
+                return url;
             }
             console.error('Telegram getFile error:', data);
         } catch(e) {
@@ -1425,7 +1431,7 @@ let activeRecordId = null;
                 for (const shot of records) {
                     for (const v of (shot.versions || [])) {
                         console.log('Version fields:', Object.keys(v.fields), 'has file_id:', !!v.fields.file_id, 'has video_url:', !!v.fields.video_url);
-                        if (!v.fields.video_url && v.fields.file_id) {
+                        if (v.fields.file_id) {
                             toRefresh.push({ id: v.id, fileId: v.fields.file_id, shot: v.fields.shot_name, ver: v.fields.version });
                         }
                     }
@@ -1853,18 +1859,16 @@ async function openPlayer(id) {
 
         (async () => {
             const fileId = versionRecord ? versionRecord.fields.file_id : r.fields.file_id;
+            if (fileId) {
+                container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
+                const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
+                if (newUrl) { setupVideo(newUrl); return; }
+            }
             if (videoUrl) {
                 setupVideo(videoUrl);
                 return;
             }
-            if (fileId) {
-                container.innerHTML = `<div class="video-loading">REFRESHING VIDEO LINK...</div>`;
-                const newUrl = await refreshVideoUrl(versionRecord ? versionRecord.id : null, fileId);
-                if (newUrl) setupVideo(newUrl);
-                else container.innerHTML = `<div class="video-loading" style="color: var(--danger);">REFRESH FAILED<br><span style="font-size:11px;color:var(--text-muted);">Telegram API returned no URL for file_id</span></div>`;
-            } else {
-                container.innerHTML = `<div class="video-loading" style="color: var(--danger);">NO VIDEO URL AND NO FILE_ID</div>`;
-            }
+            container.innerHTML = `<div class="video-loading" style="color: var(--danger);">NO VIDEO URL AND NO FILE_ID</div>`;
         })();
         
 // Load past comments
