@@ -2556,7 +2556,7 @@ async function sendComment() {
             if (response.ok) {
                 inputEl.value = "";
                 showToast("Comment successfully added!");
-                loadComments(activeRecordId);
+                setTimeout(() => loadComments(activeRecordId), 600);
             } else {
                 tg.showAlert("Failed to send comment. Check n8n workflow.");
             }
