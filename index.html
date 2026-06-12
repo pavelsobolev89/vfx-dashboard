@@ -1281,12 +1281,17 @@
     }
 
     function getDisplayVersion(shot, dept) {
+        if (activeVersionId) {
+            const mv = (shot.versions || []).find(v => v.id === activeVersionId);
+            if (mv) return mv;
+        }
         if (!dept) return shot.currentVersionRecord;
         const deptVersions = (shot.versions || []).filter(v => getDepartment(v) === dept);
         return deptVersions.length > 0 ? deptVersions[deptVersions.length - 1] : null;
     }
     
 let activeRecordId = null;
+    let activeVersionId = null;
     let activeRecordShotName = "";
     let activeRecordStatus = "";
     let activeRecordVersion = 0;
@@ -1933,6 +1938,7 @@ function closePlayer() {
         tg.BackButton.hide();
         
         activeRecordId = null;
+        activeVersionId = null;
         activeRecordShotName = "";
         activeRecordStatus = "";
         activeRecordVersion = 0;
@@ -2194,13 +2200,18 @@ render();
             return;
         }
         
-        const currentVersionRecord = currentRecord.currentVersionRecord;
-        const currentIndex = versions.findIndex(v => v.id === currentVersionRecord?.id);
+        const cardDept = (document.getElementById('p-dept-select')?.value) || curDeptFilter;
+        const displayedVersion = activeVersionId
+            ? versions.find(v => v.id === activeVersionId)
+            : getDisplayVersion(currentRecord, cardDept);
+        const currentIndex = versions.findIndex(v => v.id === displayedVersion?.id);
         const newIndex = currentIndex + direction;
         
         if (newIndex >= 0 && newIndex < versions.length) {
             const newVersionRecord = versions[newIndex];
-            currentRecord.currentVersionRecord = newVersionRecord;
+            activeVersionId = newVersionRecord.id;
+            const container = document.getElementById('v-container');
+            if (container) container.innerHTML = `<div class="video-loading">LOADING v${newVersionRecord.fields.version}...</div>`;
             openPlayer(activeRecordId);
         } else {
             tg.showAlert(direction < 0 ? 'No previous version' : 'No next version');
@@ -2634,6 +2645,8 @@ async function sendComment() {
 
     async function changeShotDept(newDept) {
         if (!newDept || !activeRecordId) return;
+        const container = document.getElementById('v-container');
+        if (container) container.innerHTML = `<div class="video-loading">SWITCHING TO ${newDept.toUpperCase()}...</div>`;
         const r = records.find(rec => rec.id === activeRecordId);
         if (r) r.fields.department = newDept;
         const payload = {
@@ -2645,6 +2658,7 @@ async function sendComment() {
         if (!response.ok) {
             tg.showAlert("Failed to update department.");
         } else {
+            activeVersionId = null;
             openPlayer(activeRecordId);
         }
     }
