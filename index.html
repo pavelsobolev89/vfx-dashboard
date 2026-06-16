@@ -2520,14 +2520,47 @@ render();
         }
     }
 
-async function sendComment() {
+function prependCommentToDOM(text, frameNum, username, version, status) {
+        const list = document.getElementById('comments-list');
+        if (!list) return;
+        const emp = list.querySelector('.comment-empty-state,.comment-loading');
+        if (emp) emp.remove();
+        const hdr = document.getElementById('comment-section-header');
+        if (hdr) hdr.style.display = 'block';
+        const title = document.getElementById('comments-section-title-val');
+        const cnt = list.querySelectorAll('.comment-card').length;
+        if (title) title.innerText = `Comments (${cnt + 1})`;
+        const now = new Date().toLocaleString();
+        const ver = version !== undefined && version !== null && version !== '' ? `v${String(Number(version)).padStart(3, '0')}` : '';
+        const st = (status || '').toLowerCase();
+        const bc = statusMap[st] || 'st-ready';
+        const card = document.createElement('div');
+        card.className = 'comment-card';
+        card.innerHTML = `
+            <div class="comment-header">
+                <div class="comment-user-box">
+                    <div class="comment-avatar">${(username||'P').charAt(0).toUpperCase()}</div>
+                    <span class="comment-author">${username||'Producer'}</span>
+                    ${frameNum ? `<span class="frame-tag">#${frameNum}</span>` : ''}
+                </div>
+                <div class="comment-meta">
+                    <span style="color:var(--text-muted);font-size:11px;">${now}</span>
+                    ${ver ? `<span style="color:var(--accent);font-weight:800;font-family:monospace;">${ver}</span>` : ''}
+                    ${status ? `<span class="status-badge ${bc}" style="transform:scale(0.9);">${status}</span>` : ''}
+                </div>
+            </div>
+            <div class="comment-content">${text.replace(/\n/g, '<br>')}</div>
+        `;
+        list.prepend(card);
+    }
+
+    async function sendComment() {
         const inputEl = document.getElementById('comment-input');
         const submitBtn = document.getElementById('comment-submit');
         let text = inputEl.value.trim();
         
         if (!text || !activeRecordId) return;
 
-        // Extract @frame N from text
         let frameNum = null;
         const frameMatch = text.match(/@frame\s+(\d+)/i);
         if (frameMatch) {
@@ -2555,6 +2588,7 @@ async function sendComment() {
 
             if (response.ok) {
                 inputEl.value = "";
+                prependCommentToDOM(text, frameNum, username, activeRecordVersion, activeRecordStatus);
                 showToast("Comment added!");
                 tg.showAlert("Comment successfully added!");
                 loadComments(activeRecordId);
