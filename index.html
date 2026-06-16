@@ -1750,8 +1750,8 @@ async function loadComments(shotId) {
         const commentsTitle = document.getElementById('comments-section-title-val');
 
         try {
-            const formula = `{shot_name} = '${activeRecordShotName}'`;
-            console.log('Loading comments:', { shotName: activeRecordShotName, formula });
+            const formula = `AND({shot_name} = '${activeRecordShotName}', {version} = ${activeRecordVersion})`;
+            console.log('Loading comments:', { shotName: activeRecordShotName, version: activeRecordVersion, formula });
             const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Comments?filterByFormula=${encodeURIComponent(formula)}`;
 
             const response = await fetch(url, {
@@ -2742,6 +2742,7 @@ function prependCommentToDOM(text, frameNum, username, version, status) {
         const payload = {
             operation: "comment",
             shot_name: activeRecordShotName,
+            version: activeRecordVersion,
             artist: username,
             notes: text,
             status: activeRecordStatus
