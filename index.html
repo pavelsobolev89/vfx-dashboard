@@ -1749,8 +1749,9 @@ async function loadComments(shotId) {
         const commentsTitle = document.getElementById('comments-section-title-val');
 
         try {
-            const formula = `AND({shot_name} = '${activeRecordShotName}', {version} = ${activeRecordVersion})`;
-            console.log('Loading comments:', { shotName: activeRecordShotName, version: activeRecordVersion, formula });
+            const dept = (document.getElementById('p-dept-select')?.value) || curDeptFilter || '';
+            const formula = `AND({shot_name} = '${activeRecordShotName}', {version} = ${activeRecordVersion}, {department} = '${dept}')`;
+            console.log('Loading comments:', { shotName: activeRecordShotName, version: activeRecordVersion, department: dept, formula });
             const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Comments?filterByFormula=${encodeURIComponent(formula)}`;
 
             const response = await fetch(url, {
