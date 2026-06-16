@@ -2309,7 +2309,7 @@ render();
             const formData = new FormData();
             formData.append('chat_id', TG_CHANNEL_ID);
             formData.append('video', file);
-            formData.append('caption', `${shotName} v${verStr}`);
+            formData.append('caption', `${shotName}_${department}_v${verStr}`);
             
             const uploadResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
                 method: 'POST',
