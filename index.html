@@ -2727,7 +2727,6 @@ function prependCommentToDOM(text, frameNum, username, version, status) {
                 prependCommentToDOM(text, frameNum, username, activeRecordVersion, activeRecordStatus);
                 showToast("Comment added!");
                 tg.showAlert("Comment successfully added!");
-                loadComments(activeRecordId);
             } else {
                 tg.showAlert("Failed to send comment. Check n8n workflow.");
             }
