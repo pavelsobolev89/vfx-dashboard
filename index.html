@@ -1820,9 +1820,9 @@ async function openPlayer(id) {
         const versionColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
         document.getElementById('p-version').style.color = versionColor;
         const deptSelect = document.getElementById('p-dept-select');
-        if (deptSelect && versionRecord) {
-            const deptFromVersion = getDepartment(r, versionRecord);
-            if (deptFromVersion) deptSelect.value = deptFromVersion.toLowerCase();
+        const deptFromVersion = getDepartment(r, versionRecord);
+        if (deptSelect && deptFromVersion) {
+            deptSelect.value = deptFromVersion.toLowerCase();
         }
         
         const statusSelect = document.getElementById('p-status-select');
@@ -2286,15 +2286,15 @@ render();
         if (!currentRecord) return;
         
         const shotName = currentRecord.fields.shot_name;
-        const deptSelect = document.getElementById('p-dept-select');
-        let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
-        const deptVersions = (currentRecord.versions || []).filter(v => getDepartment(v) === department);
-        const currentVersion = deptVersions.length > 0 ? parseInt(deptVersions[deptVersions.length - 1].fields.version || 0) : 0;
+        const versions = currentRecord.versions || [];
+        const currentVersion = versions.length > 0 ? parseInt(versions[versions.length - 1].fields.version || 0) : 0;
         
         const fileName = file.name;
         const nameMatch = fileName.match(/[vV](\d+)/);
         const nameVersion = nameMatch ? parseInt(nameMatch[1]) : 0;
         const defaultVersion = Math.max(nameVersion, currentVersion + 1);
+        const deptSelect = document.getElementById('p-dept-select');
+        let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
         
         const userInput = prompt(`Enter version number for "${shotName}" (${department}):`, String(defaultVersion).padStart(3, '0'));
         if (!userInput) return;
@@ -2340,7 +2340,7 @@ render();
                 const uploadedRecord = records.find(r => r.id === activeRecordId);
                 if (uploadedRecord) {
                     const versionRec = uploadedRecord.versions.find(v =>
-                        v.fields.shot_name === shotName && String(v.fields.version) === verStr && getDepartment(v) === department
+                        v.fields.shot_name === shotName && String(v.fields.version) === verStr
                     );
                     if (versionRec && !versionRec.fields.file_id) {
                         await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Versions/${versionRec.id}`, {
