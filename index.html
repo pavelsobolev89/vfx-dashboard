@@ -1002,6 +1002,15 @@
                 grid-row: 1;
             }
         }
+
+        .compare-btn.active { background:var(--accent)!important;color:#fff!important }
+        .compare-toolbar { display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--bg-secondary);border-radius:6px;margin-top:6px }
+        .compare-toolbar select { background:#2a2a2a;color:#fff;border:1px solid var(--border-color);border-radius:4px;padding:2px 6px;font-size:12px }
+        #main-v.wipe-active { position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;clip-path:inset(0 0 0 var(--wipe-pos,50%)) }
+        #ref-v { position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block }
+        .wipe-divider { position:absolute;top:0;bottom:0;left:var(--wipe-pos,50%);width:3px;background:#fff;cursor:ew-resize;transform:translateX(-50%);z-index:10;box-shadow:0 0 8px rgba(0,0,0,.5) }
+        .wipe-divider::after { content:'⟷';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#000;font-size:12px;padding:4px 6px;border-radius:4px;font-weight:bold }
+        .wipe-label { position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 8px;border-radius:4px;z-index:5;pointer-events:none }
     </style>
 </head>
 <body>
@@ -1119,6 +1128,7 @@
             <div style="display: flex; gap: 8px;">
                 <button id="version-prev-btn" class="p-btn" onclick="switchVersion(-1)" title="Previous Version" style="font-size: 14px;">⬅️</button>
                 <button id="version-next-btn" class="p-btn" onclick="switchVersion(1)" title="Next Version" style="font-size: 14px;">➡️</button>
+                <button class="p-btn compare-btn" onclick="toggleCompare()" title="Compare with Edit (Wipe)">⊞</button>
                 <button class="p-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
             </div>
         </div>
@@ -1756,6 +1766,7 @@ commentsList.innerHTML = items.map(c => {
     }
 
 async function openPlayer(id) {
+        destroyWipe();
         const r = records.find(rec => rec.id === id);
         if(!r) return;
 
@@ -1976,6 +1987,7 @@ tg.BackButton.onClick(closePlayer);
     }
 
 function closePlayer() {
+        destroyWipe();
         stopReversePlayback();
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
@@ -2518,6 +2530,130 @@ render();
                 updateScrubberBackground(pct);
             }
         }
+    }
+
+    let compareMode = false;
+    let refVideoData = null;
+    function getEditVersions(shot) {
+        return (shot.versions || []).filter(v => { const d = getDepartment(v); return d && d.toLowerCase() === 'edit'; });
+    }
+    function toggleCompare() {
+        compareMode = !compareMode;
+        const btn = document.querySelector('.compare-btn');
+        if (!btn) return;
+        if (compareMode) {
+            btn.classList.add('active');
+            const shot = records.find(r => r.id === activeRecordId);
+            if (!shot) { compareMode = false; btn.classList.remove('active'); return; }
+            const eds = getEditVersions(shot);
+            if (eds.length === 0) { tg.showAlert('No edit versions for this shot'); compareMode = false; btn.classList.remove('active'); return; }
+            initWipe(eds);
+        } else {
+            btn.classList.remove('active');
+            destroyWipe();
+        }
+    }
+    function initWipe(editVersions) {
+        const wrapper = document.querySelector('.video-box-wrapper');
+        if (!wrapper) return;
+        const mainV = document.getElementById('main-v');
+        if (!mainV) return;
+        destroyWipe();
+        const toolbar = document.createElement('div');
+        toolbar.className = 'compare-toolbar';
+        toolbar.id = 'wipe-toolbar';
+        toolbar.innerHTML = '<span style="font-size:11px;color:var(--text-muted);">REF:</span><select id="ref-version-select">' +
+            editVersions.map((v, i) => `<option value="${i}">v${v.fields.version} ${v.fields.artist||''}</option>`).join('') +
+            '</select>';
+        wrapper.after(toolbar);
+        document.getElementById('ref-version-select').onchange = function() {
+            const shot = records.find(r => r.id === activeRecordId);
+            if (!shot) return;
+            const eds = getEditVersions(shot);
+            const idx = parseInt(this.value);
+            if (idx >= 0 && idx < eds.length) loadRefVideo(eds[idx], wrapper, mainV);
+        };
+        loadRefVideo(editVersions[0], wrapper, mainV);
+    }
+    function loadRefVideo(ev, wrapper, mainV) {
+        document.querySelectorAll('#ref-v,.wipe-divider,.wipe-label').forEach(el => el.remove());
+        const url = getVideoUrl(ev);
+        if (!url) { tg.showAlert('Edit version has no video URL'); return; }
+        mainV.classList.add('wipe-active');
+        const pos = '50%';
+        mainV.style.setProperty('--wipe-pos', pos);
+        wrapper.style.setProperty('--wipe-pos', pos);
+        const refV = document.createElement('video');
+        refV.id = 'ref-v'; refV.loop = true; refV.playsinline = true; refV.muted = true;
+        refV.innerHTML = '<source src="' + url.replace(/"/g,'&quot;') + '" type="video/mp4">';
+        wrapper.appendChild(refV);
+        const div = document.createElement('div');
+        div.className = 'wipe-divider';
+        wrapper.appendChild(div);
+        const label = document.createElement('div');
+        label.className = 'wipe-label';
+        label.textContent = 'CUT v' + ev.fields.version;
+        wrapper.appendChild(label);
+        refV.addEventListener('loadedmetadata', function syncInit() {
+            refV.removeEventListener('loadedmetadata', syncInit);
+            refV.currentTime = mainV.currentTime;
+            if (!mainV.paused) refV.play().catch(function(){});
+        });
+        function syncHandler(e) {
+            if (!refV) return;
+            if (e.type === 'play') { refV.play().catch(function(){}); }
+            else if (e.type === 'pause') { refV.pause(); }
+            else if (e.type === 'seeked') { if (refV.readyState >= 1) refV.currentTime = mainV.currentTime; }
+            else if (e.type === 'ratechange') { refV.playbackRate = mainV.playbackRate; }
+        }
+        mainV._wipeSync = syncHandler;
+        mainV.addEventListener('play', syncHandler);
+        mainV.addEventListener('pause', syncHandler);
+        mainV.addEventListener('seeked', syncHandler);
+        mainV.addEventListener('ratechange', syncHandler);
+        function timeSync() {
+            if (refV && refV.readyState >= 2) {
+                const diff = Math.abs(refV.currentTime - mainV.currentTime);
+                if (diff > 0.5) refV.currentTime = mainV.currentTime;
+            }
+        }
+        mainV._wipeTimeSync = timeSync;
+        mainV.addEventListener('timeupdate', timeSync);
+        setupWipeDrag(div, wrapper, mainV, refV);
+        refVideoData = { el: refV, editVersion: ev };
+    }
+    function destroyWipe() {
+        const mainV = document.getElementById('main-v');
+        if (mainV) {
+            mainV.classList.remove('wipe-active');
+            mainV.style.removeProperty('--wipe-pos');
+            if (mainV._wipeSync) { ['play','pause','seeked','ratechange'].forEach(function(et){ mainV.removeEventListener(et, mainV._wipeSync); }); mainV._wipeSync = null; }
+            if (mainV._wipeTimeSync) { mainV.removeEventListener('timeupdate', mainV._wipeTimeSync); mainV._wipeTimeSync = null; }
+        }
+        const w = document.querySelector('.video-box-wrapper');
+        if (w) w.style.removeProperty('--wipe-pos');
+        document.querySelectorAll('#ref-v,.wipe-divider,.wipe-label,#wipe-toolbar').forEach(function(el) { if (el) el.remove(); });
+        refVideoData = null;
+        compareMode = false;
+        var btn = document.querySelector('.compare-btn');
+        if (btn) btn.classList.remove('active');
+    }
+    function setupWipeDrag(div, container, mainV, refV) {
+        var dragging = false;
+        function onMove(e) {
+            if (!dragging) return;
+            var cx = e.clientX || (e.touches && e.touches[0].clientX);
+            if (cx === undefined) return;
+            var rect = container.getBoundingClientRect();
+            var pct = Math.max(0, Math.min(100, ((cx - rect.left) / rect.width) * 100));
+            var pctStr = pct + '%';
+            container.style.setProperty('--wipe-pos', pctStr);
+            if (mainV) mainV.style.setProperty('--wipe-pos', pctStr);
+        }
+        function onStart(e) { dragging = true; e.preventDefault(); document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onEnd); document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onEnd); }
+        function onEnd() { dragging = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onEnd); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onEnd); }
+        div.addEventListener('mousedown', onStart);
+        div.addEventListener('touchstart', onStart, { passive: false });
     }
 
 function prependCommentToDOM(text, frameNum, username, version, status) {
