@@ -1717,6 +1717,13 @@ function init() {
             const rawVersion = c.fields.version;
             const version = rawVersion !== undefined && rawVersion !== null ? `v${String(Number(rawVersion)).padStart(3, '0')}` : "";
             const frameNum = c.fields.frame_number;
+            const rawDept = c.fields.department;
+            let dept = '';
+            if (Array.isArray(rawDept) && rawDept.length > 0) {
+                dept = typeof rawDept[0] === 'object' ? (rawDept[0].name || '') : String(rawDept[0]);
+            } else if (typeof rawDept === 'string') {
+                dept = rawDept;
+            }
             const date = c._local ? new Date(c._local).toLocaleString() : new Date(c.createdTime).toLocaleString();
             const initial = artist.charAt(0).toUpperCase();
             const badgeClass = status ? (statusMap[status.toLowerCase()] || 'st-ready') : '';
@@ -1732,6 +1739,7 @@ function init() {
                         <div class="comment-meta">
                             <span style="color: var(--text-muted); font-size: 11px;">${date}</span>
                             ${version ? `<span style="color: var(--accent); font-weight: 800; font-family: monospace;">${version}</span>` : ''}
+                            ${dept ? `<span style="background:#2a2a2a;border:1px solid var(--border-color);color:var(--text-muted);font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase;">${dept}</span>` : ''}
                             ${status ? `<span class="status-badge ${badgeClass}" style="transform: scale(0.9);">${status}</span>` : ''}
                         </div>
                     </div>
@@ -1781,7 +1789,8 @@ async function loadComments(shotId) {
                         artist: lc.username,
                         version: lc.version,
                         status: lc.status,
-                        frame_number: lc.frameNum
+                        frame_number: lc.frameNum,
+                        department: lc.department
                     }
                 });
             });
@@ -2759,7 +2768,8 @@ function prependCommentToDOM(text, frameNum, username, version, status) {
 
             if (response.ok) {
                 inputEl.value = "";
-                addLocalComment({ text, frameNum, username, version: activeRecordVersion, status: activeRecordStatus, timestamp: Date.now() });
+                const curDept = (document.getElementById('p-dept-select')?.value) || curDeptFilter || '';
+                addLocalComment({ text, frameNum, username, version: activeRecordVersion, status: activeRecordStatus, department: curDept, timestamp: Date.now() });
                 prependCommentToDOM(text, frameNum, username, activeRecordVersion, activeRecordStatus);
                 showToast("Comment added!");
             } else {
