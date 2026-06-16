@@ -2738,13 +2738,17 @@ function prependCommentToDOM(text, frameNum, username, version, status) {
 
         const username = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Unknown Producer";
 
+        const deptSelect = document.getElementById('p-dept-select');
+        const department = deptSelect ? deptSelect.value : (curDeptFilter || '');
+
         const payload = {
             operation: "comment",
             shot_name: activeRecordShotName,
             version: activeRecordVersion,
             artist: username,
             notes: text,
-            status: activeRecordStatus
+            status: activeRecordStatus,
+            department: department
         };
         if (frameNum) payload.frame_number = frameNum;
 
