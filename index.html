@@ -2286,15 +2286,15 @@ render();
         if (!currentRecord) return;
         
         const shotName = currentRecord.fields.shot_name;
-        const versions = currentRecord.versions || [];
-        const currentVersion = versions.length > 0 ? parseInt(versions[versions.length - 1].fields.version || 0) : 0;
+        const deptSelect = document.getElementById('p-dept-select');
+        let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
+        const deptVersions = (currentRecord.versions || []).filter(v => getDepartment(v) === department);
+        const currentVersion = deptVersions.length > 0 ? parseInt(deptVersions[deptVersions.length - 1].fields.version || 0) : 0;
         
         const fileName = file.name;
         const nameMatch = fileName.match(/[vV](\d+)/);
         const nameVersion = nameMatch ? parseInt(nameMatch[1]) : 0;
         const defaultVersion = Math.max(nameVersion, currentVersion + 1);
-        const deptSelect = document.getElementById('p-dept-select');
-        let department = deptSelect ? deptSelect.value : getDepartment(currentRecord);
         
         const userInput = prompt(`Enter version number for "${shotName}" (${department}):`, String(defaultVersion).padStart(3, '0'));
         if (!userInput) return;
@@ -2328,7 +2328,7 @@ render();
                 artist: currentUsername || 'unknown',
                 file_id: fileId,
                 status: 'Review',
-                department: department ? [department] : []
+                department: department || ''
             };
             
             const webhookResponse = await n8nPost(webhookPayload);
@@ -2340,7 +2340,7 @@ render();
                 const uploadedRecord = records.find(r => r.id === activeRecordId);
                 if (uploadedRecord) {
                     const versionRec = uploadedRecord.versions.find(v =>
-                        v.fields.shot_name === shotName && String(v.fields.version) === verStr
+                        v.fields.shot_name === shotName && String(v.fields.version) === verStr && getDepartment(v) === department
                     );
                     if (versionRec && !versionRec.fields.file_id) {
                         await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Versions/${versionRec.id}`, {
