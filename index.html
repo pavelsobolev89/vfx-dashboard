@@ -2866,11 +2866,13 @@ function prependCommentToDOM(text, frameNum, username, version, status) {
     async function changeShotStatus(newStatus) {
         if (!newStatus || !activeRecordId) return;
         
+        const deptSelect = document.getElementById('p-dept-select');
         const payload = {
             operation: "status_update",
             shot_name: activeRecordShotName,
             version: activeRecordVersion,
-            status: newStatus
+            status: newStatus,
+            department: deptSelect ? deptSelect.value : ''
         };
 
         try {
