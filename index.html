@@ -1295,25 +1295,6 @@
         return Array.isArray(raw) ? (raw[0] || '') : raw;
     }
 
-    function getDeptStatuses(shot) {
-        const map = {};
-        (shot.versions || []).forEach(v => {
-            const dept = getDepartment(v);
-            if (!dept) return;
-            const ver = Number(v.fields.version) || 0;
-            const existing = map[dept];
-            if (!existing || ver > existing.version) {
-                map[dept] = { version: ver, status: v.fields.status || '' };
-            }
-        });
-        return map;
-    }
-
-    function deptStatusColor(status) {
-        const s = (status || '').toLowerCase();
-        return s === 'review' ? 'var(--warning)' : s === 'approved' ? 'var(--success)' : s === 'in progress' ? 'var(--info)' : s === 'to fix' ? 'var(--orange)' : 'var(--text-muted)';
-    }
-
     function getDisplayVersion(shot, dept) {
         if (activeVersionId) {
             const mv = (shot.versions || []).find(v => v.id === activeVersionId);
@@ -1664,11 +1645,7 @@ function init() {
             const statusText = versionRecord ? versionRecord.fields.status : r.fields.status;
             const versionText = versionRecord ? versionRecord.fields.version : '';
             const verColor = st === 'review' ? 'var(--warning)' : st === 'approved' ? 'var(--success)' : st === 'in progress' ? 'var(--info)' : st === 'to fix' ? 'var(--orange)' : 'var(--text-secondary)';
-            const deptStatuses = getDeptStatuses(r);
-            const deptBadges = Object.entries(deptStatuses).map(([d, info]) => {
-                const c = deptStatusColor(info.status);
-                return `<span style="background:#2a2a2a;border:1px solid var(--border-color);color:${c};font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase;">${d}</span>`;
-            }).join('');
+            const dep = getDepartment(r, versionRecord);
 
             const dragAttrs = `ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault();this.classList.remove('drag-over');dragUpload(event, '${r.id}')"`;
             const newBadge = isNew ? `<span class="new-badge">●</span>` : '';
@@ -1685,8 +1662,8 @@ function init() {
                             </div>
                             <div class="badge-row">
                                 <span class="status-badge ${badgeClass}">${(statusText||'READY TO START').toUpperCase()}</span>
+                                ${dep ? `<span class="status-badge" style="background:#2a2a2a; border:1px solid var(--border-color); color:var(--text-muted); font-size:10px; font-weight:600; padding:2px 10px;">${dep.toUpperCase()}</span>` : ''}
                             </div>
-                            ${deptBadges ? `<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${deptBadges}</div>` : ''}
                         </div>
                     </div>`;
             } else {
@@ -1700,7 +1677,7 @@ function init() {
                                 <span class="status-badge ${badgeClass}">${statusText||'READY TO START'}</span>
                                 ${versionText ? `<span style="font-family: Outfit, sans-serif; font-weight: 800; color: ${verColor};">v${versionText}</span>` : ''}
                             </div>
-                            ${deptBadges ? `<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${deptBadges}</div>` : ''}
+                            ${dep ? `<div style="margin-top:4px;"><span style="background:#2a2a2a; border:1px solid var(--border-color); color:var(--text-muted); font-size:10px; font-weight:600; padding:2px 8px; border-radius:4px;">${dep.toUpperCase()}</span></div>` : ''}
                         </div>
                     </div>`;
             }
