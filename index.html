@@ -2773,7 +2773,7 @@ function prependCommentToDOM(text, frameNum, username, version, status) {
             artist: username,
             notes: text,
             status: activeRecordStatus,
-            department: department
+            department: [department]
         };
         if (frameNum) payload.frame_number = frameNum;
 
@@ -2872,7 +2872,7 @@ function prependCommentToDOM(text, frameNum, username, version, status) {
             shot_name: activeRecordShotName,
             version: activeRecordVersion,
             status: newStatus,
-            department: deptSelect ? deptSelect.value : ''
+            department: deptSelect ? [deptSelect.value] : ['']
         };
 
         try {
