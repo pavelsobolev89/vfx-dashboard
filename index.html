@@ -1837,6 +1837,8 @@ async function openPlayer(id) {
         const deptFromVersion = getDepartment(r, versionRecord);
         if (deptSelect && deptFromVersion) {
             deptSelect.value = deptFromVersion.toLowerCase();
+            const dst = (versionRecord ? versionRecord.fields.status : '').toLowerCase();
+            deptSelect.style.color = dst === 'review' ? 'var(--warning)' : dst === 'approved' ? 'var(--success)' : dst === 'in progress' ? 'var(--info)' : dst === 'to fix' ? 'var(--orange)' : 'var(--text-primary)';
         }
         
         const statusSelect = document.getElementById('p-status-select');
