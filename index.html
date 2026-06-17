@@ -1006,8 +1006,8 @@
         .compare-btn.active { background:var(--accent)!important;color:#fff!important }
         .compare-toolbar { display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--bg-secondary);border-radius:6px;margin-top:6px }
         .compare-toolbar select { background:#2a2a2a;color:#fff;border:1px solid var(--border-color);border-radius:4px;padding:2px 6px;font-size:12px }
-        #main-v.wipe-active { position:absolute;top:0;left:0;width:var(--wipe-pos,50%);height:100%;object-fit:cover;display:block;z-index:2 }
-        #ref-v { position:absolute;top:0;right:0;width:calc(100% - var(--wipe-pos,50%));height:100%;object-fit:cover;display:block;z-index:1 }
+        #main-v.wipe-active { position:absolute;top:0;left:0;width:var(--wipe-pos,50%);height:100%;object-fit:cover;object-position:left;display:block;z-index:2 }
+        #ref-v { position:absolute;top:0;right:0;width:calc(100% - var(--wipe-pos,50%));height:100%;object-fit:cover;object-position:right;display:block;z-index:1 }
         .wipe-divider { position:absolute;top:0;bottom:0;left:var(--wipe-pos,50%);width:3px;background:#fff;cursor:ew-resize;transform:translateX(-50%);z-index:10;box-shadow:0 0 8px rgba(0,0,0,.5) }
         .wipe-divider::after { content:'⟷';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#000;font-size:12px;padding:4px 6px;border-radius:4px;font-weight:bold }
         .wipe-label { position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 8px;border-radius:4px;z-index:5;pointer-events:none }
@@ -2668,20 +2668,46 @@ render();
     }
     function setupWipeDrag(div, container, mainV, refV) {
         var dragging = false;
-        function onMove(e) {
-            if (!dragging) return;
-            var cx = e.clientX || (e.touches && e.touches[0].clientX);
-            if (cx === undefined) return;
-            var rect = container.getBoundingClientRect();
-            var pct = Math.max(0, Math.min(100, ((cx - rect.left) / rect.width) * 100));
-            var pctStr = pct + '%';
-            container.style.setProperty('--wipe-pos', pctStr);
-            if (mainV) mainV.style.setProperty('--wipe-pos', pctStr);
+        function setPos(pct) {
+            var s = pct + '%';
+            container.style.setProperty('--wipe-pos', s);
+            if (mainV) mainV.style.setProperty('--wipe-pos', s);
         }
-        function onStart(e) { dragging = true; e.preventDefault(); document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onEnd); document.addEventListener('touchmove', onMove, { passive: false }); document.addEventListener('touchend', onEnd); }
-        function onEnd() { dragging = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onEnd); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onEnd); }
-        div.addEventListener('mousedown', onStart);
-        div.addEventListener('touchstart', onStart, { passive: false });
+        function pctFromClient(cx) {
+            var rect = container.getBoundingClientRect();
+            return Math.max(0, Math.min(100, ((cx - rect.left) / rect.width) * 100));
+        }
+        // Mouse: drag on divider only
+        function onMouseMove(e) { if (dragging) { setPos(pctFromClient(e.clientX)); } }
+        function onMouseStart(e) { dragging = true; e.preventDefault(); document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseEnd); }
+        function onMouseEnd() { dragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseEnd); }
+        div.addEventListener('mousedown', onMouseStart);
+        // Touch: drag anywhere on container with 10px threshold
+        var touchState = null;
+        function onTouchStart(e) {
+            var t = e.touches[0];
+            touchState = { startX: t.clientX, startY: t.clientY, started: false };
+        }
+        function onTouchMove(e) {
+            if (!touchState) return;
+            var t = e.touches[0];
+            if (!touchState.started) {
+                var dx = Math.abs(t.clientX - touchState.startX);
+                var dy = Math.abs(t.clientY - touchState.startY);
+                if (dx < 10 && dy < 10) return;
+                touchState.started = true;
+                dragging = true;
+            }
+            e.preventDefault();
+            setPos(pctFromClient(t.clientX));
+        }
+        function onTouchEnd() {
+            dragging = false;
+            touchState = null;
+        }
+        container.addEventListener('touchstart', onTouchStart, { passive: true });
+        container.addEventListener('touchmove', onTouchMove, { passive: false });
+        container.addEventListener('touchend', onTouchEnd);
     }
 
 function prependCommentToDOM(text, frameNum, username, version, status) {
