@@ -1738,7 +1738,7 @@ function init() {
                         </div>
                         <div class="comment-meta" style="display:flex;flex-direction:column;align-items:flex-end;">
                             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-                                ${version ? `<span style="color: var(--accent); font-weight: 800; font-family: monospace;">${version}</span>` : ''}
+                                ${version ? `<span style="color: var(--accent); font-weight: 800; font-family: monospace; font-size: 10px;">${version}</span>` : ''}
                                 ${dept ? `<span style="background:#2a2a2a;border:1px solid var(--border-color);color:var(--text-muted);font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase;">${dept}</span>` : ''}
                                 ${status ? `<span class="status-badge ${badgeClass}" style="transform: scale(0.9);">${status}</span>` : ''}
                             </div>
@@ -2710,7 +2710,7 @@ function prependCommentToDOM(text, frameNum, username, version, status) {
                 </div>
                 <div class="comment-meta">
                     <span style="color:var(--text-muted);font-size:11px;">${now}</span>
-                    ${ver ? `<span style="color:var(--accent);font-weight:800;font-family:monospace;">${ver}</span>` : ''}
+                    ${ver ? `<span style="color:var(--accent);font-weight:800;font-family:monospace;font-size:10px;">${ver}</span>` : ''}
                     ${status ? `<span class="status-badge ${bc}" style="transform:scale(0.9);">${status}</span>` : ''}
                 </div>
             </div>
