@@ -1006,8 +1006,8 @@
         .compare-btn.active { background:var(--accent)!important;color:#fff!important }
         .compare-toolbar { display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--bg-secondary);border-radius:6px;margin-top:6px }
         .compare-toolbar select { background:#2a2a2a;color:#fff;border:1px solid var(--border-color);border-radius:4px;padding:2px 6px;font-size:12px }
-        #main-v.wipe-active { position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;clip-path:inset(0 var(--wipe-pos,50%) 0 0) }
-        #ref-v { position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block }
+        #main-v.wipe-active { position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;clip-path:inset(0 var(--wipe-pos,50%) 0 0);z-index:2 }
+        #ref-v { position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block;z-index:1 }
         .wipe-divider { position:absolute;top:0;bottom:0;left:calc(100% - var(--wipe-pos,50%));width:3px;background:#fff;cursor:ew-resize;transform:translateX(-50%);z-index:10;box-shadow:0 0 8px rgba(0,0,0,.5) }
         .wipe-divider::after { content:'⟷';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#000;font-size:12px;padding:4px 6px;border-radius:4px;font-weight:bold }
         .wipe-label { position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 8px;border-radius:4px;z-index:5;pointer-events:none }
