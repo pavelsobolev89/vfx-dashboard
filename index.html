@@ -1737,10 +1737,12 @@ function init() {
                             ${frameTag}
                         </div>
                         <div class="comment-meta">
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                ${version ? `<span style="color: var(--accent); font-weight: 800; font-family: monospace;">${version}</span>` : ''}
+                                ${dept ? `<span style="background:#2a2a2a;border:1px solid var(--border-color);color:var(--text-muted);font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase;">${dept}</span>` : ''}
+                                ${status ? `<span class="status-badge ${badgeClass}" style="transform: scale(0.9);">${status}</span>` : ''}
+                            </div>
                             <span style="color: var(--text-muted); font-size: 11px;">${date}</span>
-                            ${version ? `<span style="color: var(--accent); font-weight: 800; font-family: monospace;">${version}</span>` : ''}
-                            ${dept ? `<span style="background:#2a2a2a;border:1px solid var(--border-color);color:var(--text-muted);font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase;">${dept}</span>` : ''}
-                            ${status ? `<span class="status-badge ${badgeClass}" style="transform: scale(0.9);">${status}</span>` : ''}
                         </div>
                     </div>
                     <div class="comment-content">${notes.replace(/\n/g, '<br>')}</div>
