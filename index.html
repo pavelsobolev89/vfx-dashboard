@@ -2601,21 +2601,8 @@ render();
         const mainV = document.getElementById('main-v');
         if (!mainV) return;
         destroyWipe();
-        const toolbar = document.createElement('div');
-        toolbar.className = 'compare-toolbar';
-        toolbar.id = 'wipe-toolbar';
-        toolbar.innerHTML = '<span style="font-size:11px;color:var(--text-muted);">REF:</span><select id="ref-version-select">' +
-            editVersions.map((v, i) => `<option value="${i}">v${v.fields.version} ${v.fields.artist||''}</option>`).join('') +
-            '</select>';
-        wrapper.after(toolbar);
-        document.getElementById('ref-version-select').onchange = function() {
-            const shot = records.find(r => r.id === activeRecordId);
-            if (!shot) return;
-            const eds = getEditVersions(shot);
-            const idx = parseInt(this.value);
-            if (idx >= 0 && idx < eds.length) loadRefVideo(eds[idx], wrapper, mainV);
-        };
-        loadRefVideo(editVersions[0], wrapper, mainV);
+        const latest = editVersions[editVersions.length - 1] || editVersions[0];
+        loadRefVideo(latest, wrapper, mainV);
     }
     function loadRefVideo(ev, wrapper, mainV) {
         document.querySelectorAll('#ref-v,.wipe-divider,.wipe-label').forEach(el => el.remove());
