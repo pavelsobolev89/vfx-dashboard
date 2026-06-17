@@ -1006,11 +1006,11 @@
         .compare-btn.active { background:var(--accent)!important;color:#fff!important }
         .compare-toolbar { display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--bg-secondary);border-radius:6px;margin-top:6px }
         .compare-toolbar select { background:#2a2a2a;color:#fff;border:1px solid var(--border-color);border-radius:4px;padding:2px 6px;font-size:12px }
-        #main-v.wipe-active { position:absolute;top:0;left:0;width:var(--wipe-pos,50%);height:100%;object-fit:cover;object-position:left;display:block;z-index:2 }
+        #main-v { width:100%;height:100%;display:block;object-fit:contain }
+        #main-v.wipe-active { position:absolute;top:0;left:0;width:var(--wipe-pos,50%);height:100%;object-fit:cover;object-position:left;z-index:2 }
         #ref-v { position:absolute;top:0;right:0;width:calc(100% - var(--wipe-pos,50%));height:100%;object-fit:cover;object-position:right;display:block;z-index:1 }
         .wipe-divider { position:absolute;top:0;bottom:0;left:var(--wipe-pos,50%);width:3px;background:#fff;cursor:ew-resize;transform:translateX(-50%);z-index:10;box-shadow:0 0 8px rgba(0,0,0,.5) }
         .wipe-divider::after { content:'⟷';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#000;font-size:12px;padding:4px 6px;border-radius:4px;font-weight:bold }
-        .wipe-label { position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:2px 8px;border-radius:4px;z-index:5;pointer-events:none }
     </style>
 </head>
 <body>
@@ -2609,7 +2609,7 @@ render();
         loadRefVideo(latest, wrapper, mainV);
     }
     function loadRefVideo(ev, wrapper, mainV) {
-        document.querySelectorAll('#ref-v,.wipe-divider,.wipe-label').forEach(el => el.remove());
+        document.querySelectorAll('#ref-v,.wipe-divider').forEach(el => el.remove());
         const url = getVideoUrl(ev);
         if (!url) { tg.showAlert('Edit version has no video URL'); return; }
         mainV.classList.add('wipe-active');
@@ -2623,10 +2623,6 @@ render();
         const div = document.createElement('div');
         div.className = 'wipe-divider';
         wrapper.appendChild(div);
-        const label = document.createElement('div');
-        label.className = 'wipe-label';
-        label.textContent = 'CUT v' + ev.fields.version;
-        wrapper.appendChild(label);
         refV.addEventListener('loadedmetadata', function syncInit() {
             refV.removeEventListener('loadedmetadata', syncInit);
             refV.currentTime = mainV.currentTime;
@@ -2665,7 +2661,7 @@ render();
         }
         const w = document.querySelector('.video-box-wrapper');
         if (w) w.style.removeProperty('--wipe-pos');
-        document.querySelectorAll('#ref-v,.wipe-divider,.wipe-label,#wipe-toolbar').forEach(function(el) { if (el) el.remove(); });
+        document.querySelectorAll('#ref-v,.wipe-divider,#wipe-toolbar').forEach(function(el) { if (el) el.remove(); });
         refVideoData = null;
         var btn = document.querySelector('.compare-btn');
         if (btn) btn.classList.remove('active');
